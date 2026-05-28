@@ -28,8 +28,7 @@ export function LoginScreen() {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    const ok = login(email.trim().toLowerCase(), password);
+    const ok = await login(email.trim(), password);
     setLoading(false);
     if (!ok) {
       Alert.alert('Innlogging feilet', 'Feil e-post eller passord');
@@ -100,16 +99,16 @@ export function LoginScreen() {
 
         <View style={styles.demo}>
           <Text style={styles.demoTitle}>Demo-kontoer</Text>
-          <TouchableOpacity onPress={() => { setEmail('kjetil@vvsservice.no'); setPassword('demo'); }}>
+          <TouchableOpacity onPress={() => { setEmail('kjetil@vvsservice.no'); setPassword('Demo1234!'); }}>
             <Text style={styles.demoItem}>Admin: kjetil@vvsservice.no</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { setEmail('magnus@vvsservice.no'); setPassword('demo'); }}>
+          <TouchableOpacity onPress={() => { setEmail('magnus@vvsservice.no'); setPassword('Demo1234!'); }}>
             <Text style={styles.demoItem}>Tekniker: magnus@vvsservice.no</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { setEmail('90000002'); setPassword('demo'); }}>
+          <TouchableOpacity onPress={() => { setEmail('90000002'); setPassword('Demo1234!'); }}>
             <Text style={styles.demoItem}>Tekniker via tlf: 90000002</Text>
           </TouchableOpacity>
-          <Text style={styles.demoNote}>(trykk for å fylle inn, passord: hva som helst)</Text>
+          <Text style={styles.demoNote}>(trykk for å fylle inn — passord: Demo1234!)</Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

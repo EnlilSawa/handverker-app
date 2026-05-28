@@ -154,18 +154,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   loadData: async () => {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) return;
+
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
+      .eq('id', authData.user.id)
       .single();
 
     if (profileError || !profileData) return;
 
-    const { data: authData } = await supabase.auth.getUser();
     const currentUser: User = {
       id: profileData.id,
       name: profileData.name,
-      email: authData.user?.email ?? profileData.email ?? '',
+      email: authData.user.email ?? profileData.email ?? '',
       phone: profileData.phone ?? '',
       role: profileData.role,
     };

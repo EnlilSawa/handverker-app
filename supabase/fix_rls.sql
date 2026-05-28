@@ -1,0 +1,11 @@
+CREATE OR REPLACE FUNCTION is_admin_user() RETURNS BOOLEAN LANGUAGE SQL SECURITY DEFINER STABLE AS $$ SELECT role = 'admin' FROM profiles WHERE id = auth.uid(); $$;
+DROP POLICY IF EXISTS "Admin ser alle profiler i eget selskap" ON profiles;
+DROP POLICY IF EXISTS "Admin ser alle jobber i eget selskap" ON jobs;
+DROP POLICY IF EXISTS "Admin ser alle fakturaer i eget selskap" ON invoices;
+DROP POLICY IF EXISTS "Bruker ser eget selskap" ON companies;
+DROP POLICY IF EXISTS "Admin oppdaterer eget selskap" ON companies;
+CREATE POLICY "Admin ser alle profiler" ON profiles FOR ALL USING (is_admin_user());
+CREATE POLICY "Admin ser alle jobber" ON jobs FOR ALL USING (is_admin_user());
+CREATE POLICY "Admin ser alle fakturaer" ON invoices FOR ALL USING (is_admin_user());
+CREATE POLICY "Bruker ser eget selskap" ON companies FOR SELECT USING (is_admin_user() OR id IN (SELECT company_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "Admin oppdaterer eget selskap" ON companies FOR UPDATE USING (is_admin_user());
