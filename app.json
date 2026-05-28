@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Håndverker",
+    "slug": "handverker-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#378ADD"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "no.handverkerapp"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#378ADD"
+      },
+      "package": "no.handverkerapp"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
