@@ -54,14 +54,19 @@ export function TeamScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!name.trim() || !email.trim()) {
       Alert.alert('Mangler felt', 'Fyll inn navn og e-post');
       return;
     }
-    addTechnician(name.trim(), email.trim().toLowerCase(), phone.trim());
-    setName(''); setEmail(''); setPhone('');
-    setShowModal(false);
+    try {
+      await addTechnician(name.trim(), email.trim().toLowerCase(), phone.trim());
+      setName(''); setEmail(''); setPhone('');
+      setShowModal(false);
+    } catch (err: any) {
+      setShowModal(false);
+      Alert.alert('Legg til tekniker', err.message);
+    }
   };
 
   return (

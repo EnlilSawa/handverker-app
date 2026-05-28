@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -75,12 +75,7 @@ export function TechProfileScreen() {
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={() =>
-            Alert.alert('Logg ut', 'Er du sikker?', [
-              { text: 'Avbryt', style: 'cancel' },
-              { text: 'Logg ut', style: 'destructive', onPress: logout },
-            ])
-          }
+          onPress={logout}
         >
           <Ionicons name="log-out-outline" size={18} color={colors.danger} />
           <Text style={styles.logoutText}>Logg ut</Text>

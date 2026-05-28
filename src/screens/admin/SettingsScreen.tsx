@@ -98,12 +98,7 @@ export function SettingsScreen() {
 
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={() =>
-            Alert.alert('Logg ut', 'Er du sikker?', [
-              { text: 'Avbryt', style: 'cancel' },
-              { text: 'Logg ut', style: 'destructive', onPress: logout },
-            ])
-          }
+          onPress={logout}
         >
           <Text style={styles.logoutText}>Logg ut</Text>
         </TouchableOpacity>

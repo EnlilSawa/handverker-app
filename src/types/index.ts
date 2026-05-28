@@ -51,6 +51,7 @@ export interface Invoice {
 }
 
 export interface Company {
+  id?: string;
   name: string;
   orgNumber: string;
   address: string;
