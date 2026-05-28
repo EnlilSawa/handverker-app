@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { JobBoardScreen } from '../screens/admin/JobBoardScreen';
 import { NewJobScreen } from '../screens/admin/NewJobScreen';
+import { JobDetailScreen } from '../screens/admin/JobDetailScreen';
 import { TeamScreen } from '../screens/admin/TeamScreen';
 import { InvoicesScreen } from '../screens/admin/InvoicesScreen';
 import { InvoiceDetailScreen } from '../screens/shared/InvoiceDetailScreen';
@@ -20,6 +21,7 @@ function JobsStackNavigator() {
     <JobsStack.Navigator screenOptions={{ headerShown: false }}>
       <JobsStack.Screen name="JobBoard" component={JobBoardScreen} />
       <JobsStack.Screen name="NewJob" component={NewJobScreen} />
+      <JobsStack.Screen name="JobDetail" component={JobDetailScreen} />
     </JobsStack.Navigator>
   );
 }

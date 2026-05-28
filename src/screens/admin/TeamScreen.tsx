@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,15 +29,7 @@ function TechCard({ user, onRemove }: { user: User; onRemove: () => void }) {
         <Text style={styles.meta}>{user.phone}</Text>
         <Text style={styles.statsText}>{completed} fullførte jobber</Text>
       </View>
-      <TouchableOpacity
-        style={styles.removeBtn}
-        onPress={() =>
-          Alert.alert('Fjern tekniker', `Fjerne ${user.name}?`, [
-            { text: 'Avbryt', style: 'cancel' },
-            { text: 'Fjern', style: 'destructive', onPress: onRemove },
-          ])
-        }
-      >
+      <TouchableOpacity style={styles.removeBtn} onPress={onRemove}>
         <Ionicons name="trash-outline" size={18} color={colors.danger} />
       </TouchableOpacity>
     </View>
@@ -53,19 +45,24 @@ export function TeamScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState('');
 
   const handleAdd = async () => {
+    setAddError('');
     if (!name.trim() || !email.trim()) {
-      Alert.alert('Mangler felt', 'Fyll inn navn og e-post');
+      setAddError('Fyll inn navn og e-post');
       return;
     }
+    setAdding(true);
     try {
       await addTechnician(name.trim(), email.trim().toLowerCase(), phone.trim());
       setName(''); setEmail(''); setPhone('');
       setShowModal(false);
     } catch (err: any) {
-      setShowModal(false);
-      Alert.alert('Legg til tekniker', err.message);
+      setAddError(err.message ?? 'Kunne ikke legge til tekniker');
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -121,8 +118,21 @@ export function TeamScreen() {
               </View>
             ))}
 
-            <TouchableOpacity style={styles.saveBtn} onPress={handleAdd}>
-              <Text style={styles.saveBtnText}>Legg til</Text>
+            {addError ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{addError}</Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.saveBtn, adding && { opacity: 0.7 }]}
+              onPress={handleAdd}
+              disabled={adding}
+            >
+              {adding
+                ? <ActivityIndicator color={colors.white} />
+                : <Text style={styles.saveBtnText}>Legg til</Text>
+              }
             </TouchableOpacity>
           </View>
         </View>
@@ -212,4 +222,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  errorBox: {
+    backgroundColor: '#fef0f0',
+    borderRadius: 10,
+    padding: 12,
+  },
+  errorText: { fontSize: 13, color: colors.danger },
 });

@@ -32,12 +32,14 @@ function KanbanColumn({
   jobs,
   flex,
   columnWidth,
+  navigation,
 }: {
   label: string;
   color: string;
   jobs: Job[];
   flex?: number;
   columnWidth?: number;
+  navigation: any;
 }) {
   return (
     <View style={[styles.column, flex ? { flex } : { width: columnWidth }]}>
@@ -56,10 +58,12 @@ function KanbanColumn({
         <FlatList
           data={jobs}
           keyExtractor={(j) => j.id}
-          renderItem={({ item }) => <JobCard job={item} />}
+          renderItem={({ item }) => (
+            <JobCard job={item} onPress={() => navigation.navigate('JobDetail', { jobId: item.id })} />
+          )}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 20 }}
-          scrollEnabled={flex != null} // only scroll inside columns in wide mode
+          scrollEnabled={flex != null}
         />
       )}
     </View>
@@ -125,7 +129,7 @@ export function JobBoardScreen({ navigation }: any) {
         <View style={styles.wideKanban}>
           {columns.map((col, i) => (
             <React.Fragment key={col.status}>
-              <KanbanColumn label={col.label} color={col.color} jobs={col.jobs} flex={1} />
+              <KanbanColumn label={col.label} color={col.color} jobs={col.jobs} flex={1} navigation={navigation} />
               {i < columns.length - 1 && <View style={styles.columnDivider} />}
             </React.Fragment>
           ))}
@@ -178,6 +182,7 @@ export function JobBoardScreen({ navigation }: any) {
                 color={col.color}
                 jobs={col.jobs}
                 columnWidth={COLUMN_WIDTH}
+                navigation={navigation}
               />
             ))}
           </ScrollView>

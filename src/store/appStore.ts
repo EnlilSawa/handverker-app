@@ -93,6 +93,7 @@ interface AppState {
 
   addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateJobStatus: (jobId: string, status: JobStatus, hours?: number, materials?: number) => Promise<void>;
+  assignTechnician: (jobId: string, technicianId: string | null, technicianName: string | null) => Promise<void>;
 
   generateInvoice: (jobId: string, hours: number, materials: number) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
@@ -312,6 +313,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  assignTechnician: async (jobId, technicianId, technicianName) => {
+    const { error } = await supabase
+      .from('jobs')
+      .update({ assigned_technician_id: technicianId })
+      .eq('id', jobId);
+
+    if (error) throw new Error(error.message);
+
+    set((state) => ({
+      jobs: state.jobs.map((j) =>
+        j.id === jobId
+          ? { ...j, assignedTechnicianId: technicianId, assignedTechnicianName: technicianName }
+          : j
+      ),
+    }));
+  },
+
   generateInvoice: async (jobId, hours, materials) => {
     const { jobs, company, companyId } = get();
     const job = jobs.find((j) => j.id === jobId);
@@ -390,10 +408,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   addTechnician: async (name, email, phone) => {
-    const { error } = await supabase.functions.invoke('invite-technician', {
-      body: { name, email, phone },
+    const { data, error } = await supabase.rpc('add_technician_to_team', {
+      p_name: name,
+      p_email: email,
+      p_phone: phone,
     });
     if (error) throw new Error(error.message);
+    set((state) => ({ users: [...state.users, mapUser(data)] }));
   },
 
   removeTechnician: async (userId) => {

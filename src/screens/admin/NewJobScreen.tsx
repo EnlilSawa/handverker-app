@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,26 +47,33 @@ export function NewJobScreen({ navigation }: any) {
   const [date, setDate] = useState(todayISO());
   const [time, setTime] = useState('08:00');
   const [showPicker, setShowPicker] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSave = () => {
-    if (!customerName.trim()) { Alert.alert('Mangler felt', 'Fyll inn kundenavn'); return; }
-    if (!address.trim()) { Alert.alert('Mangler felt', 'Fyll inn adresse'); return; }
-    if (!description.trim()) { Alert.alert('Mangler felt', 'Beskriv jobben'); return; }
+  const handleSave = async () => {
+    setError('');
+    if (!customerName.trim()) { setError('Fyll inn kundenavn'); return; }
+    if (!address.trim()) { setError('Fyll inn adresse'); return; }
+    if (!description.trim()) { setError('Beskriv jobben'); return; }
 
-    addJob({
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      address: address.trim(),
-      description: description.trim(),
-      assignedTechnicianId: selectedTech?.id ?? null,
-      assignedTechnicianName: selectedTech?.name ?? null,
-      scheduledAt: `${date}T${time}:00`,
-      status: 'new',
-    });
-
-    Alert.alert('Jobb opprettet!', `Ny jobb for ${customerName} er lagt til.`, [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
+    setSaving(true);
+    try {
+      await addJob({
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        address: address.trim(),
+        description: description.trim(),
+        assignedTechnicianId: selectedTech?.id ?? null,
+        assignedTechnicianName: selectedTech?.name ?? null,
+        scheduledAt: `${date}T${time}:00`,
+        status: 'new',
+      });
+      navigation.goBack();
+    } catch {
+      setError('Kunne ikke lagre jobben. Prøv igjen.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -154,8 +161,21 @@ export function NewJobScreen({ navigation }: any) {
           </Field>
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Opprett jobb</Text>
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving
+            ? <ActivityIndicator color={colors.white} />
+            : <Text style={styles.saveButtonText}>Opprett jobb</Text>
+          }
         </TouchableOpacity>
       </ScrollView>
 
@@ -240,13 +260,21 @@ const styles = StyleSheet.create({
   },
   pickerText: { fontSize: 15, color: colors.textDark },
   dateRow: { flexDirection: 'row' },
+  errorBox: {
+    backgroundColor: '#fef0f0',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 16,
+  },
+  errorText: { fontSize: 13, color: colors.danger },
   saveButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 16,
   },
+  saveButtonDisabled: { opacity: 0.7 },
   saveButtonText: { color: colors.white, fontSize: 16, fontWeight: '700' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: {
