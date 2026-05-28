@@ -15,7 +15,7 @@ import { colors } from '../../theme/colors';
 import { StatBox } from '../../components/StatBox';
 import { JobCard } from '../../components/JobCard';
 import { formatCurrency } from '../../utils/formatters';
-import { JobStatus } from '../../types';
+import { Job, JobStatus } from '../../types';
 
 const COLUMNS: { status: JobStatus; label: string; color: string }[] = [
   { status: 'new', label: 'Ny', color: colors.statusNew },
@@ -35,7 +35,7 @@ function KanbanColumn({
 }: {
   label: string;
   color: string;
-  jobs: ReturnType<typeof useAppStore>['jobs'];
+  jobs: Job[];
   flex?: number;
   columnWidth?: number;
 }) {

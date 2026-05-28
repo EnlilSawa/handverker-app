@@ -15,7 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 
-export function LoginScreen() {
+interface Props {
+  onGoToRegister?: () => void;
+}
+
+export function LoginScreen({ onGoToRegister }: Props) {
   const login = useAppStore((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -110,6 +114,15 @@ export function LoginScreen() {
           </TouchableOpacity>
           <Text style={styles.demoNote}>(trykk for å fylle inn — passord: Demo1234!)</Text>
         </View>
+
+        {onGoToRegister && (
+          <TouchableOpacity style={styles.registerLink} onPress={onGoToRegister}>
+            <Text style={styles.registerLinkText}>
+              Ny bedrift?{' '}
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>Registrer deg gratis</Text>
+            </Text>
+          </TouchableOpacity>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -164,4 +177,6 @@ const styles = StyleSheet.create({
   demoTitle: { fontSize: 12, fontWeight: '600', color: colors.textGray, marginBottom: 4 },
   demoItem: { fontSize: 13, color: colors.primary, paddingVertical: 2 },
   demoNote: { fontSize: 11, color: colors.textLight, marginTop: 4 },
+  registerLink: { marginTop: 24, alignItems: 'center' },
+  registerLinkText: { fontSize: 14, color: colors.textGray },
 });

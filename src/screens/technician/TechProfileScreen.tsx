@@ -24,7 +24,7 @@ export function TechProfileScreen() {
   const items: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }[] = [
     { icon: 'mail-outline', label: 'E-post', value: currentUser?.email ?? '' },
     { icon: 'call-outline', label: 'Telefon', value: currentUser?.phone ?? '' },
-    { icon: 'business-outline', label: 'Firma', value: company.name },
+    { icon: 'business-outline', label: 'Firma', value: company?.name ?? '' },
   ];
 
   return (

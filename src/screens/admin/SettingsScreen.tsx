@@ -43,12 +43,12 @@ export function SettingsScreen() {
   const logout = useAppStore((s) => s.logout);
   const updateCompany = useAppStore((s) => s.updateCompany);
 
-  const [name, setName] = useState(company.name);
-  const [orgNumber, setOrgNumber] = useState(company.orgNumber);
-  const [address, setAddress] = useState(company.address);
-  const [hourlyRate, setHourlyRate] = useState(String(company.hourlyRate));
-  const [calloutFee, setCalloutFee] = useState(String(company.calloutFee));
-  const [paymentTerms, setPaymentTerms] = useState(String(company.paymentTermsDays));
+  const [name, setName] = useState(company?.name ?? '');
+  const [orgNumber, setOrgNumber] = useState(company?.orgNumber ?? '');
+  const [address, setAddress] = useState(company?.address ?? '');
+  const [hourlyRate, setHourlyRate] = useState(String(company?.hourlyRate ?? 895));
+  const [calloutFee, setCalloutFee] = useState(String(company?.calloutFee ?? 350));
+  const [paymentTerms, setPaymentTerms] = useState(String(company?.paymentTermsDays ?? 14));
 
   const handleSave = () => {
     const rate = parseFloat(hourlyRate);

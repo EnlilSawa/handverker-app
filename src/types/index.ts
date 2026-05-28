@@ -50,6 +50,8 @@ export interface Invoice {
   createdAt: string;
 }
 
+export type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'canceled';
+
 export interface Company {
   id?: string;
   name: string;
@@ -58,4 +60,7 @@ export interface Company {
   hourlyRate: number;
   calloutFee: number;
   paymentTermsDays: number;
+  trialEndsAt?: string;
+  subscriptionStatus?: SubscriptionStatus;
+  onboardingCompleted?: boolean;
 }

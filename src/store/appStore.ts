@@ -3,6 +3,8 @@ import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem 
 import { supabase } from '../lib/supabase';
 import { addDays } from '../utils/formatters';
 
+type RegisterResult = 'ok' | 'confirm_email' | 'error';
+
 // ── DB row → TypeScript type mappers ──────────────────────────────────────
 
 function mapJob(row: any): Job {
@@ -49,6 +51,9 @@ function mapCompany(row: any): Company {
     hourlyRate: Number(row.hourly_rate),
     calloutFee: Number(row.callout_fee),
     paymentTermsDays: Number(row.payment_terms_days),
+    trialEndsAt: row.trial_ends_at ?? undefined,
+    subscriptionStatus: row.subscription_status ?? undefined,
+    onboardingCompleted: row.onboarding_completed ?? false,
   };
 }
 
@@ -78,6 +83,13 @@ interface AppState {
   logout: () => Promise<void>;
   loadData: () => Promise<void>;
   initSession: () => Promise<void>;
+
+  register: (name: string, email: string, phone: string, password: string) => Promise<RegisterResult>;
+  setupCompany: (data: {
+    name: string; orgNumber: string; address: string;
+    hourlyRate: number; calloutFee: number; paymentTermsDays: number;
+  }) => Promise<void>;
+  createStripeCheckout: () => Promise<string>;
 
   addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateJobStatus: (jobId: string, status: JobStatus, hours?: number, materials?: number) => Promise<void>;
@@ -109,6 +121,46 @@ export const useAppStore = create<AppState>((set, get) => ({
       await get().loadData();
     }
     set({ initialized: true });
+  },
+
+  register: async (name, email, phone, password) => {
+    set({ loading: true });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+        options: { data: { name, phone } },
+      });
+      set({ loading: false });
+      if (error) return 'error';
+      if (data.session) {
+        await get().loadData();
+        return 'ok';
+      }
+      return 'confirm_email';
+    } catch {
+      set({ loading: false });
+      return 'error';
+    }
+  },
+
+  setupCompany: async (data) => {
+    const { error } = await supabase.rpc('setup_company', {
+      p_name: data.name,
+      p_org_number: data.orgNumber,
+      p_address: data.address,
+      p_hourly_rate: data.hourlyRate,
+      p_callout_fee: data.calloutFee,
+      p_payment_terms_days: data.paymentTermsDays,
+    });
+    if (error) throw new Error(error.message);
+    await get().loadData();
+  },
+
+  createStripeCheckout: async () => {
+    const { data, error } = await supabase.functions.invoke('create-stripe-checkout', { body: {} });
+    if (error) throw new Error(error.message);
+    return data.url as string;
   },
 
   login: async (emailOrPhone, password) => {
@@ -334,13 +386,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  addTechnician: async (_name, _email, _phone) => {
-    // Krever Edge Function med service role for å opprette auth-brukere.
-    // Midlertidig: legg til teknikere via Supabase Dashboard → Authentication → Add user
-    // og sett role='technician' og company_id i raw_user_meta_data.
-    throw new Error(
-      'Legg til teknikere via Supabase-dashboardet under Authentication → Users'
-    );
+  addTechnician: async (name, email, phone) => {
+    const { error } = await supabase.functions.invoke('invite-technician', {
+      body: { name, email, phone },
+    });
+    if (error) throw new Error(error.message);
   },
 
   removeTechnician: async (userId) => {

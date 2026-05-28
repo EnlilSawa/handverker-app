@@ -87,7 +87,7 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
             </View>
             <View style={styles.companyBadge}>
               <Text style={styles.companyInitials}>
-                {company.name.split(' ').map((w) => w[0]).join('').slice(0, 3)}
+                {company?.name.split(' ').map((w) => w[0]).join('').slice(0, 3) ?? '?'}
               </Text>
             </View>
           </View>
@@ -97,9 +97,9 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
           <View style={styles.partyRow}>
             <View style={styles.party}>
               <Text style={styles.partyLabel}>Fra</Text>
-              <Text style={styles.partyName}>{company.name}</Text>
-              <Text style={styles.partyDetail}>Org.nr: {company.orgNumber}</Text>
-              <Text style={styles.partyDetail}>{company.address}</Text>
+              <Text style={styles.partyName}>{company?.name ?? ''}</Text>
+              <Text style={styles.partyDetail}>Org.nr: {company?.orgNumber ?? ''}</Text>
+              <Text style={styles.partyDetail}>{company?.address ?? ''}</Text>
             </View>
             <View style={[styles.party, { alignItems: 'flex-end' }]}>
               <Text style={styles.partyLabel}>Til</Text>
@@ -161,7 +161,7 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
 
         <View style={styles.terms}>
           <Text style={styles.termsText}>
-            Betalingsbetingelser: {company.paymentTermsDays} dager netto.
+            Betalingsbetingelser: {company?.paymentTermsDays ?? 14} dager netto.
             Kontonummer oppgis på forespørsel.
           </Text>
         </View>
