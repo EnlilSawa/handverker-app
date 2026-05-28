@@ -5,6 +5,7 @@ import { useAppStore } from '../store/appStore';
 import { supabase } from '../lib/supabase';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
+import { ConfirmEmailScreen } from '../screens/auth/ConfirmEmailScreen';
 import { OnboardingWizard } from '../screens/onboarding/OnboardingWizard';
 import { PaywallScreen } from '../screens/paywall/PaywallScreen';
 import { AdminNavigator } from './AdminNavigator';
@@ -13,25 +14,34 @@ import { colors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
 
+type AuthView = 'login' | 'register' | 'confirm_email';
+
 function isTrialExpired(trialEndsAt?: string): boolean {
   if (!trialEndsAt) return false;
   return new Date(trialEndsAt) < new Date();
 }
 
 export function RootNavigator() {
-  const currentUser  = useAppStore((s) => s.currentUser);
-  const company      = useAppStore((s) => s.company);
-  const initialized  = useAppStore((s) => s.initialized);
-  const initSession  = useAppStore((s) => s.initSession);
-  const loadData     = useAppStore((s) => s.loadData);
+  const currentUser = useAppStore((s) => s.currentUser);
+  const company     = useAppStore((s) => s.company);
+  const initialized = useAppStore((s) => s.initialized);
+  const initSession = useAppStore((s) => s.initSession);
+  const loadData    = useAppStore((s) => s.loadData);
 
-  const [showRegister, setShowRegister] = useState(false);
+  const [authView, setAuthView] = useState<AuthView>('login');
+  const [pendingEmail, setPendingEmail] = useState('');
 
   useEffect(() => {
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'TOKEN_REFRESHED') loadData();
+      if (event === 'SIGNED_IN') {
+        // Etter e-postbekreftelse: last data og gå til app
+        loadData();
+        setAuthView('login');
+      } else if (event === 'TOKEN_REFRESHED') {
+        loadData();
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -45,26 +55,45 @@ export function RootNavigator() {
     );
   }
 
-  // Ikke innlogget
+  // ── Ikke innlogget ──────────────────────────────────────────────────────────
+
   if (!currentUser) {
-    if (showRegister) {
-      return <RegisterScreen onGoToLogin={() => setShowRegister(false)} />;
+    if (authView === 'confirm_email') {
+      return (
+        <ConfirmEmailScreen
+          email={pendingEmail}
+          onGoToLogin={() => setAuthView('login')}
+        />
+      );
     }
+
+    if (authView === 'register') {
+      return (
+        <RegisterScreen
+          onGoToLogin={() => setAuthView('login')}
+          onEmailSent={(email) => {
+            setPendingEmail(email);
+            setAuthView('confirm_email');
+          }}
+        />
+      );
+    }
+
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login">
-          {() => <LoginScreen onGoToRegister={() => setShowRegister(true)} />}
+          {() => <LoginScreen onGoToRegister={() => setAuthView('register')} />}
         </Stack.Screen>
       </Stack.Navigator>
     );
   }
 
-  // Admin uten firma → onboarding-wizard
+  // ── Admin uten firma → onboarding ──────────────────────────────────────────
   if (currentUser.role === 'admin' && !company) {
     return <OnboardingWizard />;
   }
 
-  // Prøveperiode utløpt og ikke aktivt abonnement → betalingsvegg
+  // ── Prøveperiode utløpt og ikke aktivt abonnement → betalingsvegg ──────────
   if (
     company &&
     company.subscriptionStatus !== 'active' &&
@@ -73,7 +102,7 @@ export function RootNavigator() {
     return <PaywallScreen />;
   }
 
-  // Innlogget med aktiv tilgang
+  // ── Innlogget med aktiv tilgang ────────────────────────────────────────────
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {currentUser.role === 'admin' ? (

@@ -18,9 +18,10 @@ import { useAppStore } from '../../store/appStore';
 
 interface Props {
   onGoToLogin: () => void;
+  onEmailSent: (email: string) => void;
 }
 
-export function RegisterScreen({ onGoToLogin }: Props) {
+export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
   const register = useAppStore((s) => s.register);
 
   const [name, setName] = useState('');
@@ -42,11 +43,7 @@ export function RegisterScreen({ onGoToLogin }: Props) {
     if (result === 'error') {
       Alert.alert('Feil', 'Kunne ikke opprette konto. E-postadressen er kanskje allerede i bruk.');
     } else if (result === 'confirm_email') {
-      Alert.alert(
-        'Sjekk e-posten din',
-        `Vi har sendt en bekreftelseslenke til ${email.trim()}. Klikk på lenken og logg inn igjen.`,
-        [{ text: 'OK', onPress: onGoToLogin }]
-      );
+      onEmailSent(email.trim());
     }
     // 'ok' → RootNavigator oppdager session og sender til onboarding automatisk
   };
