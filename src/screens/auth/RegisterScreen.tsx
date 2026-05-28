@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,18 +29,20 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleRegister = async () => {
-    if (!name.trim()) { Alert.alert('Mangler info', 'Skriv inn navn'); return; }
-    if (!email.trim() || !email.includes('@')) { Alert.alert('Mangler info', 'Skriv inn gyldig e-postadresse'); return; }
-    if (password.length < 6) { Alert.alert('Svakt passord', 'Passordet må ha minst 6 tegn'); return; }
+    setError('');
+    if (!name.trim()) { setError('Skriv inn navn'); return; }
+    if (!email.trim() || !email.includes('@')) { setError('Skriv inn gyldig e-postadresse'); return; }
+    if (password.length < 6) { setError('Passordet må ha minst 6 tegn'); return; }
 
     setLoading(true);
     const result = await register(name.trim(), email.trim(), phone.trim(), password);
     setLoading(false);
 
     if (result === 'error') {
-      Alert.alert('Feil', 'Kunne ikke opprette konto. E-postadressen er kanskje allerede i bruk.');
+      setError('Kunne ikke opprette konto. E-postadressen er kanskje allerede i bruk, eller prøv igjen om litt.');
     } else if (result === 'confirm_email') {
       onEmailSent(email.trim());
     }
@@ -121,6 +122,13 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
               </TouchableOpacity>
             </View>
 
+            {error ? (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={16} color={colors.danger} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleRegister}
@@ -176,12 +184,22 @@ const styles = StyleSheet.create({
   passwordRow: { position: 'relative' },
   passwordInput: { paddingRight: 44 },
   eyeButton: { position: 'absolute', right: 12, top: 13 },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fef0f0',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+  },
+  errorText: { flex: 1, fontSize: 13, color: colors.danger, lineHeight: 18 },
   button: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 20,
   },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: colors.white, fontSize: 16, fontWeight: '700' },
