@@ -24,6 +24,7 @@ function isTrialExpired(trialEndsAt?: string): boolean {
 export function RootNavigator() {
   const currentUser = useAppStore((s) => s.currentUser);
   const company     = useAppStore((s) => s.company);
+  const companyId   = useAppStore((s) => s.companyId);
   const initialized = useAppStore((s) => s.initialized);
   const initSession = useAppStore((s) => s.initSession);
   const loadData    = useAppStore((s) => s.loadData);
@@ -88,8 +89,11 @@ export function RootNavigator() {
     );
   }
 
-  // ── Admin uten firma → onboarding ──────────────────────────────────────────
-  if (currentUser.role === 'admin' && !company) {
+  // ── Ny bruker uten firma → onboarding-wizard ──────────────────────────────
+  // Nye brukere får role='technician' fra triggeren som standard — vi sjekker
+  // companyId (fra profilen) i tillegg til company (lastet objekt) for å unngå
+  // at teknikere med firma havner her ved midlertidig lastingsfeil.
+  if (!company && !companyId) {
     return <OnboardingWizard />;
   }
 

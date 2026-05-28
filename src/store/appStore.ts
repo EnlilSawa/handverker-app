@@ -116,6 +116,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   initialized: false,
 
   initSession: async () => {
+    // På web kan URL-tokens fra e-postbekreftelse trenge et øyeblikk å prosessere
+    // før getSession() finner dem. onAuthStateChange i RootNavigator tar over
+    // hvis SIGNED_IN eventet kommer etter initialized er satt.
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       await get().loadData();
