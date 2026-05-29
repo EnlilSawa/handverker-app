@@ -11,85 +11,269 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
-import { colors } from '../../theme/colors';
-import { StatBox } from '../../components/StatBox';
 import { JobCard } from '../../components/JobCard';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatShortDate } from '../../utils/formatters';
 import { Job, JobStatus } from '../../types';
 
-const COLUMNS: { status: JobStatus; label: string; color: string }[] = [
-  { status: 'new', label: 'Ny', color: colors.statusNew },
-  { status: 'in_progress', label: 'Pågår', color: colors.statusInProgress },
-  { status: 'completed', label: 'Ferdig', color: colors.statusCompleted },
+// Completed jobs live in Archive — only active statuses on the board
+const COLUMNS: { status: JobStatus; label: string }[] = [
+  { status: 'new', label: 'Ny' },
+  { status: 'in_progress', label: 'Pågår' },
 ];
 
-// Threshold for switching from swipe-tabs to side-by-side columns
-const WIDE_BREAKPOINT = 640;
+const STATUS_CFG: Record<JobStatus, { label: string; color: string; bg: string }> = {
+  new: { label: 'Ny', color: '#2563FF', bg: '#EEF4FF' },
+  in_progress: { label: 'Pågår', color: '#C2410C', bg: '#FFF7ED' },
+  completed: { label: 'Ferdig', color: '#15803D', bg: '#F0FDF4' },
+};
 
-function KanbanColumn({
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 10) return 'God morgen';
+  if (h < 17) return 'God dag';
+  return 'God kveld';
+}
+
+// ─── Web: stat card ───────────────────────────────────────────────────────────
+
+function StatCard({
   label,
+  value,
   color,
-  jobs,
-  flex,
-  columnWidth,
-  navigation,
+  sub,
 }: {
   label: string;
+  value: string;
   color: string;
-  jobs: Job[];
-  flex?: number;
-  columnWidth?: number;
-  navigation: any;
+  sub?: string;
 }) {
   return (
-    <View style={[styles.column, flex ? { flex } : { width: columnWidth }]}>
-      <View style={[styles.columnHeader, { borderLeftColor: color }]}>
-        <Text style={[styles.columnTitle, { color }]}>{label}</Text>
-        <View style={[styles.columnBadge, { backgroundColor: color + '20' }]}>
-          <Text style={[styles.columnBadgeText, { color }]}>{jobs.length}</Text>
-        </View>
+    <View style={statCard.card}>
+      <Text style={statCard.label}>{label}</Text>
+      <Text style={[statCard.value, { color }]}>{value}</Text>
+      {sub ? <Text style={statCard.sub}>{sub}</Text> : null}
+    </View>
+  );
+}
+
+const statCard = StyleSheet.create({
+  card: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 20,
+    gap: 6,
+  },
+  label: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  value: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  sub: { fontSize: 12, color: '#94A3B8' },
+});
+
+// ─── Web: jobs table ──────────────────────────────────────────────────────────
+
+function JobsTable({ jobs, navigation }: { jobs: Job[]; navigation: any }) {
+  return (
+    <View style={table.card}>
+      <View style={table.header}>
+        <Text style={[table.th, { flex: 2 }]}>KUNDE</Text>
+        <Text style={[table.th, { flex: 2 }]}>BESKRIVELSE</Text>
+        <Text style={[table.th, { flex: 1.5 }]}>TEKNIKER</Text>
+        <Text style={[table.th, { flex: 1 }]}>DATO</Text>
+        <Text style={[table.th, { flex: 1, textAlign: 'right' }]}>STATUS</Text>
       </View>
       {jobs.length === 0 ? (
-        <View style={styles.emptyColumn}>
-          <Ionicons name="checkmark-circle-outline" size={28} color={colors.border} />
-          <Text style={styles.emptyText}>Ingen jobber</Text>
+        <View style={table.empty}>
+          <Text style={table.emptyText}>Ingen jobber å vise</Text>
         </View>
       ) : (
-        <FlatList
-          data={jobs}
-          keyExtractor={(j) => j.id}
-          renderItem={({ item }) => (
-            <JobCard job={item} onPress={() => navigation.navigate('JobDetail', { jobId: item.id })} />
-          )}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          scrollEnabled={flex != null}
-        />
+        jobs.map((job, i) => {
+          const cfg = STATUS_CFG[job.status];
+          return (
+            <TouchableOpacity
+              key={job.id}
+              style={[table.row, i % 2 === 1 && table.rowAlt]}
+              onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
+              activeOpacity={0.7}
+            >
+              <Text style={[table.tdBold, { flex: 2 }]} numberOfLines={1}>
+                {job.customerName}
+              </Text>
+              <Text style={[table.td, { flex: 2 }]} numberOfLines={1}>
+                {job.description}
+              </Text>
+              <Text style={[table.td, { flex: 1.5 }]} numberOfLines={1}>
+                {job.assignedTechnicianName ?? '—'}
+              </Text>
+              <Text style={[table.td, { flex: 1 }]}>
+                {formatShortDate(job.scheduledAt)}
+              </Text>
+              <View style={[table.badgeWrap, { flex: 1, alignItems: 'flex-end' }]}>
+                <View style={[table.badge, { backgroundColor: cfg.bg }]}>
+                  <Text style={[table.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })
       )}
     </View>
   );
 }
 
-export function JobBoardScreen({ navigation }: any) {
-  const { width } = useWindowDimensions();
-  const isWide = width >= WIDE_BREAKPOINT;
+const table = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  th: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+  },
+  rowAlt: { backgroundColor: '#F8FAFC' },
+  tdBold: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
+  td: { fontSize: 14, color: '#64748B' },
+  badgeWrap: { flexDirection: 'row' },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  badgeText: { fontSize: 12, fontWeight: '600' },
+  empty: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 14, color: '#94A3B8' },
+});
 
+// ─── Web layout ───────────────────────────────────────────────────────────────
+
+function WebJobBoard({ navigation }: { navigation: any }) {
   const jobs = useAppStore((s) => s.jobs);
   const invoices = useAppStore((s) => s.invoices);
-  const [activeColumn, setActiveColumn] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
-
-  const COLUMN_WIDTH = width - 48;
+  const currentUser = useAppStore((s) => s.currentUser);
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const firstName = currentUser?.name?.split(' ')[0] ?? '';
+  const dateLabel = new Date().toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   const stats = useMemo(() => {
-    const todayJobs = jobs.filter((j) => j.scheduledAt.startsWith(todayStr));
-    const unpaidInvoices = invoices.filter((inv) => inv.status !== 'paid');
     const monthRevenue = invoices
       .filter((inv) => inv.status === 'paid' && inv.createdAt.startsWith(todayStr.slice(0, 7)))
-      .reduce((sum, inv) => sum + inv.total, 0);
-    return { todayJobs: todayJobs.length, unpaidInvoices: unpaidInvoices.length, monthRevenue };
+      .reduce((s, inv) => s + inv.total, 0);
+    const active = jobs.filter((j) => j.status === 'in_progress').length;
+    const nyeJobs = jobs.filter((j) => j.status === 'new').length;
+    const unpaid = invoices.filter((inv) => inv.status !== 'paid').length;
+    return { monthRevenue, active, nyeJobs, unpaid };
+  }, [jobs, invoices, todayStr]);
+
+  const sortedJobs = useMemo(
+    () => [...jobs]
+      .filter((j) => j.status !== 'completed')
+      .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt)),
+    [jobs]
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#F5F7FA' }}>
+      {/* Top bar */}
+      <View style={web.topBar}>
+        <View>
+          <Text style={web.pageTitle}>Jobbtavle</Text>
+          <Text style={web.pageDate}>{greeting()}{firstName ? `, ${firstName}` : ''} · {dateLabel}</Text>
+        </View>
+        <TouchableOpacity style={web.addBtn} onPress={() => navigation.navigate('NewJob')}>
+          <Ionicons name="add" size={18} color="#FFFFFF" />
+          <Text style={web.addBtnText}>Ny jobb</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={web.content}>
+        {/* 4 stat cards */}
+        <View style={web.statRow}>
+          <StatCard label="Total inntekt" value={formatCurrency(stats.monthRevenue)} color="#15803D" sub="denne måneden" />
+          <StatCard label="Aktive jobber" value={String(stats.active)} color="#2563FF" />
+          <StatCard label="Nye jobber" value={String(stats.nyeJobs)} color="#2563FF" />
+          <StatCard label="Ubetalte fakturaer" value={String(stats.unpaid)} color="#DC2626" />
+        </View>
+
+        {/* Jobs table */}
+        <View style={web.sectionHeader}>
+          <Text style={web.sectionTitle}>Alle jobber</Text>
+        </View>
+        <JobsTable jobs={sortedJobs} navigation={navigation} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const web = StyleSheet.create({
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  pageTitle: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
+  pageDate: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#2563FF',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  addBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  content: { padding: 24, gap: 24 },
+  statRow: { flexDirection: 'row', gap: 16 },
+  sectionHeader: { marginBottom: -8 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937' },
+});
+
+// ─── Mobile layout ────────────────────────────────────────────────────────────
+
+function MobileJobBoard({ navigation }: { navigation: any }) {
+  const jobs = useAppStore((s) => s.jobs);
+  const invoices = useAppStore((s) => s.invoices);
+  const currentUser = useAppStore((s) => s.currentUser);
+  const [activeColumn, setActiveColumn] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const { width } = useWindowDimensions();
+  const COLUMN_WIDTH = width - 40;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const firstName = currentUser?.name?.split(' ')[0] ?? '';
+
+  const stats = useMemo(() => {
+    const monthRevenue = invoices
+      .filter((inv) => inv.status === 'paid' && inv.createdAt.startsWith(todayStr.slice(0, 7)))
+      .reduce((s, inv) => s + inv.total, 0);
+    const active = jobs.filter((j) => j.status === 'in_progress').length;
+    const unpaid = invoices.filter((inv) => inv.status !== 'paid').length;
+    return { monthRevenue, active, unpaid };
   }, [jobs, invoices, todayStr]);
 
   const columns = useMemo(
@@ -102,149 +286,144 @@ export function JobBoardScreen({ navigation }: any) {
     scrollRef.current?.scrollTo({ x: index * (COLUMN_WIDTH + 16), animated: true });
   };
 
+  const dateLabel = new Date().toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={mobile.safe}>
+      <View style={mobile.header}>
         <View>
-          <Text style={styles.title}>Jobbtavle</Text>
-          <Text style={styles.subtitle}>
-            {new Date().toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </Text>
+          <Text style={mobile.greeting}>{greeting()}{firstName ? `, ${firstName}` : ''}</Text>
+          <Text style={mobile.date}>{dateLabel}</Text>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('NewJob')}>
-          <Ionicons name="add" size={24} color={colors.white} />
+        <TouchableOpacity style={mobile.addBtn} onPress={() => navigation.navigate('NewJob')}>
+          <Ionicons name="add" size={22} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <StatBox label="Jobber i dag" value={String(stats.todayJobs)} color={colors.primary} />
-        <StatBox label="Ubetalte fakturaer" value={String(stats.unpaidInvoices)} color={colors.warning} />
-        <StatBox label="Inntekt denne mnd." value={formatCurrency(stats.monthRevenue)} color={colors.success} />
+      {/* 3 stat tiles */}
+      <View style={mobile.statsRow}>
+        {[
+          { label: 'Inntekt mnd.', value: formatCurrency(stats.monthRevenue), color: '#15803D' },
+          { label: 'Aktive jobber', value: String(stats.active), color: '#2563FF' },
+          { label: 'Ubetalte', value: String(stats.unpaid), color: '#DC2626' },
+        ].map((s) => (
+          <View key={s.label} style={mobile.statTile}>
+            <Text style={[mobile.statValue, { color: s.color }]}>{s.value}</Text>
+            <Text style={mobile.statLabel}>{s.label}</Text>
+          </View>
+        ))}
       </View>
 
-      {isWide ? (
-        /* ── WIDE: Three columns side by side ─────────────────────────── */
-        <View style={styles.wideKanban}>
-          {columns.map((col, i) => (
-            <React.Fragment key={col.status}>
-              <KanbanColumn label={col.label} color={col.color} jobs={col.jobs} flex={1} navigation={navigation} />
-              {i < columns.length - 1 && <View style={styles.columnDivider} />}
-            </React.Fragment>
-          ))}
-        </View>
-      ) : (
-        /* ── NARROW: Tab bar + horizontal swipe ───────────────────────── */
-        <>
-          <View style={styles.columnTabs}>
-            {columns.map((col, index) => (
-              <TouchableOpacity
-                key={col.status}
-                style={[
-                  styles.columnTab,
-                  activeColumn === index && { borderBottomColor: col.color, borderBottomWidth: 2 },
-                ]}
-                onPress={() => scrollToColumn(index)}
-              >
-                <Text
-                  style={[
-                    styles.columnTabText,
-                    activeColumn === index && { color: col.color, fontWeight: '700' },
-                  ]}
-                >
-                  {col.label}
+      {/* Tab switcher */}
+      <View style={mobile.tabBar}>
+        {columns.map((col, index) => {
+          const cfg = STATUS_CFG[col.status];
+          const isActive = activeColumn === index;
+          return (
+            <TouchableOpacity
+              key={col.status}
+              style={[mobile.tab, isActive && mobile.tabActive]}
+              onPress={() => scrollToColumn(index)}
+            >
+              <Text style={[mobile.tabText, isActive && mobile.tabTextActive]}>
+                {col.label}
+              </Text>
+              <View style={[mobile.tabBadge, { backgroundColor: isActive ? '#EEF4FF' : '#F1F5F9' }]}>
+                <Text style={[mobile.tabBadgeText, { color: isActive ? '#2563FF' : '#94A3B8' }]}>
+                  {col.jobs.length}
                 </Text>
-                <View style={[styles.tabBadge, { backgroundColor: col.color + '20' }]}>
-                  <Text style={[styles.tabBadgeText, { color: col.color }]}>{col.jobs.length}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
-          <ScrollView
-            ref={scrollRef}
-            horizontal
-            pagingEnabled={false}
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={COLUMN_WIDTH + 16}
-            decelerationRate="fast"
-            contentContainerStyle={[styles.swipeKanban, { paddingHorizontal: 16 }]}
-            onMomentumScrollEnd={(e) => {
-              const index = Math.round(e.nativeEvent.contentOffset.x / (COLUMN_WIDTH + 16));
-              setActiveColumn(Math.max(0, Math.min(index, 2)));
-            }}
-          >
-            {columns.map((col) => (
-              <KanbanColumn
-                key={col.status}
-                label={col.label}
-                color={col.color}
-                jobs={col.jobs}
-                columnWidth={COLUMN_WIDTH}
-                navigation={navigation}
-              />
-            ))}
-          </ScrollView>
-        </>
-      )}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled={false}
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={COLUMN_WIDTH + 16}
+        decelerationRate="fast"
+        contentContainerStyle={[mobile.swipeKanban, { paddingHorizontal: 20 }]}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / (COLUMN_WIDTH + 16));
+          setActiveColumn(Math.max(0, Math.min(index, 2)));
+        }}
+      >
+        {columns.map((col) => (
+          <View key={col.status} style={{ width: COLUMN_WIDTH }}>
+            {col.jobs.length === 0 ? (
+              <View style={mobile.emptyCol}>
+                <Ionicons name="checkmark-circle-outline" size={28} color="#E2E8F0" />
+                <Text style={mobile.emptyText}>Ingen jobber</Text>
+              </View>
+            ) : (
+              col.jobs.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
+                />
+              ))
+            )}
+          </View>
+        ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.backgroundSecondary },
+const mobile = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: colors.white,
+    paddingBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
-  title: { fontSize: 22, fontWeight: '800', color: colors.textDark },
-  subtitle: { fontSize: 13, color: colors.textGray, marginTop: 2 },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
+  greeting: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
+  date: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  addBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2563FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 14,
-    backgroundColor: colors.white,
+    gap: 10,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
   },
-
-  // Wide (desktop/tablet) three-column layout
-  wideKanban: {
+  statTile: {
     flex: 1,
-    flexDirection: 'row',
-    paddingTop: 14,
-    paddingHorizontal: 12,
-    gap: 0,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    alignItems: 'center',
   },
-  columnDivider: {
-    width: 1,
-    backgroundColor: colors.border,
-    marginVertical: 4,
-  },
-
-  // Narrow (mobile) tab layout
-  columnTabs: {
+  statValue: { fontSize: 20, fontWeight: '700' },
+  statLabel: { fontSize: 11, color: '#64748B', marginTop: 2, textAlign: 'center' },
+  tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
   },
-  columnTab: {
+  tab: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -254,24 +433,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  columnTabText: { fontSize: 13, color: colors.textGray, fontWeight: '500' },
-  tabBadge: { borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
+  tabActive: { borderBottomColor: '#2563FF' },
+  tabText: { fontSize: 14, color: '#94A3B8', fontWeight: '500' },
+  tabTextActive: { color: '#2563FF', fontWeight: '600' },
+  tabBadge: { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   tabBadgeText: { fontSize: 11, fontWeight: '700' },
-  swipeKanban: { paddingVertical: 14, gap: 16 },
-
-  // Shared column styles
-  column: { paddingHorizontal: 8 },
-  columnHeader: {
-    borderLeftWidth: 3,
-    paddingLeft: 10,
-    marginBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  columnTitle: { fontSize: 15, fontWeight: '700' },
-  columnBadge: { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
-  columnBadgeText: { fontSize: 11, fontWeight: '700' },
-  emptyColumn: { alignItems: 'center', paddingTop: 40, gap: 8 },
-  emptyText: { fontSize: 13, color: colors.textLight },
+  swipeKanban: { paddingVertical: 16, gap: 16 },
+  emptyCol: { alignItems: 'center', paddingTop: 48, gap: 8 },
+  emptyText: { fontSize: 13, color: '#94A3B8' },
 });
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+export function JobBoardScreen({ navigation }: any) {
+  const { width } = useWindowDimensions();
+  if (width >= 768) return <WebJobBoard navigation={navigation} />;
+  return <MobileJobBoard navigation={navigation} />;
+}

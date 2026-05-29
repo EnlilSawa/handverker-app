@@ -1,36 +1,38 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  ActivityIndicator,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  Modal, TextInput, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 import { User } from '../../types';
 
-function TechCard({ user, onRemove }: { user: User; onRemove: () => void }) {
+const AVATAR_COLORS = ['#0A1B33', '#2563FF', '#15803D', '#C2410C', '#7C3AED', '#0891B2'];
+
+function initials(name: string) {
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function TechCard({ user, index, onRemove }: { user: User; index: number; onRemove: () => void }) {
   const jobs = useAppStore((s) => s.jobs.filter((j) => j.assignedTechnicianId === user.id));
   const completed = jobs.filter((j) => j.status === 'completed').length;
+  const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
 
   return (
     <View style={styles.card}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{user.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}</Text>
+      <View style={[styles.avatar, { backgroundColor: color }]}>
+        <Text style={styles.avatarText}>{initials(user.name)}</Text>
       </View>
       <View style={styles.info}>
         <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.meta}>{user.phone}</Text>
-        <Text style={styles.statsText}>{completed} fullførte jobber</Text>
+        <Text style={styles.phone}>{user.phone}</Text>
+      </View>
+      <View style={[styles.jobsPill, { backgroundColor: '#EEF4FF' }]}>
+        <Text style={[styles.jobsPillText, { color: '#2563FF' }]}>{completed} jobber</Text>
       </View>
       <TouchableOpacity style={styles.removeBtn} onPress={onRemove}>
-        <Ionicons name="trash-outline" size={18} color={colors.danger} />
+        <Ionicons name="trash-outline" size={17} color="#DC2626" />
       </TouchableOpacity>
     </View>
   );
@@ -50,10 +52,7 @@ export function TeamScreen() {
 
   const handleAdd = async () => {
     setAddError('');
-    if (!name.trim() || !email.trim()) {
-      setAddError('Fyll inn navn og e-post');
-      return;
-    }
+    if (!name.trim() || !email.trim()) { setAddError('Fyll inn navn og e-post'); return; }
     setAdding(true);
     try {
       await addTechnician(name.trim(), email.trim().toLowerCase(), phone.trim());
@@ -71,7 +70,8 @@ export function TeamScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Team</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowModal(true)}>
-          <Ionicons name="add" size={22} color={colors.white} />
+          <Ionicons name="add" size={18} color="#FFFFFF" />
+          <Text style={styles.addBtnText}>Legg til</Text>
         </TouchableOpacity>
       </View>
 
@@ -79,13 +79,19 @@ export function TeamScreen() {
         data={technicians}
         keyExtractor={(u) => u.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <TechCard user={item} onRemove={() => removeTechnician(item.id)} />
+        renderItem={({ item, index }) => (
+          <TechCard user={item} index={index} onRemove={() => removeTechnician(item.id)} />
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="people-outline" size={48} color={colors.border} />
-            <Text style={styles.emptyText}>Ingen teknikere ennå</Text>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="people-outline" size={32} color="#64748B" />
+            </View>
+            <Text style={styles.emptyTitle}>Ingen teknikere ennå</Text>
+            <Text style={styles.emptyText}>Legg til teknikere for å tildele jobber</Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => setShowModal(true)}>
+              <Text style={styles.emptyBtnText}>Legg til første tekniker</Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -96,14 +102,14 @@ export function TeamScreen() {
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Legg til tekniker</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
-                <Ionicons name="close" size={22} color={colors.textGray} />
+                <Ionicons name="close" size={22} color="#64748B" />
               </TouchableOpacity>
             </View>
 
             {[
-              { label: 'Fullt navn', value: name, setter: setName, placeholder: 'Magnus Olsen' },
-              { label: 'E-post', value: email, setter: setEmail, placeholder: 'magnus@firma.no' },
-              { label: 'Telefon', value: phone, setter: setPhone, placeholder: '92345678' },
+              { label: 'FULLT NAVN', value: name, setter: setName, placeholder: 'Magnus Olsen' },
+              { label: 'E-POST', value: email, setter: setEmail, placeholder: 'magnus@firma.no' },
+              { label: 'TELEFON', value: phone, setter: setPhone, placeholder: '92345678' },
             ].map(({ label, value, setter, placeholder }) => (
               <View key={label} style={styles.field}>
                 <Text style={styles.fieldLabel}>{label}</Text>
@@ -112,8 +118,8 @@ export function TeamScreen() {
                   value={value}
                   onChangeText={setter}
                   placeholder={placeholder}
-                  placeholderTextColor={colors.textLight}
-                  autoCapitalize={label === 'E-post' ? 'none' : 'words'}
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize={label === 'E-POST' ? 'none' : 'words'}
                 />
               </View>
             ))}
@@ -130,8 +136,8 @@ export function TeamScreen() {
               disabled={adding}
             >
               {adding
-                ? <ActivityIndicator color={colors.white} />
-                : <Text style={styles.saveBtnText}>Legg til</Text>
+                ? <ActivityIndicator color="#FFFFFF" />
+                : <Text style={styles.saveBtnText}>Legg til tekniker</Text>
               }
             </TouchableOpacity>
           </View>
@@ -142,90 +148,104 @@ export function TeamScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.backgroundSecondary },
+  safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.white,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
   },
-  title: { fontSize: 22, fontWeight: '800', color: colors.textDark },
+  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
   addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  list: { padding: 16, gap: 10 },
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
+    gap: 6,
+    backgroundColor: '#2563FF',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  addBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  list: { padding: 20, gap: 10, paddingBottom: 40 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: colors.primary + '20',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: { fontSize: 16, fontWeight: '700', color: colors.primary },
+  avatarText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   info: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '700', color: colors.textDark },
-  meta: { fontSize: 13, color: colors.textGray, marginTop: 1 },
-  statsText: { fontSize: 12, color: colors.textLight, marginTop: 2 },
+  name: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
+  phone: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  jobsPill: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  jobsPillText: { fontSize: 12, fontWeight: '600' },
   removeBtn: { padding: 6 },
   empty: { alignItems: 'center', paddingTop: 80, gap: 10 },
-  emptyText: { fontSize: 14, color: colors.textLight },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937' },
+  emptyText: { fontSize: 14, color: '#64748B' },
+  emptyBtn: {
+    backgroundColor: '#2563FF',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  emptyBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
-    gap: 12,
+    gap: 14,
   },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  sheetTitle: { fontSize: 18, fontWeight: '700', color: colors.textDark },
+  sheetTitle: { fontSize: 18, fontWeight: '600', color: '#1F2937' },
   field: { gap: 6 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.textGray },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
   input: {
+    height: 52,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
     fontSize: 15,
-    color: colors.textDark,
-    backgroundColor: colors.backgroundSecondary,
+    color: '#1F2937',
+    backgroundColor: '#F8FAFC',
   },
   saveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  saveBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
-  errorBox: {
-    backgroundColor: '#fef0f0',
+    height: 52,
+    backgroundColor: '#0A1B33',
     borderRadius: 10,
-    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
   },
-  errorText: { fontSize: 13, color: colors.danger },
+  saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 },
+  errorText: { fontSize: 13, color: '#DC2626' },
 });

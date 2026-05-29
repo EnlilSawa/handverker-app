@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, KeyboardAvoidingView, Platform,
+  ScrollView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
+import { EferoLogo } from '../../components/EferoLogo';
 import { useAppStore } from '../../store/appStore';
 
 interface Props {
@@ -25,158 +19,183 @@ export function LoginScreen({ onGoToRegister }: Props) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim()) {
-      Alert.alert('Feil', 'Skriv inn e-postadresse');
-      return;
-    }
+    setError('');
+    if (!email.trim()) { setError('Skriv inn e-postadresse'); return; }
     setLoading(true);
     const ok = await login(email.trim(), password);
     setLoading(false);
-    if (!ok) {
-      Alert.alert('Innlogging feilet', 'Feil e-post eller passord');
-    }
+    if (!ok) setError('Feil e-post eller passord. Prøv igjen.');
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.avoid}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="construct" size={40} color={colors.white} />
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Navy header */}
+          <View style={styles.darkHeader}>
+            <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={22} />
+            <Text style={styles.tagline}>Jobb enkelt. Fakturer raskt.</Text>
           </View>
-          <Text style={styles.appName}>Håndverker</Text>
-          <Text style={styles.tagline}>Jobb enkelt. Fakturer raskt.</Text>
-        </View>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>E-post eller telefonnummer</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="din@epost.no eller 90000002"
-            placeholderTextColor={colors.textLight}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          {/* Form card */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Logg inn</Text>
 
-          <Text style={styles.label}>Passord</Text>
-          <View style={styles.passwordRow}>
+            <Text style={styles.fieldLabel}>E-POST ELLER TELEFON</Text>
             <TextInput
-              style={[styles.input, styles.passwordInput]}
-              placeholder="••••••••"
-              placeholderTextColor={colors.textLight}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
+              style={[styles.input, emailFocused && styles.inputFocused]}
+              placeholder="din@epost.no"
+              placeholderTextColor="#94A3B8"
+              value={email}
+              onChangeText={(t) => { setEmail(t); setError(''); }}
+              onFocus={() => setEmailFocused(true)}
+              onBlur={() => setEmailFocused(false)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
             />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowPassword((v) => !v)}
-            >
-              <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={colors.textGray}
+
+            <Text style={[styles.fieldLabel, { marginTop: 14 }]}>PASSORD</Text>
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={[styles.input, styles.passwordInput, passwordFocused && styles.inputFocused]}
+                placeholder="••••••••"
+                placeholderTextColor="#94A3B8"
+                value={password}
+                onChangeText={(t) => { setPassword(t); setError(''); }}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                secureTextEntry={!showPassword}
               />
+              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword((v) => !v)}>
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            {error ? (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={15} color="#DC2626" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.loginBtn, loading && { opacity: 0.7 }]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color="#FFFFFF" />
+                : <Text style={styles.loginBtnText}>Logg inn</Text>
+              }
             </TouchableOpacity>
+
+            {__DEV__ && (
+              <View style={styles.demo}>
+                <Text style={styles.demoTitle}>DEMO</Text>
+                <TouchableOpacity onPress={() => { setEmail('kjetil@vvsservice.no'); setPassword('Demo1234!'); setError(''); }}>
+                  <Text style={styles.demoItem}>Admin: kjetil@vvsservice.no</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { setEmail('magnus@vvsservice.no'); setPassword('Demo1234!'); setError(''); }}>
+                  <Text style={styles.demoItem}>Tekniker: magnus@vvsservice.no</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.buttonText}>Logg inn</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.demo}>
-          <Text style={styles.demoTitle}>Demo-kontoer</Text>
-          <TouchableOpacity onPress={() => { setEmail('kjetil@vvsservice.no'); setPassword('Demo1234!'); }}>
-            <Text style={styles.demoItem}>Admin: kjetil@vvsservice.no</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => { setEmail('magnus@vvsservice.no'); setPassword('Demo1234!'); }}>
-            <Text style={styles.demoItem}>Tekniker: magnus@vvsservice.no</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => { setEmail('90000002'); setPassword('Demo1234!'); }}>
-            <Text style={styles.demoItem}>Tekniker via tlf: 90000002</Text>
-          </TouchableOpacity>
-          <Text style={styles.demoNote}>(trykk for å fylle inn — passord: Demo1234!)</Text>
-        </View>
-
-        {onGoToRegister && (
-          <TouchableOpacity style={styles.registerLink} onPress={onGoToRegister}>
-            <Text style={styles.registerLinkText}>
-              Ny bedrift?{' '}
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>Registrer deg gratis</Text>
-            </Text>
-          </TouchableOpacity>
-        )}
+          {onGoToRegister && (
+            <TouchableOpacity style={styles.footer} onPress={onGoToRegister}>
+              <Text style={styles.footerText}>
+                Ny bedrift?{' '}
+                <Text style={styles.footerLink}>Registrer deg gratis</Text>
+              </Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
-  logoContainer: { alignItems: 'center', marginBottom: 40 },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
+  safe: { flex: 1, backgroundColor: '#0A1B33' },
+  avoid: { flex: 1, backgroundColor: '#F5F7FA' },
+  scroll: { flexGrow: 1 },
+  darkHeader: {
+    backgroundColor: '#0A1B33',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingTop: 48,
+    paddingBottom: 72,
+    gap: 14,
   },
-  appName: { fontSize: 28, fontWeight: '700', color: colors.textDark },
-  tagline: { fontSize: 14, color: colors.textGray, marginTop: 4 },
-  form: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.textGray, marginTop: 8 },
-  input: {
+  tagline: { fontSize: 15, color: 'rgba(255,255,255,0.55)' },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
+    marginHorizontal: 20,
+    marginTop: -40,
+    padding: 28,
+  },
+  cardTitle: { fontSize: 20, fontWeight: '600', color: '#1F2937', marginBottom: 20 },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
+  input: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 13,
     fontSize: 15,
-    color: colors.textDark,
-    backgroundColor: colors.backgroundSecondary,
+    color: '#1F2937',
+    backgroundColor: '#F8FAFC',
   },
+  inputFocused: { borderColor: '#2563FF', borderWidth: 1.5, backgroundColor: '#FFFFFF' },
   passwordRow: { position: 'relative' },
-  passwordInput: { paddingRight: 44 },
-  eyeButton: { position: 'absolute', right: 12, top: 13 },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 15,
+  passwordInput: { paddingRight: 48 },
+  eyeBtn: { position: 'absolute', right: 14, top: 16 },
+  errorBox: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 14,
+  },
+  errorText: { fontSize: 13, color: '#DC2626', flex: 1 },
+  loginBtn: {
+    height: 52,
+    borderRadius: 10,
+    backgroundColor: '#0A1B33',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 20,
   },
-  buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  loginBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   demo: {
-    marginTop: 40,
-    padding: 16,
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 12,
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
     gap: 4,
   },
-  demoTitle: { fontSize: 12, fontWeight: '600', color: colors.textGray, marginBottom: 4 },
-  demoItem: { fontSize: 13, color: colors.primary, paddingVertical: 2 },
-  demoNote: { fontSize: 11, color: colors.textLight, marginTop: 4 },
-  registerLink: { marginTop: 24, alignItems: 'center' },
-  registerLinkText: { fontSize: 14, color: colors.textGray },
+  demoTitle: { fontSize: 10, fontWeight: '600', color: '#94A3B8', letterSpacing: 0.8, marginBottom: 4 },
+  demoItem: { fontSize: 13, color: '#2563FF', paddingVertical: 3 },
+  footer: { alignItems: 'center', paddingVertical: 28 },
+  footerText: { fontSize: 14, color: '#64748B' },
+  footerLink: { color: '#2563FF', fontWeight: '600', textDecorationLine: 'underline' },
 });

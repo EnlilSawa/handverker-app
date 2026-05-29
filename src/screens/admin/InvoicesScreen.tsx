@@ -1,13 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 import { InvoiceCard } from '../../components/InvoiceCard';
 import { InvoiceStatus } from '../../types';
@@ -46,13 +39,13 @@ export function InvoicesScreen({ navigation }: any) {
       </View>
 
       <View style={styles.summaryRow}>
-        <View style={styles.summaryBox}>
+        <View style={[styles.summaryCard, { borderLeftColor: '#15803D' }]}>
           <Text style={styles.summaryLabel}>Innbetalt</Text>
-          <Text style={[styles.summaryValue, { color: colors.success }]}>{formatCurrency(totalPaid)}</Text>
+          <Text style={[styles.summaryValue, { color: '#15803D' }]}>{formatCurrency(totalPaid)}</Text>
         </View>
-        <View style={[styles.summaryBox, styles.summaryBorderLeft]}>
+        <View style={[styles.summaryCard, { borderLeftColor: '#C2410C' }]}>
           <Text style={styles.summaryLabel}>Utestående</Text>
-          <Text style={[styles.summaryValue, { color: colors.warning }]}>{formatCurrency(totalUnpaid)}</Text>
+          <Text style={[styles.summaryValue, { color: '#C2410C' }]}>{formatCurrency(totalUnpaid)}</Text>
         </View>
       </View>
 
@@ -91,44 +84,45 @@ export function InvoicesScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.backgroundSecondary },
+  safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.white,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
   },
-  title: { fontSize: 22, fontWeight: '800', color: colors.textDark },
-  summaryRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
+  summaryRow: { flexDirection: 'row', gap: 12, padding: 20 },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderLeftWidth: 4,
+    padding: 16,
   },
-  summaryBox: { flex: 1, padding: 16, alignItems: 'center' },
-  summaryBorderLeft: { borderLeftWidth: 1, borderLeftColor: colors.border },
-  summaryLabel: { fontSize: 12, color: colors.textGray, marginBottom: 2 },
-  summaryValue: { fontSize: 18, fontWeight: '700' },
+  summaryLabel: { fontSize: 12, color: '#64748B', fontWeight: '500', marginBottom: 4 },
+  summaryValue: { fontSize: 20, fontWeight: '700' },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     gap: 8,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   filterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  filterBtnActive: { backgroundColor: colors.primary },
-  filterText: { fontSize: 13, color: colors.textGray, fontWeight: '500' },
-  filterTextActive: { color: colors.white, fontWeight: '700' },
-  list: { padding: 16, gap: 10 },
+  filterBtnActive: { backgroundColor: '#0A1B33', borderColor: '#0A1B33' },
+  filterText: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  filterTextActive: { color: '#FFFFFF', fontWeight: '600' },
+  list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 14, color: colors.textLight },
+  emptyText: { fontSize: 14, color: '#94A3B8' },
 });

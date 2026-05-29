@@ -1,30 +1,41 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 import { formatCurrency, isThisMonth } from '../../utils/formatters';
 
-function BarRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
+function ProgressRow({ name, revenue, jobs, max }: { name: string; revenue: number; jobs: number; max: number }) {
+  const pct = max > 0 ? Math.min((revenue / max) * 100, 100) : 0;
   return (
-    <View style={barStyles.row}>
-      <Text style={barStyles.label} numberOfLines={1}>{label}</Text>
-      <View style={barStyles.track}>
-        <View style={[barStyles.fill, { width: `${pct}%`, backgroundColor: color }]} />
+    <View style={bar.row}>
+      <View style={bar.labelRow}>
+        <Text style={bar.name} numberOfLines={1}>{name.split(' ')[0]}</Text>
+        <Text style={bar.jobs}>{jobs} jobber</Text>
+        <Text style={bar.amount}>{formatCurrency(revenue)}</Text>
       </View>
-      <Text style={barStyles.value}>{formatCurrency(value)}</Text>
+      <View style={bar.track}>
+        <View style={[bar.fill, { width: `${pct}%` as any }]} />
+      </View>
     </View>
   );
 }
 
-const barStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 },
-  label: { width: 80, fontSize: 12, color: colors.textGray },
-  track: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.border, overflow: 'hidden' },
-  fill: { height: 8, borderRadius: 4 },
-  value: { width: 80, fontSize: 12, color: colors.textDark, textAlign: 'right' },
+const bar = StyleSheet.create({
+  row: { marginBottom: 18 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  name: { flex: 1, fontSize: 14, fontWeight: '600', color: '#1F2937' },
+  jobs: { fontSize: 13, color: '#94A3B8', marginRight: 12 },
+  amount: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
+  track: { height: 6, borderRadius: 3, backgroundColor: '#E2E8F0', overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 3, backgroundColor: '#2563FF' },
 });
+
+const MINI_STATS = (jobsByStatus: { new: number; in_progress: number; completed: number }, totalJobs: number) => [
+  { label: 'Nye', count: jobsByStatus.new, color: '#2563FF', bg: '#EEF4FF' },
+  { label: 'Pågår', count: jobsByStatus.in_progress, color: '#C2410C', bg: '#FFF7ED' },
+  { label: 'Ferdig', count: jobsByStatus.completed, color: '#15803D', bg: '#F0FDF4' },
+  { label: 'Totalt', count: totalJobs, color: '#64748B', bg: '#F1F5F9' },
+];
 
 export function StatisticsScreen() {
   const jobs = useAppStore((s) => s.jobs);
@@ -61,10 +72,20 @@ export function StatisticsScreen() {
 
     const maxRevenue = Math.max(...techPerformance.map((t) => t.revenue), 1);
 
-    return { revenue, jobsByStatus, techPerformance, maxRevenue, totalJobs: jobs.length };
+    const invoiceStats = {
+      paid: invoices.filter((i) => i.status === 'paid'),
+      sent: invoices.filter((i) => i.status === 'sent'),
+      overdue: invoices.filter((i) => i.status === 'overdue'),
+    };
+
+    return { revenue, jobsByStatus, techPerformance, maxRevenue, totalJobs: jobs.length, invoiceStats };
   }, [jobs, invoices, users]);
 
   const monthName = new Date().toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' });
+  const miniStats = MINI_STATS(stats.jobsByStatus, stats.totalJobs);
+
+  // Donut-style invoice summary (using colored pills instead of SVG chart)
+  const totalInvoices = stats.invoiceStats.paid.length + stats.invoiceStats.sent.length + stats.invoiceStats.overdue.length;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -74,64 +95,79 @@ export function StatisticsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Total inntekt denne måneden</Text>
-          <Text style={styles.bigNumber}>{formatCurrency(stats.revenue)}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Jobboversikt</Text>
-          <View style={styles.jobsGrid}>
-            {[
-              { label: 'Nye', count: stats.jobsByStatus.new, color: colors.statusNew },
-              { label: 'Pågår', count: stats.jobsByStatus.in_progress, color: colors.statusInProgress },
-              { label: 'Ferdig', count: stats.jobsByStatus.completed, color: colors.statusCompleted },
-              { label: 'Totalt', count: stats.totalJobs, color: colors.textGray },
-            ].map(({ label, count, color }) => (
-              <View key={label} style={styles.jobCell}>
-                <Text style={[styles.jobCount, { color }]}>{count}</Text>
-                <Text style={styles.jobLabel}>{label}</Text>
-              </View>
-            ))}
+        {/* Hero revenue card */}
+        <View style={styles.heroCard}>
+          <Text style={styles.heroLabel}>TOTAL INNTEKT DENNE MÅNEDEN</Text>
+          <Text style={styles.heroNumber}>{formatCurrency(stats.revenue)}</Text>
+          <View style={styles.heroBar}>
+            <View style={[styles.heroBarFill, { width: stats.revenue > 0 ? '100%' : '0%' }]} />
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Inntekt per tekniker</Text>
-          {stats.techPerformance.length === 0 ? (
-            <Text style={styles.emptyText}>Ingen data</Text>
-          ) : (
-            <View style={{ marginTop: 12 }}>
+        {/* 4 mini stat cards */}
+        <Text style={styles.sectionTitle}>JOBBOVERSIKT</Text>
+        <View style={styles.miniGrid}>
+          {miniStats.map(({ label, count, color, bg }) => (
+            <View key={label} style={[styles.miniCard, { backgroundColor: bg }]}>
+              <Text style={[styles.miniCount, { color }]}>{count}</Text>
+              <Text style={styles.miniLabel}>{label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Tech performance */}
+        {stats.techPerformance.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>INNTEKT PER TEKNIKER</Text>
+            <View style={styles.card}>
               {stats.techPerformance.map((t) => (
-                <View key={t.name}>
-                  <BarRow
-                    label={t.name.split(' ')[0]}
-                    value={t.revenue}
-                    max={stats.maxRevenue}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.techJobCount}>{t.jobs} jobber denne måneden</Text>
-                </View>
+                <ProgressRow
+                  key={t.name}
+                  name={t.name}
+                  revenue={t.revenue}
+                  jobs={t.jobs}
+                  max={stats.maxRevenue}
+                />
               ))}
             </View>
-          )}
-        </View>
+          </>
+        )}
 
+        {/* Invoice status */}
+        <Text style={styles.sectionTitle}>FAKTURASTATUS</Text>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Fakturastatus</Text>
-          <View style={styles.invoiceStats}>
-            {[
-              { label: 'Sendt', count: invoices.filter((i) => i.status === 'sent').length, color: colors.primary },
-              { label: 'Betalt', count: invoices.filter((i) => i.status === 'paid').length, color: colors.success },
-              { label: 'Forfalt', count: invoices.filter((i) => i.status === 'overdue').length, color: colors.danger },
-            ].map(({ label, count, color }) => (
-              <View key={label} style={styles.invoiceStat}>
-                <View style={[styles.dot, { backgroundColor: color }]} />
-                <Text style={styles.invoiceLabel}>{label}</Text>
-                <Text style={[styles.invoiceCount, { color }]}>{count}</Text>
+          {[
+            {
+              label: 'Betalt',
+              color: '#2563FF',
+              bg: '#EEF4FF',
+              count: stats.invoiceStats.paid.length,
+              amount: stats.invoiceStats.paid.reduce((s, i) => s + i.total, 0),
+            },
+            {
+              label: 'Utestående',
+              color: '#64748B',
+              bg: '#F1F5F9',
+              count: stats.invoiceStats.sent.length,
+              amount: stats.invoiceStats.sent.reduce((s, i) => s + i.total, 0),
+            },
+            {
+              label: 'Forfalt',
+              color: '#DC2626',
+              bg: '#FEF2F2',
+              count: stats.invoiceStats.overdue.length,
+              amount: stats.invoiceStats.overdue.reduce((s, i) => s + i.total, 0),
+            },
+          ].map(({ label, color, bg, count, amount }) => (
+            <View key={label} style={styles.invoiceRow}>
+              <View style={[styles.dot, { backgroundColor: color }]} />
+              <Text style={styles.invoiceLabel}>{label}</Text>
+              <View style={[styles.countPill, { backgroundColor: bg }]}>
+                <Text style={[styles.countPillText, { color }]}>{count}</Text>
               </View>
-            ))}
-          </View>
+              <Text style={styles.invoiceAmount}>{formatCurrency(amount)}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -139,38 +175,60 @@ export function StatisticsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.backgroundSecondary },
+  safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.white,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
   },
-  title: { fontSize: 22, fontWeight: '800', color: colors.textDark },
-  subtitle: { fontSize: 13, color: colors.textGray, marginTop: 2 },
-  content: { padding: 16, gap: 12, paddingBottom: 40 },
+  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
+  subtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  content: { padding: 24, gap: 16, paddingBottom: 48 },
+  heroCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderLeftWidth: 4,
+    borderLeftColor: '#15803D',
+    padding: 20,
+    gap: 8,
+  },
+  heroLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  heroNumber: { fontSize: 32, fontWeight: '700', color: '#15803D', letterSpacing: -1 },
+  heroBar: { height: 4, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden', marginTop: 4 },
+  heroBarFill: { height: 4, backgroundColor: '#15803D', borderRadius: 2 },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: -4,
+  },
+  miniGrid: { flexDirection: 'row', gap: 12 },
+  miniCard: { flex: 1, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', padding: 16, alignItems: 'center', gap: 4 },
+  miniCount: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  miniLabel: { fontSize: 12, color: '#64748B', fontWeight: '500' },
   card: {
-    backgroundColor: colors.white,
-    borderRadius: 14,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 20,
   },
-  cardTitle: { fontSize: 13, fontWeight: '700', color: colors.textGray, textTransform: 'uppercase', letterSpacing: 0.5 },
-  bigNumber: { fontSize: 36, fontWeight: '800', color: colors.success, marginTop: 8 },
-  jobsGrid: { flexDirection: 'row', marginTop: 12 },
-  jobCell: { flex: 1, alignItems: 'center', gap: 4 },
-  jobCount: { fontSize: 28, fontWeight: '800' },
-  jobLabel: { fontSize: 12, color: colors.textGray },
-  emptyText: { fontSize: 13, color: colors.textLight, marginTop: 8 },
-  techJobCount: { fontSize: 11, color: colors.textLight, marginBottom: 10, marginTop: -6 },
-  invoiceStats: { gap: 10, marginTop: 12 },
-  invoiceStat: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  invoiceLabel: { flex: 1, fontSize: 14, color: colors.textDark },
-  invoiceCount: { fontSize: 18, fontWeight: '700' },
+  invoiceRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  invoiceLabel: { flex: 1, fontSize: 14, color: '#1F2937', fontWeight: '500' },
+  countPill: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  countPillText: { fontSize: 13, fontWeight: '700' },
+  invoiceAmount: { fontSize: 14, fontWeight: '600', color: '#1F2937', minWidth: 80, textAlign: 'right' },
 });

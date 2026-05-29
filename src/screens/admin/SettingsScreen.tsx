@@ -1,38 +1,35 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
+  View, Text, TextInput, StyleSheet,
+  ScrollView, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 
-function Section({ title }: { title: string }) {
-  return <Text style={styles.section}>{title}</Text>;
+function SectionHeader({ title }: { title: string }) {
+  return <Text style={styles.sectionTitle}>{title}</Text>;
 }
 
-function Field({ label, value, onChangeText, keyboardType = 'default', placeholder }: {
+function FieldInput({ label, value, onChangeText, keyboardType = 'default', placeholder }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   keyboardType?: 'default' | 'numeric' | 'phone-pad';
   placeholder?: string;
 }) {
+  const [focused, setFocused] = useState(false);
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, focused && styles.inputFocused]}
         value={value}
         onChangeText={onChangeText}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         keyboardType={keyboardType}
         placeholder={placeholder}
-        placeholderTextColor={colors.textLight}
+        placeholderTextColor="#94A3B8"
       />
     </View>
   );
@@ -49,26 +46,16 @@ export function SettingsScreen() {
   const [hourlyRate, setHourlyRate] = useState(String(company?.hourlyRate ?? 895));
   const [calloutFee, setCalloutFee] = useState(String(company?.calloutFee ?? 350));
   const [paymentTerms, setPaymentTerms] = useState(String(company?.paymentTermsDays ?? 14));
+  const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
     const rate = parseFloat(hourlyRate);
     const callout = parseFloat(calloutFee);
     const terms = parseInt(paymentTerms, 10);
-
-    if (isNaN(rate) || isNaN(callout) || isNaN(terms)) {
-      Alert.alert('Ugyldig verdi', 'Sjekk at beløp og dager er gyldige tall');
-      return;
-    }
-
-    updateCompany({
-      name: name.trim(),
-      orgNumber: orgNumber.trim(),
-      address: address.trim(),
-      hourlyRate: rate,
-      calloutFee: callout,
-      paymentTermsDays: terms,
-    });
-    Alert.alert('Lagret', 'Innstillingene er oppdatert');
+    if (isNaN(rate) || isNaN(callout) || isNaN(terms)) return;
+    updateCompany({ name: name.trim(), orgNumber: orgNumber.trim(), address: address.trim(), hourlyRate: rate, calloutFee: callout, paymentTermsDays: terms });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
@@ -78,28 +65,29 @@ export function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Section title="Bedriftsinformasjon" />
-        <Field label="Bedriftsnavn" value={name} onChangeText={setName} placeholder="VVS Service AS" />
-        <Field label="Organisasjonsnummer" value={orgNumber} onChangeText={setOrgNumber} placeholder="123 456 789" />
-        <Field label="Adresse" value={address} onChangeText={setAddress} placeholder="Gateveien 1, 0150 Oslo" />
+        <View style={styles.card}>
+          <SectionHeader title="BEDRIFTSINFORMASJON" />
+          <FieldInput label="Bedriftsnavn" value={name} onChangeText={setName} placeholder="VVS Service AS" />
+          <FieldInput label="Organisasjonsnummer" value={orgNumber} onChangeText={setOrgNumber} placeholder="123 456 789" />
+          <FieldInput label="Adresse" value={address} onChangeText={setAddress} placeholder="Gateveien 1, 0150 Oslo" />
+        </View>
 
-        <Section title="Prissetting" />
-        <Field label="Standard timepris (NOK)" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" placeholder="895" />
-        <Field label="Fremmøtegebyr (NOK)" value={calloutFee} onChangeText={setCalloutFee} keyboardType="numeric" placeholder="350" />
+        <View style={styles.card}>
+          <SectionHeader title="PRISSETTING" />
+          <FieldInput label="Standard timepris (NOK)" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" placeholder="895" />
+          <FieldInput label="Fremmøtegebyr (NOK)" value={calloutFee} onChangeText={setCalloutFee} keyboardType="numeric" placeholder="350" />
+        </View>
 
-        <Section title="Betaling" />
-        <Field label="Betalingsbetingelser (dager)" value={paymentTerms} onChangeText={setPaymentTerms} keyboardType="numeric" placeholder="14" />
+        <View style={styles.card}>
+          <SectionHeader title="BETALING" />
+          <FieldInput label="Betalingsbetingelser (dager)" value={paymentTerms} onChangeText={setPaymentTerms} keyboardType="numeric" placeholder="14" />
+        </View>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>Lagre innstillinger</Text>
+        <TouchableOpacity style={[styles.saveBtn, saved && styles.saveBtnSuccess]} onPress={handleSave}>
+          <Text style={styles.saveBtnText}>{saved ? 'Lagret ✓' : 'Lagre innstillinger'}</Text>
         </TouchableOpacity>
 
-        <View style={styles.divider} />
-
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={logout}
-        >
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
           <Text style={styles.logoutText}>Logg ut</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -108,52 +96,61 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.backgroundSecondary },
+  safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.white,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
   },
-  title: { fontSize: 22, fontWeight: '800', color: colors.textDark },
-  content: { padding: 20, paddingBottom: 40 },
-  section: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textGray,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  field: { marginBottom: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.textGray, marginBottom: 5 },
-  input: {
+  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
+  content: { padding: 20, gap: 16, paddingBottom: 48 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
+    padding: 20,
+    gap: 14,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: -2,
+  },
+  field: { gap: 6 },
+  fieldLabel: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
     fontSize: 15,
-    color: colors.textDark,
-    backgroundColor: colors.white,
+    color: '#1F2937',
+    backgroundColor: '#F8FAFC',
   },
+  inputFocused: { borderColor: '#2563FF', borderWidth: 1.5, backgroundColor: '#FFFFFF' },
   saveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 15,
+    height: 52,
+    backgroundColor: '#2563FF',
+    borderRadius: 10,
     alignItems: 'center',
-    marginTop: 24,
+    justifyContent: 'center',
   },
-  saveBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: 24 },
+  saveBtnSuccess: { backgroundColor: '#15803D' },
+  saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   logoutBtn: {
+    height: 52,
     borderWidth: 1,
-    borderColor: colors.danger,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderColor: '#DC2626',
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  logoutText: { color: colors.danger, fontSize: 16, fontWeight: '600' },
+  logoutText: { color: '#DC2626', fontSize: 15, fontWeight: '600' },
 });

@@ -1,38 +1,15 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  FlatList,
-  ActivityIndicator,
+  View, Text, TextInput, StyleSheet, ScrollView,
+  TouchableOpacity, Modal, FlatList, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 import { todayISO } from '../../utils/formatters';
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
-function Input(props: React.ComponentProps<typeof TextInput>) {
-  return (
-    <TextInput
-      style={styles.input}
-      placeholderTextColor={colors.textLight}
-      {...props}
-    />
-  );
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.fieldLabel}>{children}</Text>;
 }
 
 export function NewJobScreen({ navigation }: any) {
@@ -55,7 +32,6 @@ export function NewJobScreen({ navigation }: any) {
     if (!customerName.trim()) { setError('Fyll inn kundenavn'); return; }
     if (!address.trim()) { setError('Fyll inn adresse'); return; }
     if (!description.trim()) { setError('Beskriv jobben'); return; }
-
     setSaving(true);
     try {
       await addJob({
@@ -80,85 +56,63 @@ export function NewJobScreen({ navigation }: any) {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.textDark} />
+          <Ionicons name="arrow-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.title}>Ny jobb</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.section}>Kundeinformasjon</Text>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>KUNDEINFORMASJON</Text>
+          <View style={styles.field}>
+            <FieldLabel>Kundenavn *</FieldLabel>
+            <TextInput style={styles.input} placeholder="Per Hansen" placeholderTextColor="#94A3B8" value={customerName} onChangeText={setCustomerName} />
+          </View>
+          <View style={styles.field}>
+            <FieldLabel>Telefonnummer</FieldLabel>
+            <TextInput style={styles.input} placeholder="92345678" placeholderTextColor="#94A3B8" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" />
+          </View>
+          <View style={styles.field}>
+            <FieldLabel>Adresse *</FieldLabel>
+            <TextInput style={styles.input} placeholder="Gateveien 1, 0150 Oslo" placeholderTextColor="#94A3B8" value={address} onChangeText={setAddress} />
+          </View>
+        </View>
 
-        <Field label="Kundenavn *">
-          <Input
-            placeholder="Per Hansen"
-            value={customerName}
-            onChangeText={setCustomerName}
-          />
-        </Field>
-
-        <Field label="Telefonnummer">
-          <Input
-            placeholder="92345678"
-            value={customerPhone}
-            onChangeText={setCustomerPhone}
-            keyboardType="phone-pad"
-          />
-        </Field>
-
-        <Field label="Adresse *">
-          <Input
-            placeholder="Gateveien 1, 0150 Oslo"
-            value={address}
-            onChangeText={setAddress}
-          />
-        </Field>
-
-        <Text style={[styles.section, { marginTop: 20 }]}>Jobbdetaljer</Text>
-
-        <Field label="Beskrivelse *">
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Beskriv problemet eller arbeidet som skal utføres..."
-            placeholderTextColor={colors.textLight}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={3}
-          />
-        </Field>
-
-        <Field label="Tildel tekniker">
-          <TouchableOpacity style={styles.picker} onPress={() => setShowPicker(true)}>
-            <Text style={[styles.pickerText, !selectedTech && { color: colors.textLight }]}>
-              {selectedTech?.name ?? 'Velg tekniker...'}
-            </Text>
-            <Ionicons name="chevron-down" size={18} color={colors.textGray} />
-          </TouchableOpacity>
-        </Field>
-
-        <View style={styles.dateRow}>
-          <Field label="Dato">
-            <Input
-              placeholder="2024-05-15"
-              value={date}
-              onChangeText={setDate}
-              style={[styles.input, { flex: 1 }]}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>JOBBDETALJER</Text>
+          <View style={styles.field}>
+            <FieldLabel>Beskrivelse *</FieldLabel>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Beskriv problemet eller arbeidet..."
+              placeholderTextColor="#94A3B8"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={3}
             />
-          </Field>
-          <View style={{ width: 12 }} />
-          <Field label="Kl.">
-            <Input
-              placeholder="09:00"
-              value={time}
-              onChangeText={setTime}
-              style={[styles.input, { width: 80 }]}
-            />
-          </Field>
+          </View>
+          <View style={styles.field}>
+            <FieldLabel>Tekniker</FieldLabel>
+            <TouchableOpacity style={styles.picker} onPress={() => setShowPicker(true)}>
+              <Text style={[styles.pickerText, !selectedTech && { color: '#94A3B8' }]}>
+                {selectedTech?.name ?? 'Velg tekniker...'}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.dateRow}>
+            <View style={[styles.field, { flex: 1 }]}>
+              <FieldLabel>Dato</FieldLabel>
+              <TextInput style={styles.input} placeholder="2024-05-15" placeholderTextColor="#94A3B8" value={date} onChangeText={setDate} />
+            </View>
+            <View style={{ width: 12 }} />
+            <View style={[styles.field, { width: 90 }]}>
+              <FieldLabel>Kl.</FieldLabel>
+              <TextInput style={styles.input} placeholder="09:00" placeholderTextColor="#94A3B8" value={time} onChangeText={setTime} />
+            </View>
+          </View>
         </View>
 
         {error ? (
@@ -168,14 +122,11 @@ export function NewJobScreen({ navigation }: any) {
         ) : null}
 
         <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          style={[styles.saveBtn, saving && { opacity: 0.7 }]}
           onPress={handleSave}
           disabled={saving}
         >
-          {saving
-            ? <ActivityIndicator color={colors.white} />
-            : <Text style={styles.saveButtonText}>Opprett jobb</Text>
-          }
+          {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveBtnText}>Opprett jobb</Text>}
         </TouchableOpacity>
       </ScrollView>
 
@@ -185,13 +136,10 @@ export function NewJobScreen({ navigation }: any) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Velg tekniker</Text>
               <TouchableOpacity onPress={() => setShowPicker(false)}>
-                <Ionicons name="close" size={22} color={colors.textGray} />
+                <Ionicons name="close" size={22} color="#64748B" />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.techItem}
-              onPress={() => { setSelectedTech(null); setShowPicker(false); }}
-            >
+            <TouchableOpacity style={styles.techItem} onPress={() => { setSelectedTech(null); setShowPicker(false); }}>
               <Text style={styles.techItemText}>Ikke tildelt</Text>
             </TouchableOpacity>
             <FlatList
@@ -206,9 +154,7 @@ export function NewJobScreen({ navigation }: any) {
                     <Text style={styles.techAvatarText}>{item.name[0]}</Text>
                   </View>
                   <Text style={styles.techItemText}>{item.name}</Text>
-                  {selectedTech?.id === item.id && (
-                    <Ionicons name="checkmark" size={18} color={colors.primary} />
-                  )}
+                  {selectedTech?.id === item.id && <Ionicons name="checkmark" size={18} color="#2563FF" />}
                 </TouchableOpacity>
               )}
             />
@@ -220,88 +166,90 @@ export function NewJobScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
   },
-  title: { fontSize: 17, fontWeight: '700', color: colors.textDark },
-  scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 40 },
-  section: { fontSize: 11, fontWeight: '700', color: colors.textGray, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12 },
-  field: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.textGray, marginBottom: 6 },
+  title: { fontSize: 17, fontWeight: '600', color: '#1F2937' },
+  content: { padding: 20, gap: 16, paddingBottom: 40 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 20,
+    gap: 14,
+  },
+  cardTitle: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6 },
+  field: { gap: 6 },
+  fieldLabel: { fontSize: 13, color: '#64748B', fontWeight: '500' },
   input: {
+    height: 48,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
     fontSize: 15,
-    color: colors.textDark,
-    backgroundColor: colors.backgroundSecondary,
+    color: '#1F2937',
+    backgroundColor: '#F8FAFC',
   },
-  textArea: { height: 80, textAlignVertical: 'top' },
+  textArea: { height: 88, textAlignVertical: 'top', paddingTop: 12 },
   picker: {
+    height: 48,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#F8FAFC',
   },
-  pickerText: { fontSize: 15, color: colors.textDark },
-  dateRow: { flexDirection: 'row' },
-  errorBox: {
-    backgroundColor: '#fef0f0',
+  pickerText: { fontSize: 15, color: '#1F2937' },
+  dateRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 14 },
+  errorText: { fontSize: 13, color: '#DC2626' },
+  saveBtn: {
+    height: 52,
+    backgroundColor: '#2563FF',
     borderRadius: 10,
-    padding: 12,
-    marginTop: 16,
-  },
-  errorText: { fontSize: 13, color: colors.danger },
-  saveButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 16,
+    justifyContent: 'center',
   },
-  saveButtonDisabled: { opacity: 0.7 },
-  saveButtonText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '60%',
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: colors.textDark },
+  modalTitle: { fontSize: 17, fontWeight: '600', color: '#1F2937' },
   techItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 13,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
     gap: 12,
   },
   techAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.primary + '20',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF4FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  techAvatarText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
-  techItemText: { flex: 1, fontSize: 15, color: colors.textDark },
+  techAvatarText: { color: '#2563FF', fontWeight: '700', fontSize: 13 },
+  techItemText: { flex: 1, fontSize: 15, color: '#1F2937' },
 });

@@ -50,6 +50,23 @@ export interface Invoice {
   createdAt: string;
 }
 
+export interface JobImage {
+  id: string;
+  jobId: string;
+  companyId: string | null;
+  imageUrl: string;
+  label: 'før' | 'etter' | null;
+  uploadedAt: string;
+}
+
+export interface JobNote {
+  id: string;
+  jobId: string;
+  content: string;
+  authorName: string;
+  createdAt: string;
+}
+
 export type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'canceled';
 
 export interface Company {

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem } from '../types';
+import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote } from '../types';
 import { supabase } from '../lib/supabase';
 import { addDays } from '../utils/formatters';
 
@@ -67,6 +67,17 @@ function mapUser(row: any): User {
   };
 }
 
+function mapJobImage(row: any): JobImage {
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    companyId: row.company_id ?? null,
+    imageUrl: row.image_url,
+    label: row.label ?? null,
+    uploadedAt: row.uploaded_at,
+  };
+}
+
 // ── Store interface ────────────────────────────────────────────────────────
 
 interface AppState {
@@ -76,6 +87,8 @@ interface AppState {
   jobs: Job[];
   invoices: Invoice[];
   company: Company | null;
+  jobImages: Record<string, JobImage[]>;
+  jobNotes: Record<string, JobNote[]>;
   loading: boolean;
   initialized: boolean;
 
@@ -102,6 +115,19 @@ interface AppState {
 
   addTechnician: (name: string, email: string, phone: string) => Promise<void>;
   removeTechnician: (userId: string) => Promise<void>;
+
+  updateJob: (jobId: string, updates: {
+    customerName?: string; customerPhone?: string;
+    address?: string; description?: string; scheduledAt?: string;
+  }) => Promise<void>;
+
+  loadJobImages: (jobId: string) => Promise<void>;
+  uploadJobImage: (jobId: string, uri: string, mimeType: string) => Promise<void>;
+  updateImageLabel: (imageId: string, label: 'før' | 'etter' | null) => Promise<void>;
+  deleteJobImage: (imageId: string, imageUrl: string) => Promise<void>;
+
+  loadJobNotes: (jobId: string) => Promise<void>;
+  addJobNote: (jobId: string, content: string) => Promise<void>;
 }
 
 // ── Store implementation ───────────────────────────────────────────────────
@@ -113,6 +139,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   jobs: [],
   invoices: [],
   company: null,
+  jobImages: {},
+  jobNotes: {},
   loading: false,
   initialized: false,
 
@@ -420,5 +448,179 @@ export const useAppStore = create<AppState>((set, get) => ({
   removeTechnician: async (userId) => {
     await supabase.from('profiles').delete().eq('id', userId);
     set((state) => ({ users: state.users.filter((u) => u.id !== userId) }));
+  },
+
+  loadJobImages: async (jobId) => {
+    const { data, error } = await supabase
+      .from('job_images')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('uploaded_at', { ascending: true });
+    if (!error && data) {
+      set((state) => ({
+        jobImages: { ...state.jobImages, [jobId]: data.map(mapJobImage) },
+      }));
+    }
+    // Silently ignore — table may not exist yet if migration hasn't run
+  },
+
+  uploadJobImage: async (jobId, uri, mimeType) => {
+    const { companyId } = get();
+
+    // Fetch blob (works for both blob: URLs on web and file:// paths on native)
+    const response = await fetch(uri);
+    if (!response.ok) throw new Error('Kunne ikke lese bildefilen');
+    const blob = await response.blob();
+
+    if (blob.size > 10 * 1024 * 1024) throw new Error('Bildet er for stort (maks 10MB)');
+
+    // Derive content-type from blob first, fall back to provided mimeType
+    const contentType = (blob.type && blob.type !== 'application/octet-stream')
+      ? blob.type
+      : (mimeType || 'image/jpeg');
+
+    const ext = contentType.includes('png') ? 'png'
+      : contentType.includes('webp') ? 'webp'
+      : 'jpg';
+    const filePath = `${jobId}/${Date.now()}.${ext}`;
+
+    const { error: storageError } = await supabase.storage
+      .from('job-images')
+      .upload(filePath, blob, { contentType, upsert: false });
+
+    if (storageError) throw new Error(`Lagring feilet: ${storageError.message}`);
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('job-images')
+      .getPublicUrl(filePath);
+
+    const { data, error: dbError } = await supabase
+      .from('job_images')
+      .insert({
+        job_id: jobId,
+        company_id: companyId,
+        image_url: publicUrl,
+        label: null,
+      })
+      .select()
+      .single();
+
+    if (dbError) throw new Error(`Database feilet: ${dbError.message}`);
+
+    if (data) {
+      set((state) => ({
+        jobImages: {
+          ...state.jobImages,
+          [jobId]: [...(state.jobImages[jobId] ?? []), mapJobImage(data)],
+        },
+      }));
+    }
+  },
+
+  updateImageLabel: async (imageId, label) => {
+    const { error } = await supabase
+      .from('job_images')
+      .update({ label })
+      .eq('id', imageId);
+
+    if (!error) {
+      set((state) => {
+        const updated = { ...state.jobImages };
+        for (const jid of Object.keys(updated)) {
+          updated[jid] = updated[jid].map((img) =>
+            img.id === imageId ? { ...img, label } : img
+          );
+        }
+        return { jobImages: updated };
+      });
+    }
+  },
+
+  updateJob: async (jobId, updates) => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({
+        ...(updates.customerName !== undefined && { customer_name: updates.customerName }),
+        ...(updates.customerPhone !== undefined && { customer_phone: updates.customerPhone }),
+        ...(updates.address !== undefined && { address: updates.address }),
+        ...(updates.description !== undefined && { description: updates.description }),
+        ...(updates.scheduledAt !== undefined && { scheduled_at: updates.scheduledAt }),
+      })
+      .eq('id', jobId)
+      .select('*, technician:profiles!assigned_technician_id(name)')
+      .single();
+    if (!error && data) {
+      set((state) => ({
+        jobs: state.jobs.map((j) => (j.id === jobId ? mapJob(data) : j)),
+      }));
+    }
+  },
+
+  loadJobNotes: async (jobId) => {
+    const { data, error } = await supabase
+      .from('job_notes')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: true });
+    if (!error && data) {
+      set((state) => ({
+        jobNotes: {
+          ...state.jobNotes,
+          [jobId]: data.map((row: any) => ({
+            id: row.id,
+            jobId: row.job_id,
+            content: row.content,
+            authorName: row.author_name,
+            createdAt: row.created_at,
+          })),
+        },
+      }));
+    }
+    // Silently ignore if table doesn't exist yet
+  },
+
+  addJobNote: async (jobId, content) => {
+    const { currentUser, companyId } = get();
+    const { data, error } = await supabase
+      .from('job_notes')
+      .insert({
+        job_id: jobId,
+        company_id: companyId,
+        content: content.trim(),
+        author_name: currentUser?.name ?? 'Ukjent',
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      const note: JobNote = {
+        id: data.id,
+        jobId: data.job_id,
+        content: data.content,
+        authorName: data.author_name,
+        createdAt: data.created_at,
+      };
+      set((state) => ({
+        jobNotes: {
+          ...state.jobNotes,
+          [jobId]: [...(state.jobNotes[jobId] ?? []), note],
+        },
+      }));
+    }
+  },
+
+  deleteJobImage: async (imageId, imageUrl) => {
+    // Extract storage path from the public URL
+    const match = imageUrl.split('/job-images/')[1];
+    if (match) {
+      await supabase.storage.from('job-images').remove([match]);
+    }
+    await supabase.from('job_images').delete().eq('id', imageId);
+    set((state) => {
+      const updated = { ...state.jobImages };
+      for (const jid of Object.keys(updated)) {
+        updated[jid] = updated[jid].filter((img) => img.id !== imageId);
+      }
+      return { jobImages: updated };
+    });
   },
 }));

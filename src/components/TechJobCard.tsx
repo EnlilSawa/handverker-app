@@ -1,27 +1,13 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
 import { Job, JobStatus } from '../types';
 import { formatTime } from '../utils/formatters';
 
-const STATUS_COLOR: Record<JobStatus, string> = {
-  new: colors.statusNew,
-  in_progress: colors.statusInProgress,
-  completed: colors.statusCompleted,
-};
-
-const STATUS_LABEL: Record<JobStatus, string> = {
-  new: 'Ny',
-  in_progress: 'Pågår',
-  completed: 'Ferdig',
+const BORDER: Record<JobStatus, string> = {
+  new: '#2563FF',
+  in_progress: '#C2410C',
+  completed: '#15803D',
 };
 
 interface TechJobCardProps {
@@ -31,131 +17,108 @@ interface TechJobCardProps {
 }
 
 export function TechJobCard({ job, onMarkDone, onMarkInProgress }: TechJobCardProps) {
-  const statusColor = STATUS_COLOR[job.status];
+  const borderColor = BORDER[job.status];
 
   const openMaps = () => {
-    const url = `https://maps.google.com/?q=${encodeURIComponent(job.address)}`;
-    Linking.openURL(url).catch(() =>
-      Alert.alert('Feil', 'Kunne ikke åpne kart')
-    );
+    Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(job.address)}`).catch(() => {});
   };
 
   return (
-    <View style={[styles.card, { borderLeftColor: statusColor }]}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.time}>{formatTime(job.scheduledAt)}</Text>
-          <Text style={styles.customerName}>{job.customerName}</Text>
-        </View>
-        <View style={[styles.badge, { backgroundColor: statusColor + '20' }]}>
-          <Text style={[styles.badgeText, { color: statusColor }]}>
-            {STATUS_LABEL[job.status]}
-          </Text>
-        </View>
+    <View style={[styles.card, { borderLeftColor: borderColor }]}>
+      <View style={styles.topRow}>
+        <Text style={styles.customerName}>{job.customerName}</Text>
+        <Text style={styles.time}>{formatTime(job.scheduledAt)}</Text>
       </View>
 
       <View style={styles.addressRow}>
-        <Ionicons name="location-outline" size={14} color={colors.textGray} />
-        <Text style={styles.address}>{job.address}</Text>
+        <Ionicons name="location-outline" size={13} color="#94A3B8" />
+        <Text style={styles.address} numberOfLines={1}>{job.address}</Text>
       </View>
 
       <View style={styles.descBox}>
-        <Text style={styles.description}>{job.description}</Text>
+        <Text style={styles.description} numberOfLines={2}>{job.description}</Text>
       </View>
 
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.navBtn} onPress={openMaps}>
-          <Ionicons name="navigate-outline" size={16} color={colors.primary} />
-          <Text style={styles.navBtnText}>Naviger hit</Text>
-        </TouchableOpacity>
-
-        {job.status === 'new' && (
-          <TouchableOpacity style={styles.startBtn} onPress={onMarkInProgress}>
-            <Text style={styles.startBtnText}>Start jobb</Text>
+      {job.status !== 'completed' && (
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.navBtn} onPress={openMaps}>
+            <Ionicons name="navigate-outline" size={16} color="#1F2937" />
+            <Text style={styles.navBtnText}>Naviger</Text>
           </TouchableOpacity>
-        )}
 
-        {job.status === 'in_progress' && (
-          <TouchableOpacity style={styles.doneBtn} onPress={onMarkDone}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={colors.white} />
-            <Text style={styles.doneBtnText}>Trykk når ferdig</Text>
-          </TouchableOpacity>
-        )}
+          {job.status === 'new' && (
+            <TouchableOpacity style={styles.startBtn} onPress={onMarkInProgress}>
+              <Text style={styles.startBtnText}>Start jobb</Text>
+            </TouchableOpacity>
+          )}
 
-        {job.status === 'completed' && (
-          <View style={styles.completedTag}>
-            <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-            <Text style={styles.completedText}>Fullført</Text>
-          </View>
-        )}
-      </View>
+          {job.status === 'in_progress' && (
+            <TouchableOpacity style={styles.doneBtn} onPress={onMarkDone}>
+              <Text style={styles.doneBtnText}>Marker som ferdig</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {job.status === 'completed' && (
+        <View style={styles.completedRow}>
+          <Ionicons name="checkmark-circle" size={16} color="#15803D" />
+          <Text style={styles.completedText}>Fullført</Text>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    borderLeftWidth: 4,
-    padding: 14,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  time: { fontSize: 12, color: colors.textGray, fontWeight: '500' },
-  customerName: { fontSize: 17, fontWeight: '800', color: colors.textDark, marginTop: 2 },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  badgeText: { fontSize: 12, fontWeight: '700' },
-  addressRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
-  address: { fontSize: 13, color: colors.textGray, flex: 1 },
-  descBox: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-  },
-  description: { fontSize: 13, color: colors.textGray, lineHeight: 19 },
-  actions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  navBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
     borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: '#E2E8F0',
+    borderLeftWidth: 4,
+    padding: 16,
+    marginBottom: 10,
   },
-  navBtnText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
-  startBtn: {
-    flex: 1,
-    backgroundColor: colors.warning + '20',
-    borderRadius: 8,
-    paddingVertical: 9,
-    alignItems: 'center',
-  },
-  startBtnText: { fontSize: 13, color: colors.warning, fontWeight: '700' },
-  doneBtn: {
-    flex: 1,
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
+  customerName: { fontSize: 15, fontWeight: '600', color: '#1F2937', flex: 1 },
+  time: { fontSize: 12, color: '#94A3B8', marginLeft: 8 },
+  addressRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
+  address: { fontSize: 13, color: '#94A3B8', flex: 1 },
+  descBox: { backgroundColor: '#F5F7FA', borderRadius: 8, padding: 10, marginBottom: 14 },
+  description: { fontSize: 13, color: '#64748B', lineHeight: 19 },
+  actions: { flexDirection: 'row', gap: 10 },
+  navBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.success,
-    borderRadius: 8,
-    paddingVertical: 9,
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  doneBtnText: { fontSize: 13, color: colors.white, fontWeight: '700' },
-  completedTag: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  completedText: { fontSize: 13, color: colors.success, fontWeight: '600' },
+  navBtnText: { fontSize: 14, color: '#1F2937', fontWeight: '600' },
+  startBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startBtnText: { fontSize: 14, color: '#C2410C', fontWeight: '600' },
+  doneBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#2563FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneBtnText: { fontSize: 14, color: '#FFFFFF', fontWeight: '600' },
+  completedRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  completedText: { fontSize: 14, color: '#15803D', fontWeight: '600' },
 });

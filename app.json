@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "Håndverker",
+    "name": "Efero",
     "slug": "handverker-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#378ADD"
+      "backgroundColor": "#0A1B33"
     },
     "ios": {
       "supportsTablet": false,
@@ -14,7 +14,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#378ADD"
+        "backgroundColor": "#0A1B33"
       },
       "package": "no.handverkerapp"
     },

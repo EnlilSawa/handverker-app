@@ -1,25 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Modal,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, StyleSheet, FlatList, Modal,
+  TextInput, TouchableOpacity, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 import { TechJobCard } from '../../components/TechJobCard';
 import { Job } from '../../types';
 import { todayISO } from '../../utils/formatters';
 
-export function TechJobsScreen({ navigation }: any) {
+function initials(name: string) {
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+}
+
+export function TechJobsScreen() {
   const currentUser = useAppStore((s) => s.currentUser);
   const jobs = useAppStore((s) => s.jobs);
   const updateJobStatus = useAppStore((s) => s.updateJobStatus);
@@ -27,6 +22,7 @@ export function TechJobsScreen({ navigation }: any) {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [hours, setHours] = useState('1');
   const [materials, setMaterials] = useState('');
+  const [doneError, setDoneError] = useState('');
 
   const myJobs = useMemo(
     () =>
@@ -40,54 +36,27 @@ export function TechJobsScreen({ navigation }: any) {
     [jobs, currentUser]
   );
 
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 10) return 'God morgen';
-    if (h < 17) return 'Hei';
-    return 'God kveld';
-  };
-
-  const handleMarkDone = (job: Job) => {
-    setSelectedJob(job);
-    setHours('1');
-    setMaterials('');
-  };
-
-  const handleMarkInProgress = (job: Job) => {
-    updateJobStatus(job.id, 'in_progress');
-  };
+  const todayLabel = new Date().toLocaleDateString('nb-NO', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  });
 
   const confirmDone = () => {
     if (!selectedJob) return;
     const h = parseFloat(hours);
-    const m = parseFloat(materials || '0');
-    if (isNaN(h) || h <= 0) {
-      Alert.alert('Ugyldig', 'Skriv inn gyldige arbeidstimer');
-      return;
-    }
-    updateJobStatus(selectedJob.id, 'completed', h, m);
+    if (isNaN(h) || h <= 0) { setDoneError('Skriv inn gyldige arbeidstimer'); return; }
+    updateJobStatus(selectedJob.id, 'completed', h, parseFloat(materials || '0'));
     setSelectedJob(null);
-    setTimeout(() => {
-      Alert.alert(
-        'Jobb fullført!',
-        'Faktura er automatisk generert og klar til utsending.',
-        [{ text: 'OK' }]
-      );
-    }, 300);
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>{greeting()}, {currentUser?.name.split(' ')[0]}!</Text>
-          <Text style={styles.subtitle}>
-            {new Date().toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </Text>
+          <Text style={styles.title}>Mine jobber</Text>
+          <Text style={styles.subtitle}>{todayLabel}</Text>
         </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{myJobs.length}</Text>
-          <Text style={styles.badgeLabel}>jobber</Text>
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarText}>{initials(currentUser?.name ?? '?')}</Text>
         </View>
       </View>
 
@@ -98,13 +67,13 @@ export function TechJobsScreen({ navigation }: any) {
         renderItem={({ item }) => (
           <TechJobCard
             job={item}
-            onMarkDone={() => handleMarkDone(item)}
-            onMarkInProgress={() => handleMarkInProgress(item)}
+            onMarkDone={() => { setSelectedJob(item); setHours('1'); setMaterials(''); setDoneError(''); }}
+            onMarkInProgress={() => updateJobStatus(item.id, 'in_progress')}
           />
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="sunny-outline" size={48} color={colors.border} />
+            <Ionicons name="sunny-outline" size={40} color="#E2E8F0" />
             <Text style={styles.emptyTitle}>Ingen jobber i dag</Text>
             <Text style={styles.emptyText}>Nye jobber vises her automatisk</Text>
           </View>
@@ -112,53 +81,55 @@ export function TechJobsScreen({ navigation }: any) {
       />
 
       <Modal visible={!!selectedJob} transparent animationType="slide">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalWrapper}
-        >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={styles.overlay}>
             <View style={styles.sheet}>
               <View style={styles.sheetHeader}>
                 <Text style={styles.sheetTitle}>Fullfør jobb</Text>
                 <TouchableOpacity onPress={() => setSelectedJob(null)}>
-                  <Ionicons name="close" size={22} color={colors.textGray} />
+                  <Ionicons name="close" size={22} color="#64748B" />
                 </TouchableOpacity>
               </View>
-
-              <Text style={styles.sheetSubtitle}>{selectedJob?.customerName}</Text>
+              <Text style={styles.sheetSub}>{selectedJob?.customerName}</Text>
 
               <View style={styles.formRow}>
                 <View style={styles.formField}>
-                  <Text style={styles.fieldLabel}>Arbeidstimer</Text>
+                  <Text style={styles.fieldLabel}>ARBEIDSTIMER</Text>
                   <TextInput
                     style={styles.fieldInput}
                     value={hours}
-                    onChangeText={setHours}
+                    onChangeText={(t) => { setHours(t); setDoneError(''); }}
                     keyboardType="decimal-pad"
                     placeholder="1.5"
-                    placeholderTextColor={colors.textLight}
+                    placeholderTextColor="#94A3B8"
                   />
                 </View>
                 <View style={[styles.formField, { marginLeft: 12 }]}>
-                  <Text style={styles.fieldLabel}>Materiell (NOK)</Text>
+                  <Text style={styles.fieldLabel}>MATERIELL (NOK)</Text>
                   <TextInput
                     style={styles.fieldInput}
                     value={materials}
                     onChangeText={setMaterials}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor={colors.textLight}
+                    placeholderTextColor="#94A3B8"
                   />
                 </View>
               </View>
 
+              {doneError ? (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorText}>{doneError}</Text>
+                </View>
+              ) : null}
+
               <View style={styles.infoBox}>
-                <Ionicons name="document-text-outline" size={16} color={colors.primary} />
+                <Ionicons name="document-text-outline" size={15} color="#2563FF" />
                 <Text style={styles.infoText}>Faktura genereres automatisk og sendes til kunden</Text>
               </View>
 
               <TouchableOpacity style={styles.confirmBtn} onPress={confirmDone}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.white} />
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
                 <Text style={styles.confirmBtnText}>Bekreft ferdig</Text>
               </TouchableOpacity>
             </View>
@@ -170,75 +141,75 @@ export function TechJobsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.backgroundSecondary },
+  safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#E2E8F0',
   },
-  greeting: { fontSize: 20, fontWeight: '800', color: colors.textDark },
-  subtitle: { fontSize: 13, color: colors.textGray, marginTop: 2 },
-  badge: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.primary + '15',
+  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
+  subtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  avatarCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#0A1B33',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  badgeText: { fontSize: 18, fontWeight: '800', color: colors.primary },
-  badgeLabel: { fontSize: 10, color: colors.primary, fontWeight: '500' },
-  list: { padding: 16, paddingBottom: 40 },
+  avatarText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  list: { padding: 20, paddingBottom: 40 },
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: colors.textGray },
-  emptyText: { fontSize: 13, color: colors.textLight },
-  modalWrapper: { flex: 1 },
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#64748B' },
+  emptyText: { fontSize: 14, color: '#94A3B8' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 24,
     gap: 14,
   },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sheetTitle: { fontSize: 18, fontWeight: '800', color: colors.textDark },
-  sheetSubtitle: { fontSize: 15, color: colors.textGray },
+  sheetTitle: { fontSize: 18, fontWeight: '600', color: '#1F2937' },
+  sheetSub: { fontSize: 14, color: '#64748B', marginTop: -6 },
   formRow: { flexDirection: 'row' },
   formField: { flex: 1 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.textGray, marginBottom: 6 },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   fieldInput: {
+    height: 52,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
     fontSize: 16,
-    color: colors.textDark,
-    backgroundColor: colors.backgroundSecondary,
+    color: '#1F2937',
+    backgroundColor: '#F8FAFC',
   },
+  errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 },
+  errorText: { fontSize: 13, color: '#DC2626' },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.primary + '10',
+    backgroundColor: '#EEF4FF',
     borderRadius: 10,
     padding: 12,
   },
-  infoText: { fontSize: 13, color: colors.primary, flex: 1 },
+  infoText: { fontSize: 13, color: '#2563FF', flex: 1 },
   confirmBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.success,
-    borderRadius: 12,
-    paddingVertical: 16,
+    height: 52,
+    backgroundColor: '#2563FF',
+    borderRadius: 10,
   },
-  confirmBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  confirmBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });
