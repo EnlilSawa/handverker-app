@@ -56,6 +56,8 @@ export interface JobImage {
   companyId: string | null;
   imageUrl: string;
   label: 'før' | 'etter' | null;
+  note: string | null;
+  uploadedBy: string | null;
   uploadedAt: string;
 }
 

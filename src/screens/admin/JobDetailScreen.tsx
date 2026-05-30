@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Modal, FlatList, ActivityIndicator,
-  Image, Linking, Platform, useWindowDimensions,
+  Image, Linking, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../../store/appStore';
 import { JobImage, JobNote, JobStatus } from '../../types';
 import { formatDate, formatCurrency } from '../../utils/formatters';
+import { ImageUploadModal } from '../../components/ImageUploadModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -34,78 +34,53 @@ function initials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
-// ─── Section header ───────────────────────────────────────────────────────────
-
 function SectionLabel({ title }: { title: string }) {
   return <Text style={styles.sectionLabel}>{title}</Text>;
 }
 
-// ─── Image thumbnail ──────────────────────────────────────────────────────────
+// ─── Locked image cell ────────────────────────────────────────────────────────
 
-function ImageThumb({ image, size, onPress, onLabelPress, onDelete }: {
-  image: JobImage; size: number;
-  onPress: () => void; onLabelPress: () => void; onDelete: () => void;
+function LockedImage({ image, thumbSize, onPress }: {
+  image: JobImage; thumbSize: number; onPress: () => void;
 }) {
   const lc = image.label ? LABEL_CFG[image.label] : null;
+  const dateStr = image.uploadedAt
+    ? new Date(image.uploadedAt).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })
+    : '';
   return (
-    <View style={[thumb.wrap, { width: size, height: size }]}>
-      <TouchableOpacity style={thumb.imgBtn} onPress={onPress} activeOpacity={0.85}>
-        <Image source={{ uri: image.imageUrl }} style={thumb.img} resizeMode="cover" />
+    <View style={[lockedCell.wrap, { width: thumbSize }]}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+        <View style={[lockedCell.imgWrap, { height: thumbSize }]}>
+          <Image source={{ uri: image.imageUrl }} style={lockedCell.img} resizeMode="cover" />
+          {lc && (
+            <View style={[lockedCell.badge, { backgroundColor: lc.bg }]}>
+              <Text style={[lockedCell.badgeText, { color: lc.color }]}>{lc.label}</Text>
+            </View>
+          )}
+        </View>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={[thumb.badge, lc ? { backgroundColor: lc.bg } : thumb.badgeEmpty]}
-        onPress={onLabelPress}
-      >
-        <Text style={[thumb.badgeText, { color: lc ? lc.color : '#FFFFFF' }]}>
-          {lc ? lc.label : 'Merk'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={thumb.del} onPress={onDelete}>
-        <Ionicons name="close-circle" size={20} color="#FFFFFF" />
-      </TouchableOpacity>
+      {image.note ? (
+        <View style={lockedCell.noteRow}>
+          <Ionicons name="lock-closed-outline" size={11} color="#94A3B8" />
+          <Text style={lockedCell.note} numberOfLines={2}>{image.note}</Text>
+        </View>
+      ) : null}
+      <Text style={lockedCell.meta} numberOfLines={1}>
+        {[image.uploadedBy, dateStr].filter(Boolean).join(' · ')}
+      </Text>
     </View>
   );
 }
 
-const thumb = StyleSheet.create({
-  wrap: { position: 'relative', borderRadius: 10, overflow: 'hidden', backgroundColor: '#F1F5F9' },
-  imgBtn: { width: '100%', height: '100%' },
+const lockedCell = StyleSheet.create({
+  wrap: { marginBottom: 4 },
+  imgWrap: { borderRadius: 10, overflow: 'hidden', backgroundColor: '#F1F5F9', position: 'relative' },
   img: { width: '100%', height: '100%' },
-  badge: { position: 'absolute', bottom: 6, left: 6, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
-  badgeEmpty: { backgroundColor: 'rgba(0,0,0,0.45)' },
+  badge: { position: 'absolute', top: 6, left: 6, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
   badgeText: { fontSize: 10, fontWeight: '700' },
-  del: { position: 'absolute', top: 4, right: 4 },
-});
-
-// ─── Label picker modal ───────────────────────────────────────────────────────
-
-function LabelModal({ visible, onSelect, onClose }: {
-  visible: boolean; onSelect: (l: 'før' | 'etter' | null) => void; onClose: () => void;
-}) {
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={mod.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={mod.box}>
-          <Text style={mod.title}>Merk bilde</Text>
-          {([null, 'før', 'etter'] as const).map((l) => (
-            <TouchableOpacity key={String(l)} style={mod.item} onPress={() => { onSelect(l); onClose(); }}>
-              <View style={[mod.dot, { backgroundColor: l ? LABEL_CFG[l].color : '#94A3B8' }]} />
-              <Text style={mod.itemText}>{l ? LABEL_CFG[l].label : 'Ingen merking'}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
-}
-
-const mod = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  box: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, width: 260 },
-  title: { fontSize: 15, fontWeight: '600', color: '#1F2937', marginBottom: 12 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  itemText: { fontSize: 14, color: '#1F2937' },
+  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 5 },
+  note: { fontSize: 12, color: '#64748B', fontStyle: 'italic', flex: 1, lineHeight: 16 },
+  meta: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
 });
 
 // ─── Fullscreen image viewer ──────────────────────────────────────────────────
@@ -125,6 +100,12 @@ function FullscreenViewer({ image, onClose }: { image: JobImage | null; onClose:
           </View>
         )}
         <Image source={{ uri: image.imageUrl }} style={fsv.img} resizeMode="contain" />
+        {image.note ? (
+          <View style={fsv.noteBar}>
+            <Ionicons name="lock-closed-outline" size={13} color="rgba(255,255,255,0.6)" />
+            <Text style={fsv.noteText}>{image.note}</Text>
+          </View>
+        ) : null}
       </View>
     </Modal>
   );
@@ -135,7 +116,9 @@ const fsv = StyleSheet.create({
   close: { position: 'absolute', top: 52, right: 20, zIndex: 10 },
   badge: { position: 'absolute', top: 52, left: 20, zIndex: 10, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   badgeText: { fontSize: 13, fontWeight: '700' },
-  img: { width: '100%', height: '80%' },
+  img: { width: '100%', height: '70%' },
+  noteBar: { position: 'absolute', bottom: 48, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  noteText: { fontSize: 14, color: 'rgba(255,255,255,0.8)', fontStyle: 'italic', flex: 1 },
 });
 
 // ─── Tech picker modal ────────────────────────────────────────────────────────
@@ -266,9 +249,6 @@ export function JobDetailScreen({ route, navigation }: any) {
   const updateJob = useAppStore((s) => s.updateJob);
   const generateInvoice = useAppStore((s) => s.generateInvoice);
   const loadJobImages = useAppStore((s) => s.loadJobImages);
-  const uploadJobImage = useAppStore((s) => s.uploadJobImage);
-  const updateImageLabel = useAppStore((s) => s.updateImageLabel);
-  const deleteJobImage = useAppStore((s) => s.deleteJobImage);
   const loadJobNotes = useAppStore((s) => s.loadJobNotes);
   const addJobNote = useAppStore((s) => s.addJobNote);
 
@@ -281,10 +261,8 @@ export function JobDetailScreen({ route, navigation }: any) {
   const [statusSaving, setStatusSaving] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [viewingImage, setViewingImage] = useState<JobImage | null>(null);
-  const [labelingImage, setLabelingImage] = useState<JobImage | null>(null);
 
   // Edit fields
   const [editName, setEditName] = useState('');
@@ -366,36 +344,6 @@ export function JobDetailScreen({ route, navigation }: any) {
     } finally {
       setSavingNote(false);
     }
-  };
-
-  const handlePickImages = async () => {
-    setUploadError('');
-    if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') { setUploadError('Trenger tilgang til bildebiblioteket'); return; }
-    }
-    let result: ImagePicker.ImagePickerResult;
-    try {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true,
-        quality: 0.85,
-        selectionLimit: 10,
-      });
-    } catch { setUploadError('Kunne ikke åpne bildebibliotek'); return; }
-
-    if (result.canceled || result.assets.length === 0) return;
-    setUploading(true);
-    let lastError = '';
-    for (const asset of result.assets) {
-      try {
-        await uploadJobImage(job.id, asset.uri, asset.mimeType || 'image/jpeg');
-      } catch (e: any) {
-        lastError = e.message ?? 'Opplasting feilet, prøv igjen';
-      }
-    }
-    setUploading(false);
-    if (lastError) setUploadError(lastError);
   };
 
   const formatScheduled = () => {
@@ -682,26 +630,9 @@ export function JobDetailScreen({ route, navigation }: any) {
             <Text style={styles.imageCount}>{images.length} bilde{images.length !== 1 ? 'r' : ''}</Text>
           </View>
 
-          {uploadError ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={15} color="#DC2626" />
-              <Text style={styles.errorText}>{uploadError}</Text>
-              <TouchableOpacity onPress={() => setUploadError('')}>
-                <Ionicons name="close" size={15} color="#DC2626" />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-
-          <TouchableOpacity
-            style={[styles.uploadBtn, uploading && { opacity: 0.6 }]}
-            onPress={handlePickImages}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <><ActivityIndicator size="small" color="#2563FF" /><Text style={styles.uploadBtnText}>Laster opp…</Text></>
-            ) : (
-              <><Ionicons name="cloud-upload-outline" size={18} color="#2563FF" /><Text style={styles.uploadBtnText}>Last opp bilder</Text></>
-            )}
+          <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowUploadModal(true)}>
+            <Ionicons name="cloud-upload-outline" size={18} color="#2563FF" />
+            <Text style={styles.uploadBtnText}>Last opp bilder</Text>
           </TouchableOpacity>
 
           {images.length === 0 ? (
@@ -712,18 +643,20 @@ export function JobDetailScreen({ route, navigation }: any) {
           ) : (
             <View style={styles.imageGrid}>
               {images.map((img) => (
-                <ImageThumb
+                <LockedImage
                   key={img.id}
                   image={img}
-                  size={thumbSize}
+                  thumbSize={thumbSize}
                   onPress={() => setViewingImage(img)}
-                  onLabelPress={() => setLabelingImage(img)}
-                  onDelete={() => deleteJobImage(img.id, img.imageUrl)}
                 />
               ))}
             </View>
           )}
-          <Text style={styles.imageHint}>JPG · PNG · HEIC · WebP — maks 10MB</Text>
+
+          <View style={styles.lockHint}>
+            <Ionicons name="lock-closed-outline" size={12} color="#94A3B8" />
+            <Text style={styles.lockHintText}>Bilder og notater kan ikke endres etter opplasting</Text>
+          </View>
         </View>
 
       </ScrollView>
@@ -743,13 +676,13 @@ export function JobDetailScreen({ route, navigation }: any) {
         onClose={() => setShowInvoiceModal(false)}
       />
 
-      <FullscreenViewer image={viewingImage} onClose={() => setViewingImage(null)} />
-
-      <LabelModal
-        visible={!!labelingImage}
-        onSelect={(label) => { if (labelingImage) updateImageLabel(labelingImage.id, label); }}
-        onClose={() => setLabelingImage(null)}
+      <ImageUploadModal
+        visible={showUploadModal}
+        jobId={job.id}
+        onClose={() => setShowUploadModal(false)}
       />
+
+      <FullscreenViewer image={viewingImage} onClose={() => setViewingImage(null)} />
     </SafeAreaView>
   );
 }
@@ -927,5 +860,6 @@ const styles = StyleSheet.create({
   noImages: { alignItems: 'center', paddingVertical: 20, gap: 8 },
   noImagesText: { fontSize: 14, color: '#94A3B8' },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  imageHint: { fontSize: 12, color: '#94A3B8', textAlign: 'center' },
+  lockHint: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4 },
+  lockHintText: { fontSize: 12, color: '#94A3B8', fontStyle: 'italic' },
 });

@@ -74,6 +74,8 @@ function mapJobImage(row: any): JobImage {
     companyId: row.company_id ?? null,
     imageUrl: row.image_url,
     label: row.label ?? null,
+    note: row.note ?? null,
+    uploadedBy: row.uploaded_by ?? null,
     uploadedAt: row.uploaded_at,
   };
 }
@@ -122,9 +124,7 @@ interface AppState {
   }) => Promise<void>;
 
   loadJobImages: (jobId: string) => Promise<void>;
-  uploadJobImage: (jobId: string, uri: string, mimeType: string) => Promise<void>;
-  updateImageLabel: (imageId: string, label: 'før' | 'etter' | null) => Promise<void>;
-  deleteJobImage: (imageId: string, imageUrl: string) => Promise<void>;
+  uploadJobImage: (jobId: string, uri: string, mimeType: string, label?: 'før' | 'etter' | null, note?: string) => Promise<void>;
 
   loadJobNotes: (jobId: string) => Promise<void>;
   addJobNote: (jobId: string, content: string) => Promise<void>;
@@ -464,24 +464,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Silently ignore — table may not exist yet if migration hasn't run
   },
 
-  uploadJobImage: async (jobId, uri, mimeType) => {
-    const { companyId } = get();
+  uploadJobImage: async (jobId, uri, mimeType, label, note) => {
+    const { companyId, currentUser } = get();
 
-    // Fetch blob (works for both blob: URLs on web and file:// paths on native)
     const response = await fetch(uri);
     if (!response.ok) throw new Error('Kunne ikke lese bildefilen');
     const blob = await response.blob();
 
     if (blob.size > 10 * 1024 * 1024) throw new Error('Bildet er for stort (maks 10MB)');
 
-    // Derive content-type from blob first, fall back to provided mimeType
     const contentType = (blob.type && blob.type !== 'application/octet-stream')
-      ? blob.type
-      : (mimeType || 'image/jpeg');
+      ? blob.type : (mimeType || 'image/jpeg');
 
-    const ext = contentType.includes('png') ? 'png'
-      : contentType.includes('webp') ? 'webp'
-      : 'jpg';
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
     const filePath = `${jobId}/${Date.now()}.${ext}`;
 
     const { error: storageError } = await supabase.storage
@@ -500,7 +495,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         job_id: jobId,
         company_id: companyId,
         image_url: publicUrl,
-        label: null,
+        label: label ?? null,
+        note: note?.trim() || null,
+        uploaded_by: currentUser?.name ?? null,
       })
       .select()
       .single();
@@ -514,25 +511,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           [jobId]: [...(state.jobImages[jobId] ?? []), mapJobImage(data)],
         },
       }));
-    }
-  },
-
-  updateImageLabel: async (imageId, label) => {
-    const { error } = await supabase
-      .from('job_images')
-      .update({ label })
-      .eq('id', imageId);
-
-    if (!error) {
-      set((state) => {
-        const updated = { ...state.jobImages };
-        for (const jid of Object.keys(updated)) {
-          updated[jid] = updated[jid].map((img) =>
-            img.id === imageId ? { ...img, label } : img
-          );
-        }
-        return { jobImages: updated };
-      });
     }
   },
 
@@ -608,19 +586,4 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  deleteJobImage: async (imageId, imageUrl) => {
-    // Extract storage path from the public URL
-    const match = imageUrl.split('/job-images/')[1];
-    if (match) {
-      await supabase.storage.from('job-images').remove([match]);
-    }
-    await supabase.from('job_images').delete().eq('id', imageId);
-    set((state) => {
-      const updated = { ...state.jobImages };
-      for (const jid of Object.keys(updated)) {
-        updated[jid] = updated[jid].filter((img) => img.id !== imageId);
-      }
-      return { jobImages: updated };
-    });
-  },
 }));

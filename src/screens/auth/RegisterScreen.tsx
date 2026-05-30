@@ -40,7 +40,7 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
   };
 
   const inp = (id: string) => ({
-    style: [styles.input, focused === id && styles.inputFocused],
+    style: [styles.input, focused === id && styles.inputFocused] as any,
     onFocus: () => setFocused(id),
     onBlur: () => setFocused(null),
     placeholderTextColor: '#94A3B8' as const,
@@ -59,29 +59,51 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
           showsVerticalScrollIndicator={false}
         >
           {/* Navy header */}
-          <View style={styles.darkHeader}>
+          <View style={styles.header}>
             <TouchableOpacity style={styles.backBtn} onPress={onGoToLogin}>
-              <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.6)" />
+              <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.65)" />
               <Text style={styles.backText}>Tilbake</Text>
             </TouchableOpacity>
-            <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={22} />
+
+            <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={24} />
             <Text style={styles.tagline}>30 dager gratis — ingen kredittkort</Text>
           </View>
 
-          {/* Form card */}
+          {/* Card — full width, floats up, no bottom radius */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Opprett konto</Text>
 
             <Text style={styles.fieldLabel}>FULLT NAVN</Text>
-            <TextInput {...inp('name')} placeholder="Kjetil Hansen" value={name} onChangeText={(t) => { setName(t); clearErr(); }} autoCapitalize="words" autoCorrect={false} />
+            <TextInput
+              {...inp('name')}
+              placeholder="Kjetil Hansen"
+              value={name}
+              onChangeText={(t) => { setName(t); clearErr(); }}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
 
             <Text style={[styles.fieldLabel, styles.gap]}>E-POST</Text>
-            <TextInput {...inp('email')} placeholder="din@epost.no" value={email} onChangeText={(t) => { setEmail(t); clearErr(); }} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+            <TextInput
+              {...inp('email')}
+              placeholder="din@epost.no"
+              value={email}
+              onChangeText={(t) => { setEmail(t); clearErr(); }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
 
             <Text style={[styles.fieldLabel, styles.gap]}>
               TELEFON <Text style={styles.optional}>(valgfritt)</Text>
             </Text>
-            <TextInput {...inp('phone')} placeholder="90000001" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+            <TextInput
+              {...inp('phone')}
+              placeholder="90000001"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
 
             <Text style={[styles.fieldLabel, styles.gap]}>PASSORD</Text>
             <View style={styles.passwordRow}>
@@ -94,7 +116,11 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword((v) => !v)}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#94A3B8" />
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color="#94A3B8"
+                />
               </TouchableOpacity>
             </View>
 
@@ -119,14 +145,14 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
             <Text style={styles.terms}>
               Ved å registrere deg godtar du våre vilkår for bruk og personvernreglene.
             </Text>
-          </View>
 
-          <TouchableOpacity style={styles.footer} onPress={onGoToLogin}>
-            <Text style={styles.footerText}>
-              Har du allerede konto?{' '}
-              <Text style={styles.footerLink}>Logg inn</Text>
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.footer} onPress={onGoToLogin}>
+              <Text style={styles.footerText}>
+                Har du allerede konto?{' '}
+                <Text style={styles.footerLink}>Logg inn</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -135,46 +161,83 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0A1B33' },
-  avoid: { flex: 1, backgroundColor: '#F5F7FA' },
+  avoid: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { flexGrow: 1 },
-  darkHeader: {
+
+  header: {
     backgroundColor: '#0A1B33',
     alignItems: 'center',
-    paddingTop: 16,
-    paddingBottom: 72,
-    paddingHorizontal: 20,
-    gap: 14,
+    paddingTop: 20,
+    paddingBottom: 80,
+    paddingHorizontal: 24,
+    gap: 16,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 16 },
-  backText: { fontSize: 14, color: 'rgba(255,255,255,0.6)' },
-  tagline: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  backText: { fontSize: 14, color: 'rgba(255,255,255,0.65)' },
+  tagline: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.70)',
+    letterSpacing: 0.2,
+  },
+
   card: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginHorizontal: 20,
-    marginTop: -40,
-    padding: 28,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -20,
+    paddingHorizontal: 32,
+    paddingTop: 36,
+    paddingBottom: 40,
   },
-  cardTitle: { fontSize: 20, fontWeight: '600', color: '#1F2937', marginBottom: 20 },
-  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
-  gap: { marginTop: 14 },
-  optional: { fontWeight: '400', fontSize: 11, textTransform: 'none', letterSpacing: 0, color: '#94A3B8' },
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#0A1B33',
+    marginBottom: 28,
+  },
+
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+  },
+  gap: { marginTop: 20 },
+  optional: {
+    fontWeight: '400',
+    fontSize: 12,
+    textTransform: 'none',
+    letterSpacing: 0,
+    color: '#94A3B8',
+  },
   input: {
     height: 52,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     fontSize: 15,
     color: '#1F2937',
     backgroundColor: '#F8FAFC',
   },
-  inputFocused: { borderColor: '#2563FF', borderWidth: 1.5, backgroundColor: '#FFFFFF' },
+  inputFocused: {
+    borderColor: '#2563FF',
+    borderWidth: 1.5,
+    backgroundColor: '#FFFFFF',
+  },
   passwordRow: { position: 'relative' },
   passwordInput: { paddingRight: 48 },
   eyeBtn: { position: 'absolute', right: 14, top: 16 },
+
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -182,20 +245,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     borderRadius: 10,
     padding: 12,
-    marginTop: 14,
+    marginTop: 16,
   },
   errorText: { fontSize: 13, color: '#DC2626', flex: 1, lineHeight: 18 },
+
   registerBtn: {
     height: 52,
     borderRadius: 10,
-    backgroundColor: '#0A1B33',
+    backgroundColor: '#2563FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 24,
   },
-  registerBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
-  terms: { fontSize: 12, color: '#94A3B8', textAlign: 'center', marginTop: 14, lineHeight: 18 },
-  footer: { alignItems: 'center', paddingVertical: 28 },
+  registerBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  terms: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 18,
+  },
+
+  footer: {
+    alignItems: 'center',
+    paddingTop: 28,
+    paddingBottom: 8,
+  },
   footerText: { fontSize: 14, color: '#64748B' },
-  footerLink: { color: '#2563FF', fontWeight: '600', textDecorationLine: 'underline' },
+  footerLink: {
+    color: '#2563FF',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
 });

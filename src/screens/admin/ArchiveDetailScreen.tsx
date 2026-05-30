@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Modal, ActivityIndicator, useWindowDimensions,
-  Platform,
+  Image, Modal, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../../store/appStore';
 import { JobImage } from '../../types';
 import { formatDate, formatCurrency } from '../../utils/formatters';
+import { ImageUploadModal } from '../../components/ImageUploadModal';
 
 const STATUS_CFG = {
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF' },
@@ -22,114 +21,98 @@ const LABEL_CFG = {
   'etter': { label: 'Etter', color: '#15803D', bg: '#F0FDF4' },
 };
 
-// ─── Image thumbnail ──────────────────────────────────────────────────────────
+// ─── Locked image cell ────────────────────────────────────────────────────────
 
-function ImageThumbnail({ image, size, onPress, onLabelPress, onDelete }: {
-  image: JobImage;
-  size: number;
-  onPress: () => void;
-  onLabelPress: () => void;
-  onDelete: () => void;
+function LockedImage({ image, thumbSize, onPress }: {
+  image: JobImage; thumbSize: number; onPress: () => void;
 }) {
-  const labelCfg = image.label ? LABEL_CFG[image.label] : null;
+  const lc = image.label ? LABEL_CFG[image.label] : null;
+  const dateStr = image.uploadedAt
+    ? new Date(image.uploadedAt).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })
+    : '';
 
   return (
-    <View style={[thumb.container, { width: size, height: size }]}>
-      <TouchableOpacity style={thumb.imageWrap} onPress={onPress} activeOpacity={0.85}>
-        <Image source={{ uri: image.imageUrl }} style={thumb.image} resizeMode="cover" />
+    <View style={[cell.wrap, { width: thumbSize }]}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+        <View style={[cell.imgWrap, { height: thumbSize }]}>
+          <Image source={{ uri: image.imageUrl }} style={cell.img} resizeMode="cover" />
+          {lc && (
+            <View style={[cell.badge, { backgroundColor: lc.bg }]}>
+              <Text style={[cell.badgeText, { color: lc.color }]}>{lc.label}</Text>
+            </View>
+          )}
+        </View>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[thumb.labelBadge, labelCfg ? { backgroundColor: labelCfg.bg } : thumb.labelEmpty]}
-        onPress={onLabelPress}
-      >
-        <Text style={[thumb.labelText, { color: labelCfg ? labelCfg.color : '#FFFFFF' }]}>
-          {labelCfg ? labelCfg.label : 'Merk'}
-        </Text>
-      </TouchableOpacity>
+      {/* Note */}
+      {image.note ? (
+        <View style={cell.noteRow}>
+          <Ionicons name="lock-closed-outline" size={11} color="#94A3B8" />
+          <Text style={cell.note} numberOfLines={2}>{image.note}</Text>
+        </View>
+      ) : null}
 
-      <TouchableOpacity style={thumb.deleteBtn} onPress={onDelete}>
-        <Ionicons name="close-circle" size={20} color="#FFFFFF" />
-      </TouchableOpacity>
+      {/* Uploader + date */}
+      <Text style={cell.meta} numberOfLines={1}>
+        {[image.uploadedBy, dateStr].filter(Boolean).join(' · ')}
+      </Text>
     </View>
   );
 }
 
-const thumb = StyleSheet.create({
-  container: { position: 'relative', borderRadius: 10, overflow: 'hidden', backgroundColor: '#F1F5F9' },
-  imageWrap: { width: '100%', height: '100%' },
-  image: { width: '100%', height: '100%' },
-  labelBadge: { position: 'absolute', bottom: 6, left: 6, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
-  labelEmpty: { backgroundColor: 'rgba(0,0,0,0.45)' },
-  labelText: { fontSize: 10, fontWeight: '700' },
-  deleteBtn: { position: 'absolute', top: 4, right: 4 },
-});
-
-// ─── Label picker modal ───────────────────────────────────────────────────────
-
-function LabelPickerModal({ visible, onSelect, onClose }: {
-  visible: boolean;
-  onSelect: (label: 'før' | 'etter' | null) => void;
-  onClose: () => void;
-}) {
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={labelModal.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={labelModal.box}>
-          <Text style={labelModal.title}>Merk bilde</Text>
-          {([null, 'før', 'etter'] as const).map((l) => (
-            <TouchableOpacity
-              key={String(l)}
-              style={labelModal.item}
-              onPress={() => { onSelect(l); onClose(); }}
-            >
-              <View style={[labelModal.dot, { backgroundColor: l ? LABEL_CFG[l].color : '#94A3B8' }]} />
-              <Text style={labelModal.itemText}>{l ? LABEL_CFG[l].label : 'Ingen merking'}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
-}
-
-const labelModal = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  box: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, width: 260 },
-  title: { fontSize: 15, fontWeight: '600', color: '#1F2937', marginBottom: 14 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  itemText: { fontSize: 14, color: '#1F2937' },
+const cell = StyleSheet.create({
+  wrap: { marginBottom: 4 },
+  imgWrap: { borderRadius: 10, overflow: 'hidden', backgroundColor: '#F1F5F9', position: 'relative' },
+  img: { width: '100%', height: '100%' },
+  badge: {
+    position: 'absolute', top: 6, left: 6,
+    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8,
+  },
+  badgeText: { fontSize: 10, fontWeight: '700' },
+  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 5 },
+  note: { fontSize: 12, color: '#64748B', fontStyle: 'italic', flex: 1, lineHeight: 16 },
+  meta: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
 });
 
 // ─── Fullscreen viewer ────────────────────────────────────────────────────────
 
 function FullscreenViewer({ image, onClose }: { image: JobImage | null; onClose: () => void }) {
   if (!image) return null;
-  const labelCfg = image.label ? LABEL_CFG[image.label] : null;
+  const lc = image.label ? LABEL_CFG[image.label] : null;
   return (
     <Modal visible animationType="fade" onRequestClose={onClose}>
-      <View style={viewer.container}>
-        <TouchableOpacity style={viewer.closeBtn} onPress={onClose}>
-          <Ionicons name="close" size={24} color="#FFFFFF" />
+      <View style={fsv.bg}>
+        <TouchableOpacity style={fsv.close} onPress={onClose}>
+          <Ionicons name="close" size={26} color="#FFFFFF" />
         </TouchableOpacity>
-        {labelCfg && (
-          <View style={[viewer.label, { backgroundColor: labelCfg.bg }]}>
-            <Text style={[viewer.labelText, { color: labelCfg.color }]}>{labelCfg.label}</Text>
+        {lc && (
+          <View style={[fsv.badge, { backgroundColor: lc.bg }]}>
+            <Text style={[fsv.badgeText, { color: lc.color }]}>{lc.label}</Text>
           </View>
         )}
-        <Image source={{ uri: image.imageUrl }} style={viewer.image} resizeMode="contain" />
+        <Image source={{ uri: image.imageUrl }} style={fsv.img} resizeMode="contain" />
+        {image.note ? (
+          <View style={fsv.noteBar}>
+            <Ionicons name="lock-closed-outline" size={13} color="rgba(255,255,255,0.6)" />
+            <Text style={fsv.noteText}>{image.note}</Text>
+          </View>
+        ) : null}
       </View>
     </Modal>
   );
 }
 
-const viewer = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
-  closeBtn: { position: 'absolute', top: 52, right: 20, zIndex: 10 },
-  label: { position: 'absolute', top: 52, left: 20, zIndex: 10, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  labelText: { fontSize: 13, fontWeight: '700' },
-  image: { width: '100%', height: '80%' },
+const fsv = StyleSheet.create({
+  bg: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
+  close: { position: 'absolute', top: 52, right: 20, zIndex: 10 },
+  badge: { position: 'absolute', top: 52, left: 20, zIndex: 10, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  badgeText: { fontSize: 13, fontWeight: '700' },
+  img: { width: '100%', height: '70%' },
+  noteBar: {
+    position: 'absolute', bottom: 48, left: 20, right: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
+  noteText: { fontSize: 14, color: 'rgba(255,255,255,0.8)', fontStyle: 'italic', flex: 1 },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -142,64 +125,15 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
   const invoice = useAppStore((s) => s.invoices.find((inv) => inv.jobId === jobId));
   const images = useAppStore((s) => s.jobImages[jobId] ?? []);
   const loadJobImages = useAppStore((s) => s.loadJobImages);
-  const uploadJobImage = useAppStore((s) => s.uploadJobImage);
-  const updateImageLabel = useAppStore((s) => s.updateImageLabel);
-  const deleteJobImage = useAppStore((s) => s.deleteJobImage);
 
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [viewingImage, setViewingImage] = useState<JobImage | null>(null);
-  const [labelingImage, setLabelingImage] = useState<JobImage | null>(null);
 
   useEffect(() => { loadJobImages(jobId); }, [jobId]);
 
   if (!job) return null;
 
   const invoiceCfg = invoice ? STATUS_CFG[invoice.status as keyof typeof STATUS_CFG] : null;
-
-  const handlePickImages = async () => {
-    setUploadError('');
-
-    if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        setUploadError('Trenger tilgang til bildebiblioteket');
-        return;
-      }
-    }
-
-    let result: ImagePicker.ImagePickerResult;
-    try {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true,
-        quality: 0.85,
-        selectionLimit: 10,
-      });
-    } catch {
-      setUploadError('Kunne ikke åpne bildebibliotek');
-      return;
-    }
-
-    if (result.canceled || result.assets.length === 0) return;
-
-    setUploading(true);
-    let lastError = '';
-
-    for (const asset of result.assets) {
-      try {
-        // Use mimeType from picker if available; don't guess from URI (blob: URLs don't contain type info)
-        const mime = asset.mimeType || 'image/jpeg';
-        await uploadJobImage(jobId, asset.uri, mime);
-      } catch (e: any) {
-        lastError = e.message ?? 'Opplasting feilet, prøv igjen';
-      }
-    }
-
-    setUploading(false);
-    if (lastError) setUploadError(lastError);
-  };
-
   const thumbSize = Math.floor((Math.min(width, 800) - 48 - 16) / 3);
 
   const infoRows = [
@@ -270,32 +204,9 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
             <Text style={styles.imageCount}>{images.length} bilde{images.length !== 1 ? 'r' : ''}</Text>
           </View>
 
-          {uploadError ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={15} color="#DC2626" />
-              <Text style={styles.errorText}>{uploadError}</Text>
-              <TouchableOpacity onPress={() => setUploadError('')}>
-                <Ionicons name="close" size={15} color="#DC2626" />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-
-          <TouchableOpacity
-            style={[styles.uploadBtn, uploading && styles.uploadBtnLoading]}
-            onPress={handlePickImages}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <>
-                <ActivityIndicator size="small" color="#2563FF" />
-                <Text style={styles.uploadBtnText}>Laster opp…</Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="cloud-upload-outline" size={18} color="#2563FF" />
-                <Text style={styles.uploadBtnText}>Last opp bilder</Text>
-              </>
-            )}
+          <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowUploadModal(true)}>
+            <Ionicons name="cloud-upload-outline" size={18} color="#2563FF" />
+            <Text style={styles.uploadBtnText}>Last opp bilder</Text>
           </TouchableOpacity>
 
           {images.length === 0 ? (
@@ -306,31 +217,30 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
           ) : (
             <View style={styles.imageGrid}>
               {images.map((img) => (
-                <ImageThumbnail
+                <LockedImage
                   key={img.id}
                   image={img}
-                  size={thumbSize}
+                  thumbSize={thumbSize}
                   onPress={() => setViewingImage(img)}
-                  onLabelPress={() => setLabelingImage(img)}
-                  onDelete={() => deleteJobImage(img.id, img.imageUrl)}
                 />
               ))}
             </View>
           )}
 
-          <Text style={styles.imageHint}>JPG · PNG · HEIC · WebP — maks 10MB per bilde</Text>
+          <View style={styles.lockHint}>
+            <Ionicons name="lock-closed-outline" size={12} color="#94A3B8" />
+            <Text style={styles.lockHintText}>Bilder og notater kan ikke endres etter opplasting</Text>
+          </View>
         </View>
       </ScrollView>
 
-      <FullscreenViewer image={viewingImage} onClose={() => setViewingImage(null)} />
-
-      <LabelPickerModal
-        visible={!!labelingImage}
-        onSelect={(label) => {
-          if (labelingImage) updateImageLabel(labelingImage.id, label);
-        }}
-        onClose={() => setLabelingImage(null)}
+      <ImageUploadModal
+        visible={showUploadModal}
+        jobId={jobId}
+        onClose={() => setShowUploadModal(false)}
       />
+
+      <FullscreenViewer image={viewingImage} onClose={() => setViewingImage(null)} />
     </SafeAreaView>
   );
 }
@@ -338,26 +248,17 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F7FA' },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 16,
+    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0', gap: 12,
   },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: '600', color: '#1F2937' },
   archivedBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F1F5F9', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   archivedText: { fontSize: 12, color: '#64748B', fontWeight: '500' },
   content: { padding: 20, gap: 16, paddingBottom: 48 },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 20,
-    gap: 12,
+    backgroundColor: '#FFFFFF', borderRadius: 12,
+    borderWidth: 1, borderColor: '#E2E8F0', padding: 20, gap: 12,
   },
   cardLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6 },
   customerName: { fontSize: 20, fontWeight: '700', color: '#0A1B33', marginTop: -4 },
@@ -372,31 +273,15 @@ const styles = StyleSheet.create({
   invBadgeText: { fontSize: 12, fontWeight: '600' },
   imagesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   imageCount: { fontSize: 13, color: '#64748B' },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 10,
-    padding: 12,
-  },
-  errorText: { fontSize: 13, color: '#DC2626', flex: 1, lineHeight: 18 },
   uploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1.5,
-    borderColor: '#2563FF',
-    borderStyle: 'dashed',
-    borderRadius: 10,
-    paddingVertical: 16,
-    backgroundColor: '#EEF4FF',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1.5, borderColor: '#2563FF', borderStyle: 'dashed',
+    borderRadius: 10, paddingVertical: 14, backgroundColor: '#EEF4FF',
   },
-  uploadBtnLoading: { opacity: 0.6 },
   uploadBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
-  noImages: { alignItems: 'center', paddingVertical: 24, gap: 8 },
+  noImages: { alignItems: 'center', paddingVertical: 20, gap: 8 },
   noImagesText: { fontSize: 14, color: '#94A3B8' },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  imageHint: { fontSize: 12, color: '#94A3B8', textAlign: 'center' },
+  lockHint: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4 },
+  lockHintText: { fontSize: 12, color: '#94A3B8', fontStyle: 'italic' },
 });
