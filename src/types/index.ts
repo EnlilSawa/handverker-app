@@ -48,6 +48,7 @@ export interface Invoice {
   status: InvoiceStatus;
   dueDate: string;
   createdAt: string;
+  note?: string | null;
 }
 
 export interface JobImage {

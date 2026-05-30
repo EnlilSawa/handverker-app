@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/appStore';
 import { InvoiceCard } from '../../components/InvoiceCard';
+import { InvoicePreviewModal } from '../../components/InvoicePreviewModal';
 import { InvoiceStatus } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -17,6 +18,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 export function InvoicesScreen({ navigation }: any) {
   const invoices = useAppStore((s) => s.invoices);
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const filtered = useMemo(
     () => (filter === 'all' ? invoices : invoices.filter((i) => i.status === filter)),
@@ -70,7 +72,7 @@ export function InvoicesScreen({ navigation }: any) {
         renderItem={({ item }) => (
           <InvoiceCard
             invoice={item}
-            onPress={() => navigation.navigate('InvoiceDetail', { invoiceId: item.id })}
+            onPress={() => setPreviewId(item.id)}
           />
         )}
         ListEmptyComponent={
@@ -79,6 +81,8 @@ export function InvoicesScreen({ navigation }: any) {
           </View>
         }
       />
+
+      <InvoicePreviewModal invoiceId={previewId} onClose={() => setPreviewId(null)} />
     </SafeAreaView>
   );
 }

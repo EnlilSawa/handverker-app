@@ -39,6 +39,7 @@ function mapInvoice(row: any): Invoice {
     status: row.status,
     dueDate: row.due_date,
     createdAt: row.created_at,
+    note: row.note ?? null,
   };
 }
 
@@ -110,7 +111,7 @@ interface AppState {
   updateJobStatus: (jobId: string, status: JobStatus, hours?: number, materials?: number) => Promise<void>;
   assignTechnician: (jobId: string, technicianId: string | null, technicianName: string | null) => Promise<void>;
 
-  generateInvoice: (jobId: string, hours: number, materials: number) => Promise<Invoice>;
+  generateInvoice: (jobId: string, hours: number, materials: number, note?: string) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
 
   updateCompany: (updates: Partial<Company>) => Promise<void>;
@@ -358,7 +359,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  generateInvoice: async (jobId, hours, materials) => {
+  generateInvoice: async (jobId, hours, materials, note) => {
     const { jobs, company, companyId } = get();
     const job = jobs.find((j) => j.id === jobId);
     if (!job || !company) throw new Error('Jobb ikke funnet');
@@ -396,6 +397,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         total,
         status: 'sent',
         due_date: addDays(company.paymentTermsDays),
+        note: note?.trim() || null,
       })
       .select()
       .single();

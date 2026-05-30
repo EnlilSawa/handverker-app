@@ -10,6 +10,7 @@ import { useAppStore } from '../../store/appStore';
 import { JobImage, JobNote, JobStatus } from '../../types';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import { ImageUploadModal } from '../../components/ImageUploadModal';
+import { InvoicePreviewModal } from '../../components/InvoicePreviewModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -173,45 +174,281 @@ const tp = StyleSheet.create({
 
 // ─── Invoice modal (generate) ─────────────────────────────────────────────────
 
-function GenerateInvoiceModal({ visible, onConfirm, onClose }: {
-  visible: boolean; onConfirm: (hours: number, materials: number) => void; onClose: () => void;
+function GenerateInvoiceModal({ visible, jobId, onClose }: {
+  visible: boolean; jobId: string; onClose: (invoiceId?: string) => void;
 }) {
+  const company = useAppStore((s) => s.company);
+  const jobs = useAppStore((s) => s.jobs);
+  const generateInvoice = useAppStore((s) => s.generateInvoice);
+  const job = jobs.find((j) => j.id === jobId);
+
+  const [step, setStep] = useState<'input' | 'preview'>('input');
   const [hours, setHours] = useState('1');
   const [materials, setMaterials] = useState('0');
+  const [note, setNote] = useState('');
+  const [generating, setGenerating] = useState(false);
   const [err, setErr] = useState('');
 
-  const handleConfirm = () => {
-    const h = parseFloat(hours);
-    const m = parseFloat(materials);
-    if (isNaN(h) || h <= 0) { setErr('Skriv inn gyldige arbeidstimer'); return; }
-    onConfirm(h, isNaN(m) ? 0 : m);
-    onClose();
+  useEffect(() => {
+    if (visible) { setStep('input'); setHours('1'); setMaterials('0'); setNote(''); setErr(''); }
+  }, [visible]);
+
+  const h = Math.max(0, parseFloat(hours) || 0);
+  const m = Math.max(0, parseFloat(materials) || 0);
+  const hourlyRate = company?.hourlyRate ?? 0;
+  const calloutFee = company?.calloutFee ?? 0;
+  const paymentDays = company?.paymentTermsDays ?? 14;
+
+  const lineItems = [
+    { description: `Arbeidstimer (${h}t × ${hourlyRate.toLocaleString('nb-NO')} kr)`, amount: h * hourlyRate },
+    ...(m > 0 ? [{ description: 'Materiell', amount: m }] : []),
+    ...(calloutFee > 0 ? [{ description: 'Fremmøtegebyr', amount: calloutFee }] : []),
+  ];
+  const subtotal = lineItems.reduce((s, i) => s + i.amount, 0);
+  const vat = Math.round(subtotal * 25) / 100;
+  const total = subtotal + vat;
+
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + paymentDays);
+  const dueDateStr = dueDate.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const handlePreview = () => {
+    if (h <= 0) { setErr('Skriv inn gyldige arbeidstimer'); return; }
+    setErr('');
+    setStep('preview');
+  };
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const newInvoice = await generateInvoice(jobId, h, m, note);
+      onClose(newInvoice.id);
+    } catch (e: any) {
+      setErr(e.message ?? 'Kunne ikke generere faktura');
+      setStep('input');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={() => onClose()}>
       <View style={inv.overlay}>
         <View style={inv.sheet}>
-          <View style={inv.header}>
-            <Text style={inv.title}>Generer faktura</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={22} color="#64748B" />
-            </TouchableOpacity>
-          </View>
-          <View style={inv.row}>
-            <View style={inv.field}>
-              <Text style={inv.label}>ARBEIDSTIMER</Text>
-              <TextInput style={inv.input} value={hours} onChangeText={(t) => { setHours(t); setErr(''); }} keyboardType="decimal-pad" placeholder="1.5" placeholderTextColor="#94A3B8" />
+
+          {/* ── Steg 1: Input ── */}
+          {step === 'input' && (
+            <View style={{ gap: 14 }}>
+              <View style={inv.header}>
+                <Text style={inv.title}>Generer faktura</Text>
+                <TouchableOpacity onPress={() => onClose()}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={inv.subtitle}>{job?.customerName}</Text>
+
+              <View style={inv.row}>
+                <View style={inv.field}>
+                  <Text style={inv.fieldLabel}>ARBEIDSTIMER</Text>
+                  <TextInput
+                    style={inv.input}
+                    value={hours}
+                    onChangeText={(t) => { setHours(t); setErr(''); }}
+                    keyboardType="decimal-pad"
+                    placeholder="1.5"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                <View style={[inv.field, { marginLeft: 12 }]}>
+                  <Text style={inv.fieldLabel}>MATERIELL (NOK)</Text>
+                  <TextInput
+                    style={inv.input}
+                    value={materials}
+                    onChangeText={(t) => { setMaterials(t); setErr(''); }}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+              </View>
+
+              {/* Note */}
+              <View style={{ gap: 6 }}>
+                <Text style={inv.fieldLabel}>NOTAT TIL KUNDEN <Text style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0, color: '#94A3B8' }}>(valgfritt)</Text></Text>
+                <View style={{ position: 'relative' }}>
+                  <TextInput
+                    style={[inv.input, { height: 80, textAlignVertical: 'top', paddingTop: 10, paddingBottom: 22 }]}
+                    value={note}
+                    onChangeText={(t) => { if (t.length <= 500) setNote(t); }}
+                    placeholder="Legg til et notat til kunden, f.eks. garantivilkår eller beskrivelse av arbeidet..."
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    maxLength={500}
+                  />
+                  <Text style={inv.noteCounter}>{note.length}/500</Text>
+                </View>
+              </View>
+
+              {/* Live total hint */}
+              {h > 0 && (
+                <View style={inv.hintRow}>
+                  <Ionicons name="receipt-outline" size={14} color="#64748B" />
+                  <Text style={inv.hintText}>
+                    Estimert total: {total.toLocaleString('nb-NO')} kr inkl. MVA
+                  </Text>
+                </View>
+              )}
+
+              {err ? <Text style={inv.err}>{err}</Text> : null}
+
+              <TouchableOpacity style={inv.previewBtn} onPress={handlePreview}>
+                <Text style={inv.previewBtnText}>Se forhåndsvisning</Text>
+                <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-            <View style={[inv.field, { marginLeft: 12 }]}>
-              <Text style={inv.label}>MATERIELL (NOK)</Text>
-              <TextInput style={inv.input} value={materials} onChangeText={setMaterials} keyboardType="numeric" placeholder="0" placeholderTextColor="#94A3B8" />
-            </View>
-          </View>
-          {err ? <Text style={inv.err}>{err}</Text> : null}
-          <TouchableOpacity style={inv.btn} onPress={handleConfirm}>
-            <Text style={inv.btnText}>Generer faktura</Text>
-          </TouchableOpacity>
+          )}
+
+          {/* ── Steg 2: Preview ── */}
+          {step === 'preview' && (
+            <>
+              {/* Fixed header */}
+              <View style={[inv.header, { marginBottom: 12 }]}>
+                <TouchableOpacity style={inv.backBtn} onPress={() => setStep('input')}>
+                  <Ionicons name="arrow-back" size={18} color="#2563FF" />
+                  <Text style={inv.backText}>Endre</Text>
+                </TouchableOpacity>
+                <View style={inv.previewBadge}>
+                  <Text style={inv.previewBadgeText}>FORHÅNDSVISNING</Text>
+                </View>
+                <TouchableOpacity onPress={() => onClose()}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Scrollable PDF-style document */}
+              <ScrollView
+                style={inv.previewScroll}
+                contentContainerStyle={{ paddingBottom: 4 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={inv.paper}>
+
+                  {/* ── Firma + fakturanummer ── */}
+                  <View style={inv.paperHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={inv.paperCompany}>{company?.name ?? 'Firmanavn'}</Text>
+                      {company?.orgNumber ? <Text style={inv.paperMeta}>Org.nr: {company.orgNumber}</Text> : null}
+                      {company?.address ? <Text style={inv.paperMeta}>{company.address}</Text> : null}
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={inv.paperInvNum}>Faktura</Text>
+                      <View style={inv.draftBadge}>
+                        <Text style={inv.draftBadgeText}>UTKAST</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={inv.paperDivider} />
+
+                  {/* ── Fra / Til ── */}
+                  <View style={inv.partiesRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={inv.partyLabel}>FRA</Text>
+                      <Text style={inv.partyName}>{company?.name ?? ''}</Text>
+                    </View>
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      <Text style={[inv.partyLabel, { textAlign: 'right' }]}>TIL</Text>
+                      <Text style={[inv.partyName, { textAlign: 'right' }]}>{job?.customerName}</Text>
+                      {job?.address ? <Text style={[inv.partyDetail, { textAlign: 'right' }]}>{job.address}</Text> : null}
+                    </View>
+                  </View>
+
+                  <View style={inv.paperDivider} />
+
+                  {/* ── Datoer ── */}
+                  <View style={inv.datesRow}>
+                    <View>
+                      <Text style={inv.dateLabel}>FAKTURADATO</Text>
+                      <Text style={inv.dateValue}>{new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={inv.dateLabel}>FORFALL</Text>
+                      <Text style={inv.dateValue}>{dueDateStr}</Text>
+                    </View>
+                  </View>
+
+                  <View style={inv.paperDivider} />
+
+                  {/* ── Spesifikasjon ── */}
+                  <View style={inv.tableHeader}>
+                    <Text style={inv.tableHeaderText}>SPESIFIKASJON</Text>
+                    <Text style={inv.tableHeaderText}>BELØP</Text>
+                  </View>
+                  {lineItems.map((item, i) => (
+                    <View key={i} style={inv.tableRow}>
+                      <Text style={inv.tableDesc}>{item.description}</Text>
+                      <Text style={inv.tableAmount}>{item.amount.toLocaleString('nb-NO')} kr</Text>
+                    </View>
+                  ))}
+
+                  <View style={inv.paperDivider} />
+
+                  {/* ── Totaler ── */}
+                  <View style={inv.totalsBlock}>
+                    <View style={inv.totalRow}>
+                      <Text style={inv.totalLabel}>Sum eks. MVA</Text>
+                      <Text style={inv.totalValue}>{subtotal.toLocaleString('nb-NO')} kr</Text>
+                    </View>
+                    <View style={inv.totalRow}>
+                      <Text style={inv.totalLabel}>MVA 25%</Text>
+                      <Text style={inv.totalValue}>{vat.toLocaleString('nb-NO')} kr</Text>
+                    </View>
+                    <View style={inv.paperDivider} />
+                    <View style={inv.grandRow}>
+                      <Text style={inv.grandLabel}>TOTALT INKL. MVA</Text>
+                      <Text style={inv.grandValue}>{total.toLocaleString('nb-NO')} kr</Text>
+                    </View>
+                  </View>
+
+                  {/* ── Notat ── */}
+                  {note.trim() ? (
+                    <>
+                      <View style={inv.paperDivider} />
+                      <Text style={inv.noteLabel}>NOTAT</Text>
+                      <Text style={inv.noteText}>{note.trim()}</Text>
+                    </>
+                  ) : null}
+
+                  {/* ── Footer ── */}
+                  <View style={[inv.paperDivider, { marginTop: 16 }]} />
+                  <Text style={inv.paperFooter}>
+                    Betalingsbetingelser: {paymentDays} dager netto. Generert av Efero.
+                  </Text>
+                </View>
+              </ScrollView>
+
+              {/* Pinned bottom: error + button */}
+              <View style={{ gap: 10, marginTop: 12 }}>
+                {err ? <Text style={inv.err}>{err}</Text> : null}
+                <TouchableOpacity
+                  style={[inv.generateBtn, generating && { opacity: 0.6 }]}
+                  onPress={handleGenerate}
+                  disabled={generating}
+                >
+                  {generating
+                    ? <ActivityIndicator color="#FFFFFF" size="small" />
+                    : <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
+                  }
+                  <Text style={inv.generateBtnText}>
+                    {generating ? 'Genererer…' : 'Generer og send faktura'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
         </View>
       </View>
     </Modal>
@@ -219,17 +456,84 @@ function GenerateInvoiceModal({ visible, onConfirm, onClose }: {
 }
 
 const inv = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 14 },
+  overlay: { flex: 1, backgroundColor: 'rgba(10,27,51,0.45)', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '92%',
+    paddingTop: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 17, fontWeight: '600', color: '#1F2937' },
+  title: { fontSize: 17, fontWeight: '600', color: '#0A1B33' },
+  subtitle: { fontSize: 14, color: '#64748B', marginTop: -6 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  backText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+  previewBadge: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  previewBadgeText: { fontSize: 10, fontWeight: '700', color: '#64748B', letterSpacing: 0.5 },
   row: { flexDirection: 'row' },
   field: { flex: 1 },
-  label: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   input: { height: 48, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 14, fontSize: 15, color: '#1F2937', backgroundColor: '#F8FAFC' },
+  hintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F8FAFC', borderRadius: 8, padding: 10 },
+  hintText: { fontSize: 13, color: '#64748B' },
   err: { fontSize: 13, color: '#DC2626' },
-  btn: { height: 52, backgroundColor: '#2563FF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  btnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  previewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, backgroundColor: '#2563FF', borderRadius: 10 },
+  previewBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  // Document preview
+  document: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', padding: 16, gap: 8 },
+  docCustomer: { fontSize: 16, fontWeight: '700', color: '#0A1B33' },
+  docAddress: { fontSize: 13, color: '#64748B', marginTop: -4 },
+  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 4 },
+  lineItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  lineDesc: { fontSize: 14, color: '#1F2937', flex: 1, marginRight: 8 },
+  lineAmount: { fontSize: 14, color: '#1F2937', fontWeight: '500' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  totalLabel: { fontSize: 13, color: '#64748B' },
+  totalValue: { fontSize: 13, color: '#64748B' },
+  grandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  grandLabel: { fontSize: 14, fontWeight: '700', color: '#0A1B33' },
+  grandValue: { fontSize: 22, fontWeight: '700', color: '#2563FF' },
+  dueDate: { fontSize: 12, color: '#94A3B8', textAlign: 'right', marginTop: 2 },
+  noteDivider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 4 },
+  noteLabel: { fontSize: 10, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
+  noteText: { fontSize: 13, color: '#1F2937', fontStyle: 'italic', lineHeight: 18 },
+  noteCounter: { position: 'absolute', bottom: 6, right: 10, fontSize: 11, color: '#94A3B8' },
+  previewScroll: { maxHeight: 380 },
+
+  // Paper document
+  paper: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 18,
+    gap: 10,
+  },
+  paperHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  paperCompany: { fontSize: 15, fontWeight: '700', color: '#0A1B33' },
+  paperMeta: { fontSize: 11, color: '#64748B', marginTop: 1 },
+  paperInvNum: { fontSize: 14, fontWeight: '700', color: '#0A1B33' },
+  draftBadge: { backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, marginTop: 4 },
+  draftBadgeText: { fontSize: 9, fontWeight: '700', color: '#64748B', letterSpacing: 0.5 },
+  paperDivider: { height: 1, backgroundColor: '#E2E8F0' },
+  partiesRow: { flexDirection: 'row', gap: 12 },
+  partyLabel: { fontSize: 9, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  partyName: { fontSize: 13, fontWeight: '600', color: '#0A1B33' },
+  partyDetail: { fontSize: 11, color: '#64748B' },
+  datesRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  dateLabel: { fontSize: 9, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  dateValue: { fontSize: 12, color: '#1F2937', fontWeight: '500' },
+  tableHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+  tableHeaderText: { fontSize: 9, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
+  tableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+  tableDesc: { fontSize: 13, color: '#1F2937', flex: 1, marginRight: 8 },
+  tableAmount: { fontSize: 13, color: '#1F2937', fontWeight: '500' },
+  totalsBlock: { gap: 4, alignSelf: 'flex-end', minWidth: '55%' },
+  paperFooter: { fontSize: 11, color: '#94A3B8' },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, backgroundColor: '#15803D', borderRadius: 10 },
+  generateBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -247,7 +551,6 @@ export function JobDetailScreen({ route, navigation }: any) {
   const updateJobStatus = useAppStore((s) => s.updateJobStatus);
   const assignTechnician = useAppStore((s) => s.assignTechnician);
   const updateJob = useAppStore((s) => s.updateJob);
-  const generateInvoice = useAppStore((s) => s.generateInvoice);
   const loadJobImages = useAppStore((s) => s.loadJobImages);
   const loadJobNotes = useAppStore((s) => s.loadJobNotes);
   const addJobNote = useAppStore((s) => s.addJobNote);
@@ -256,6 +559,7 @@ export function JobDetailScreen({ route, navigation }: any) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showTechPicker, setShowTechPicker] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
@@ -396,50 +700,22 @@ export function JobDetailScreen({ route, navigation }: any) {
           <Text style={styles.heroMeta}>Opprettet {formatDate(job.createdAt)}</Text>
 
           <View style={styles.heroActions}>
-            {/* Status dropdown trigger */}
-            <View style={styles.statusWrap}>
-              <TouchableOpacity
-                style={[styles.statusTrigger, { borderColor: currentStatus.color, backgroundColor: currentStatus.bg }]}
-                onPress={() => setShowStatusPicker((v) => !v)}
-                disabled={statusSaving}
-              >
-                {statusSaving
-                  ? <ActivityIndicator size="small" color={currentStatus.color} />
-                  : <>
-                    <View style={[styles.statusDot, { backgroundColor: currentStatus.color }]} />
-                    <Text style={[styles.statusTriggerText, { color: currentStatus.color }]}>{currentStatus.label}</Text>
-                    <Ionicons name="chevron-down" size={14} color={currentStatus.color} />
-                  </>
-                }
-              </TouchableOpacity>
-
-              {showStatusPicker && (
-                <View style={styles.statusDropdown}>
-                  {STATUS_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.status}
-                      style={[styles.statusOption, job.status === opt.status && { backgroundColor: opt.bg }]}
-                      onPress={() => handleStatusChange(opt.status)}
-                    >
-                      <View style={[styles.statusDot, { backgroundColor: opt.color }]} />
-                      <Text style={[styles.statusOptionText, { color: opt.color }]}>{opt.label}</Text>
-                      {job.status === opt.status && <Ionicons name="checkmark" size={14} color={opt.color} />}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
+            <TouchableOpacity
+              style={[styles.statusTrigger, { borderColor: currentStatus.color, backgroundColor: currentStatus.bg }]}
+              onPress={() => setShowStatusPicker(true)}
+              disabled={statusSaving}
+            >
+              {statusSaving
+                ? <ActivityIndicator size="small" color={currentStatus.color} />
+                : <>
+                  <View style={[styles.statusDot, { backgroundColor: currentStatus.color }]} />
+                  <Text style={[styles.statusTriggerText, { color: currentStatus.color }]}>{currentStatus.label}</Text>
+                  <Ionicons name="chevron-down" size={14} color={currentStatus.color} />
+                </>
+              }
+            </TouchableOpacity>
           </View>
         </View>
-
-        {/* Transparent backdrop for status dropdown */}
-        {showStatusPicker && (
-          <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
-            onPress={() => setShowStatusPicker(false)}
-            activeOpacity={1}
-          />
-        )}
 
         {/* ── Kundeinformasjon ─────────────────────────────────────────── */}
         <SectionLabel title="KUNDEINFORMASJON" />
@@ -598,7 +874,7 @@ export function JobDetailScreen({ route, navigation }: any) {
           {invoice ? (
             <TouchableOpacity
               style={styles.invoiceRow}
-              onPress={() => navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })}
+              onPress={() => setPreviewInvoiceId(invoice.id)}
               activeOpacity={0.7}
             >
               <View style={{ gap: 4 }}>
@@ -661,6 +937,26 @@ export function JobDetailScreen({ route, navigation }: any) {
 
       </ScrollView>
 
+      {/* Status picker modal */}
+      <Modal visible={showStatusPicker} transparent animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>
+        <TouchableOpacity style={styles.statusOverlay} activeOpacity={1} onPress={() => setShowStatusPicker(false)}>
+          <View style={styles.statusSheet}>
+            <Text style={styles.statusSheetTitle}>Endre status</Text>
+            {STATUS_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.status}
+                style={[styles.statusSheetOption, job.status === opt.status && { backgroundColor: opt.bg }]}
+                onPress={() => { setShowStatusPicker(false); handleStatusChange(opt.status); }}
+              >
+                <View style={[styles.statusDot, { backgroundColor: opt.color }]} />
+                <Text style={[styles.statusSheetText, { color: opt.color }]}>{opt.label}</Text>
+                {job.status === opt.status && <Ionicons name="checkmark" size={16} color={opt.color} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Modals */}
       <TechPickerModal
         visible={showTechPicker}
@@ -672,9 +968,14 @@ export function JobDetailScreen({ route, navigation }: any) {
 
       <GenerateInvoiceModal
         visible={showInvoiceModal}
-        onConfirm={(h, m) => generateInvoice(job.id, h, m)}
-        onClose={() => setShowInvoiceModal(false)}
+        jobId={job.id}
+        onClose={(newInvoiceId) => {
+          setShowInvoiceModal(false);
+          if (newInvoiceId) setPreviewInvoiceId(newInvoiceId);
+        }}
       />
+
+      <InvoicePreviewModal invoiceId={previewInvoiceId} onClose={() => setPreviewInvoiceId(null)} />
 
       <ImageUploadModal
         visible={showUploadModal}
@@ -752,7 +1053,6 @@ const styles = StyleSheet.create({
   heroActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
 
   // Status dropdown
-  statusWrap: { position: 'relative', zIndex: 100 },
   statusTrigger: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
     paddingHorizontal: 14, paddingVertical: 8,
@@ -760,20 +1060,27 @@ const styles = StyleSheet.create({
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusTriggerText: { fontSize: 13, fontWeight: '600' },
-  statusDropdown: {
-    position: 'absolute', top: 40, left: 0, zIndex: 101,
-    backgroundColor: '#FFFFFF', borderRadius: 12,
-    borderWidth: 1, borderColor: '#E2E8F0',
-    minWidth: 160, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08, shadowRadius: 12, elevation: 8,
+  statusOverlay: {
+    flex: 1, backgroundColor: 'rgba(10,27,51,0.4)',
+    justifyContent: 'center', alignItems: 'center', padding: 40,
   },
-  statusOption: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#F8FAFC',
+  statusSheet: {
+    backgroundColor: '#FFFFFF', borderRadius: 16,
+    width: '100%', maxWidth: 320, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12, shadowRadius: 24, elevation: 12,
   },
-  statusOptionText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  statusSheetTitle: {
+    fontSize: 13, fontWeight: '600', color: '#64748B',
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 10,
+  },
+  statusSheetOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+  },
+  statusSheetText: { flex: 1, fontSize: 15, fontWeight: '600' },
 
   // Info rows
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
