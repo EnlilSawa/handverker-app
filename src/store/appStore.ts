@@ -529,17 +529,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   uploadCompanyLogo: async (uri, mimeType) => {
-    const { companyId } = get();
+    const { companyId, company } = get();
     const response = await fetch(uri);
     if (!response.ok) throw new Error('Kunne ikke lese bildefilen');
     const blob = await response.blob();
     const contentType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : mimeType;
     const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
-    const filePath = `${companyId}/logo.${ext}`;
+    // Timestamp i filnavn sikrer unik URL — unngår browser-cache av gammel logo
+    const filePath = `${companyId}/logo_${Date.now()}.${ext}`;
 
     const { error: storageError } = await supabase.storage
       .from('company-logos')
-      .upload(filePath, blob, { contentType, upsert: true });
+      .upload(filePath, blob, { contentType, upsert: false });
     if (storageError) throw new Error(`Lagring feilet: ${storageError.message}`);
 
     const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(filePath);
@@ -549,6 +550,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       .update({ logo_url: publicUrl })
       .eq('id', companyId);
     if (dbError) throw new Error(dbError.message);
+
+    // Slett gammel logo fra Storage (best effort)
+    if (company?.logoUrl) {
+      const oldPath = company.logoUrl.split('/company-logos/')[1];
+      if (oldPath) supabase.storage.from('company-logos').remove([oldPath]).catch(() => {});
+    }
 
     set((state) => ({
       company: state.company ? { ...state.company, logoUrl: publicUrl } : null,
