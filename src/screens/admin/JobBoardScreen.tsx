@@ -50,18 +50,10 @@ function StatCard({ label, value, color, sub }: { label: string; value: string; 
 }
 
 const statCard = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 20,
-    gap: 6,
-  },
-  label: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  card: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 20, gap: 6 },
+  label: { fontSize: 13, fontWeight: '500' },
   value: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  sub: { fontSize: 12, color: '#94A3B8' },
+  sub: { fontSize: 12 },
 });
 
 // ─── Web: jobs table ──────────────────────────────────────────────────────────
@@ -79,7 +71,7 @@ function JobsTable({ jobs, navigation }: { jobs: Job[]; navigation: any }) {
       </View>
       {jobs.length === 0 ? (
         <View style={table.empty}>
-          <Text style={table.emptyText}>Ingen jobber å vise</Text>
+          <Text style={[table.emptyText, { color: C.textTertiary }]}>Ingen jobber å vise</Text>
         </View>
       ) : (
         jobs.map((job, i) => {
@@ -94,13 +86,13 @@ function JobsTable({ jobs, navigation }: { jobs: Job[]; navigation: any }) {
               <Text style={[table.tdBold, { flex: 2, color: C.textPrimary }]} numberOfLines={1}>
                 {job.customerName}
               </Text>
-              <Text style={[table.td, { flex: 2 }]} numberOfLines={1}>
+              <Text style={[table.td, { flex: 2, color: C.textSecondary }]} numberOfLines={1}>
                 {job.description}
               </Text>
-              <Text style={[table.td, { flex: 1.5 }]} numberOfLines={1}>
+              <Text style={[table.td, { flex: 1.5, color: C.textSecondary }]} numberOfLines={1}>
                 {job.assignedTechnicianName ?? '—'}
               </Text>
-              <Text style={[table.td, { flex: 1 }]}>
+              <Text style={[table.td, { flex: 1, color: C.textSecondary }]}>
                 {formatShortDate(job.scheduledAt)}
               </Text>
               <View style={[table.badgeWrap, { flex: 1, alignItems: 'flex-end' }]}>
@@ -118,44 +110,21 @@ function JobsTable({ jobs, navigation }: { jobs: Job[]; navigation: any }) {
 
 const table = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     overflow: 'hidden',
   },
-  header: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-  },
-  th: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
-  },
-  rowAlt: { backgroundColor: '#F8FAFC' },
-  tdBold: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
-  td: { fontSize: 14, color: '#64748B' },
+  header: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1 },
+  th: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  rowAlt: {},
+  tdBold: { fontSize: 14, fontWeight: '600' },
+  td: { fontSize: 14 },
   badgeWrap: { flexDirection: 'row' },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   badgeText: { fontSize: 12, fontWeight: '600' },
   empty: { padding: 40, alignItems: 'center' },
-  emptyText: { fontSize: 14, color: '#94A3B8' },
+  emptyText: { fontSize: 14 },
 });
 
 // ─── Web layout ───────────────────────────────────────────────────────────────
@@ -212,7 +181,7 @@ function WebJobBoard({ navigation }: { navigation: any }) {
 
         {/* Jobs table */}
         <View style={web.sectionHeader}>
-          <Text style={web.sectionTitle}>Alle jobber</Text>
+          <Text style={[web.sectionTitle, { color: C.textPrimary }]}>Alle jobber</Text>
         </View>
         <JobsTable jobs={sortedJobs} navigation={navigation} />
       </ScrollView>
@@ -227,12 +196,10 @@ const web = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 20,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
-  pageTitle: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
-  pageDate: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  pageTitle: { fontSize: 20, fontWeight: '600' },
+  pageDate: { fontSize: 13, marginTop: 2 },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -246,7 +213,7 @@ const web = StyleSheet.create({
   content: { padding: 24, gap: 24 },
   statRow: { flexDirection: 'row', gap: 16 },
   sectionHeader: { marginBottom: -8 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937' },
+  sectionTitle: { fontSize: 16, fontWeight: '600' },
 });
 
 // ─── Mobile layout ────────────────────────────────────────────────────────────
@@ -371,7 +338,7 @@ function MobileJobBoard({ navigation }: { navigation: any }) {
 }
 
 const mobile = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -379,12 +346,11 @@ const mobile = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 14,
-    backgroundColor: '#FFFFFF',
+    
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
-  greeting: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
-  date: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  greeting: { fontSize: 20, fontWeight: '600' },
+  date: { fontSize: 13, marginTop: 2 },
   addBtn: {
     width: 40,
     height: 40,
@@ -398,27 +364,12 @@ const mobile = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     gap: 10,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
-  statTile: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    alignItems: 'center',
-  },
+  statTile: { flex: 1, borderRadius: 10, borderWidth: 1, padding: 12, alignItems: 'center' },
   statValue: { fontSize: 20, fontWeight: '700' },
-  statLabel: { fontSize: 11, color: '#64748B', marginTop: 2, textAlign: 'center' },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
+  statLabel: { fontSize: 11, marginTop: 2, textAlign: 'center' },
+  tabBar: { flexDirection: 'row', borderBottomWidth: 1 },
   tab: {
     flex: 1,
     flexDirection: 'row',
@@ -430,13 +381,13 @@ const mobile = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: { borderBottomColor: '#2563FF' },
-  tabText: { fontSize: 14, color: '#94A3B8', fontWeight: '500' },
+  tabText: { fontSize: 14, fontWeight: '500' },
   tabTextActive: { color: '#2563FF', fontWeight: '600' },
   tabBadge: { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   tabBadgeText: { fontSize: 11, fontWeight: '700' },
   swipeKanban: { paddingVertical: 16, gap: 16 },
   emptyCol: { alignItems: 'center', paddingTop: 48, gap: 8 },
-  emptyText: { fontSize: 13, color: '#94A3B8' },
+  emptyText: { fontSize: 13 },
 });
 
 // ─── Export ───────────────────────────────────────────────────────────────────
