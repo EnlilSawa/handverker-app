@@ -162,10 +162,10 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
           {infoRows.map(({ icon, label, value }) =>
             value ? (
               <View key={label} style={styles.infoRow}>
-                <Ionicons name={icon as any} size={14} color="#64748B" />
+                <Ionicons name={icon as any} size={14} color={C.textSecondary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>{label}</Text>
-                  <Text style={styles.infoValue}>{value}</Text>
+                  <Text style={[styles.infoLabel, { color: C.textTertiary }]}>{label}</Text>
+                  <Text style={[styles.infoValue, { color: C.textPrimary }]}>{value}</Text>
                 </View>
               </View>
             ) : null
