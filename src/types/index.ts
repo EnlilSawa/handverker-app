@@ -20,6 +20,7 @@ export interface Job {
   assignedTechnicianName: string | null;
   scheduledAt: string;
   status: JobStatus;
+  customerId?: string | null;
   hoursWorked?: number;
   materials?: number;
   createdAt: string;
@@ -49,6 +50,15 @@ export interface Invoice {
   dueDate: string;
   createdAt: string;
   note?: string | null;
+}
+
+export interface Customer {
+  id: string;
+  companyId: string;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  createdAt: string;
 }
 
 export interface JobImage {

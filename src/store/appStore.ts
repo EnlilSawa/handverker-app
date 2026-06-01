@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote } from '../types';
+import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer } from '../types';
 import { supabase } from '../lib/supabase';
 import { addDays } from '../utils/formatters';
 
@@ -18,6 +18,7 @@ function mapJob(row: any): Job {
     assignedTechnicianName: row.technician?.name ?? null,
     scheduledAt: row.scheduled_at,
     status: row.status,
+    customerId: row.customer_id ?? null,
     hoursWorked: row.hours_worked != null ? Number(row.hours_worked) : undefined,
     materials: row.materials_cost != null ? Number(row.materials_cost) : undefined,
     createdAt: row.created_at,
@@ -70,6 +71,17 @@ function mapUser(row: any): User {
   };
 }
 
+function mapCustomer(row: any): Customer {
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    name: row.name,
+    phone: row.phone ?? null,
+    address: row.address ?? null,
+    createdAt: row.created_at,
+  };
+}
+
 function mapJobImage(row: any): JobImage {
   return {
     id: row.id,
@@ -92,6 +104,7 @@ interface AppState {
   jobs: Job[];
   invoices: Invoice[];
   company: Company | null;
+  customers: Customer[];
   jobImages: Record<string, JobImage[]>;
   jobNotes: Record<string, JobNote[]>;
   loading: boolean;
@@ -127,6 +140,10 @@ interface AppState {
     address?: string; description?: string; scheduledAt?: string;
   }) => Promise<void>;
 
+  loadCustomers: () => Promise<void>;
+  createCustomer: (name: string, phone?: string, address?: string) => Promise<Customer>;
+  getOrCreateCustomer: (name: string, phone?: string, address?: string) => Promise<string | null>;
+
   loadJobImages: (jobId: string) => Promise<void>;
   uploadJobImage: (jobId: string, uri: string, mimeType: string, label?: 'før' | 'etter' | null, note?: string) => Promise<void>;
 
@@ -143,6 +160,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   jobs: [],
   invoices: [],
   company: null,
+  customers: [],
   jobImages: {},
   jobNotes: {},
   loading: false,
@@ -297,11 +315,76 @@ export const useAppStore = create<AppState>((set, get) => ({
         .eq('company_id', profileData.company_id);
 
       if (usersData) set({ users: usersData.map(mapUser) });
+
+      // Load customers
+      const { data: customersData } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('company_id', profileData.company_id)
+        .order('name', { ascending: true });
+      if (customersData) set({ customers: customersData.map(mapCustomer) });
     }
+  },
+
+  loadCustomers: async () => {
+    const { companyId } = get();
+    if (!companyId) return;
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('name', { ascending: true });
+    if (!error && data) set({ customers: data.map(mapCustomer) });
+  },
+
+  createCustomer: async (name, phone, address) => {
+    const { companyId } = get();
+    const { data, error } = await supabase
+      .from('customers')
+      .insert({ company_id: companyId, name: name.trim(), phone: phone?.trim() || null, address: address?.trim() || null })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    const customer = mapCustomer(data);
+    set((state) => ({ customers: [...state.customers, customer].sort((a, b) => a.name.localeCompare(b.name)) }));
+    return customer;
+  },
+
+  getOrCreateCustomer: async (name, phone, address) => {
+    const { companyId, customers } = get();
+    if (!companyId) return null;
+    // Match by phone first, then by name
+    const normalPhone = phone?.trim();
+    const normalName = name?.trim();
+    let existing = normalPhone
+      ? customers.find((c) => c.phone === normalPhone)
+      : customers.find((c) => c.name.toLowerCase() === normalName?.toLowerCase());
+    if (!existing && normalPhone) {
+      const { data } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('phone', normalPhone)
+        .limit(1)
+        .maybeSingle();
+      if (data) existing = mapCustomer(data);
+    }
+    if (existing) return existing.id;
+    // Create new
+    try {
+      const customer = await get().createCustomer(normalName ?? '', normalPhone, address);
+      return customer.id;
+    } catch { return null; }
   },
 
   addJob: async (jobData) => {
     const { companyId } = get();
+    // Auto-create or link customer
+    const customerId = await get().getOrCreateCustomer(
+      jobData.customerName,
+      jobData.customerPhone,
+      jobData.address
+    );
     const { data, error } = await supabase
       .from('jobs')
       .insert({
@@ -313,6 +396,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         assigned_technician_id: jobData.assignedTechnicianId,
         scheduled_at: jobData.scheduledAt,
         status: jobData.status,
+        customer_id: customerId,
       })
       .select('*, technician:profiles!assigned_technician_id(name)')
       .single();

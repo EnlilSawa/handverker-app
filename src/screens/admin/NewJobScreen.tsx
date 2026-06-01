@@ -13,14 +13,15 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   return <Text style={styles.fieldLabel}>{children}</Text>;
 }
 
-export function NewJobScreen({ navigation }: any) {
+export function NewJobScreen({ navigation, route }: any) {
   const { colors: C } = useTheme();
+  const prefill = route?.params ?? {};
   const technicians = useAppStore((s) => s.users.filter((u) => u.role === 'technician'));
   const addJob = useAppStore((s) => s.addJob);
 
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [customerName, setCustomerName] = useState(prefill.prefillName ?? '');
+  const [customerPhone, setCustomerPhone] = useState(prefill.prefillPhone ?? '');
+  const [address, setAddress] = useState(prefill.prefillAddress ?? '');
   const [description, setDescription] = useState('');
   const [selectedTech, setSelectedTech] = useState<{ id: string; name: string } | null>(null);
   const [date, setDate] = useState(todayISO());
