@@ -90,14 +90,14 @@ export function StatisticsScreen() {
     <ThemedScreen>
       <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <Text style={[styles.title, { color: C.textPrimary }]}>Statistikk</Text>
-        <Text style={styles.subtitle}>{monthName}</Text>
+        <Text style={[styles.subtitle, { color: C.textSecondary }]}>{monthName}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Hero revenue card */}
         <View style={[styles.heroCard, { backgroundColor: C.cardBg, borderColor: C.border }]}>
-          <Text style={styles.heroLabel}>TOTAL INNTEKT DENNE MÅNEDEN</Text>
-          <Text style={styles.heroNumber}>{formatCurrency(stats.revenue)}</Text>
+          <Text style={[styles.heroLabel, { color: C.textSecondary }]}>TOTAL INNTEKT DENNE MÅNEDEN</Text>
+          <Text style={[styles.heroNumber, { color: '#34D399' }]}>{formatCurrency(stats.revenue)}</Text>
           <View style={styles.heroBar}>
             <View style={[styles.heroBarFill, { width: stats.revenue > 0 ? '100%' : '0%' }]} />
           </View>
@@ -109,7 +109,7 @@ export function StatisticsScreen() {
           {miniStats.map(({ label, count, color, bg }) => (
             <View key={label} style={[styles.miniCard, { backgroundColor: bg }]}>
               <Text style={[styles.miniCount, { color }]}>{count}</Text>
-              <Text style={styles.miniLabel}>{label}</Text>
+              <Text style={[styles.miniLabel, { color: C.textSecondary }]}>{label}</Text>
             </View>
           ))}
         </View>
@@ -156,11 +156,11 @@ export function StatisticsScreen() {
           ].map(({ label, color, bg, count, amount }) => (
             <View key={label} style={styles.invoiceRow}>
               <View style={[styles.dot, { backgroundColor: color }]} />
-              <Text style={styles.invoiceLabel}>{label}</Text>
+              <Text style={[styles.invoiceLabel, { color: C.textPrimary }]}>{label}</Text>
               <View style={[styles.countPill, { backgroundColor: bg }]}>
                 <Text style={[styles.countPillText, { color }]}>{count}</Text>
               </View>
-              <Text style={styles.invoiceAmount}>{formatCurrency(amount)}</Text>
+              <Text style={[styles.invoiceAmount, { color: C.textPrimary }]}>{formatCurrency(amount)}</Text>
             </View>
           ))}
         </View>

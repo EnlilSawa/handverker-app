@@ -21,12 +21,13 @@ function FieldInput({ label, value, onChangeText, keyboardType = 'default', plac
   keyboardType?: 'default' | 'numeric' | 'phone-pad';
   placeholder?: string;
 }) {
+  const { colors: C } = useTheme();
   const [focused, setFocused] = useState(false);
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={[styles.fieldLabel, { color: C.textSecondary }]}>{label}</Text>
       <TextInput
-        style={[styles.input, focused && styles.inputFocused]}
+        style={[styles.input, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }, focused && styles.inputFocused]}
         value={value}
         onChangeText={onChangeText}
         onFocus={() => setFocused(true)}
@@ -131,11 +132,11 @@ export function SettingsScreen() {
           <Text style={[styles.logoHint, { color: C.textTertiary }]}>Vises øverst til venstre på alle fakturaer</Text>
 
           {company?.logoUrl ? (
-            <View style={styles.logoPreviewWrap}>
+            <View style={[styles.logoPreviewWrap, { backgroundColor: C.cardBg, borderColor: C.border }]}>
               <Image source={{ uri: company.logoUrl }} style={styles.logoPreview} resizeMode="contain" />
             </View>
           ) : (
-            <View style={[styles.logoPlaceholder, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+            <View style={[styles.logoPlaceholder, { backgroundColor: C.cardAlt }, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
               <Ionicons name="image-outline" size={28} color={C.textTertiary} />
               <Text style={[styles.logoPlaceholderText, { color: C.textTertiary }]}>Ingen logo lastet opp</Text>
             </View>
