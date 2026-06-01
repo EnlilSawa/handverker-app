@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { InvoiceStatus } from '../../types';
@@ -13,6 +15,7 @@ const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: stri
 };
 
 export function InvoiceDetailScreen({ route, navigation }: any) {
+  const { colors: C } = useTheme();
   const invoiceId = route?.params?.invoiceId;
   const invoices = useAppStore((s) => s.invoices);
   const company = useAppStore((s) => s.company);
@@ -28,8 +31,8 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
   const isOverdue = invoice.status === 'overdue';
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+    <ThemedScreen>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         {navigation && (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#1F2937" />
@@ -50,16 +53,28 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
         ) : null}
 
         <View style={styles.invoiceCard}>
-          {/* Top row */}
+          {/* Logo + invoice number */}
           <View style={styles.invoiceTop}>
             <View>
+              {company?.logoUrl ? (
+                <Image source={{ uri: company.logoUrl }} style={styles.logo} resizeMode="contain" />
+              ) : null}
               <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
               <Text style={styles.invoiceMeta}>Dato: {formatDate(invoice.createdAt)}</Text>
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={[styles.invoiceMeta, isOverdue && { color: '#DC2626', fontWeight: '600' }]}>
-                Forfall: {formatShortDate(invoice.dueDate)}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 24 }}>
+              {company?.accountNumber ? (
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.metaLabel}>KONTONUMMER</Text>
+                  <Text style={styles.accountNumber}>{company.accountNumber}</Text>
+                </View>
+              ) : null}
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.metaLabel}>FORFALL</Text>
+                <Text style={[styles.invoiceMeta, isOverdue && { color: '#DC2626', fontWeight: '600' }]}>
+                  {formatShortDate(invoice.dueDate)}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -83,7 +98,7 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
           <View style={styles.divider} />
 
           {/* Line items */}
-          <Text style={styles.sectionTitle}>SPESIFIKASJON</Text>
+          <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>SPESIFIKASJON</Text>
           {invoice.lineItems.map((item, i) => (
             <View key={i} style={styles.lineItem}>
               <Text style={styles.lineDesc}>{item.description}</Text>
@@ -140,11 +155,8 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
           </>
         )}
 
-        <Text style={styles.terms}>
-          Betalingsbetingelser: {company?.paymentTermsDays ?? 14} dager netto.
-        </Text>
       </ScrollView>
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 
@@ -181,6 +193,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   invoiceTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  logo: { width: 120, height: 44, marginBottom: 28 },
   invoiceNumber: { fontSize: 18, fontWeight: '700', color: '#0A1B33' },
   invoiceMeta: { fontSize: 13, color: '#64748B', marginTop: 4 },
   divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 16 },
@@ -193,9 +206,10 @@ const styles = StyleSheet.create({
   lineItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    alignItems: 'center',
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    borderBottomColor: '#E2E8F0',
   },
   lineDesc: { fontSize: 14, color: '#1F2937', flex: 1, marginRight: 8 },
   lineAmount: { fontSize: 14, color: '#64748B', fontWeight: '500' },
@@ -232,5 +246,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   paidBtnText: { color: '#15803D', fontSize: 15, fontWeight: '600' },
-  terms: { fontSize: 12, color: '#94A3B8', textAlign: 'center' },
+  paymentBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    gap: 0,
+  },
+  paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  metaLabel: { fontSize: 10, fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  accountNumber: { fontSize: 14, color: '#0A1B33', fontWeight: '700', letterSpacing: 0.5 },
 });

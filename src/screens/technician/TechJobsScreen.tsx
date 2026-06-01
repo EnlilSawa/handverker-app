@@ -4,6 +4,8 @@ import {
   TextInput, TouchableOpacity, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { TechJobCard } from '../../components/TechJobCard';
@@ -15,6 +17,7 @@ function initials(name: string) {
 }
 
 export function TechJobsScreen() {
+  const { colors: C } = useTheme();
   const currentUser = useAppStore((s) => s.currentUser);
   const jobs = useAppStore((s) => s.jobs);
   const updateJobStatus = useAppStore((s) => s.updateJobStatus);
@@ -49,10 +52,10 @@ export function TechJobsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+    <ThemedScreen>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <View>
-          <Text style={styles.title}>Mine jobber</Text>
+          <Text style={[styles.title, { color: C.textPrimary }]}>Mine jobber</Text>
           <Text style={styles.subtitle}>{todayLabel}</Text>
         </View>
         <View style={styles.avatarCircle}>
@@ -83,7 +86,7 @@ export function TechJobsScreen() {
       <Modal visible={!!selectedJob} transparent animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View style={styles.overlay}>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { backgroundColor: C.cardBg }]}>
               <View style={styles.sheetHeader}>
                 <Text style={styles.sheetTitle}>Fullfør jobb</Text>
                 <TouchableOpacity onPress={() => setSelectedJob(null)}>
@@ -96,7 +99,7 @@ export function TechJobsScreen() {
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>ARBEIDSTIMER</Text>
                   <TextInput
-                    style={styles.fieldInput}
+                    style={[styles.fieldInput, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]}
                     value={hours}
                     onChangeText={(t) => { setHours(t); setDoneError(''); }}
                     keyboardType="decimal-pad"
@@ -107,7 +110,7 @@ export function TechJobsScreen() {
                 <View style={[styles.formField, { marginLeft: 12 }]}>
                   <Text style={styles.fieldLabel}>MATERIELL (NOK)</Text>
                   <TextInput
-                    style={styles.fieldInput}
+                    style={[styles.fieldInput, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]}
                     value={materials}
                     onChangeText={setMaterials}
                     keyboardType="numeric"
@@ -136,7 +139,7 @@ export function TechJobsScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 

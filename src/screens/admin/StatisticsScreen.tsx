@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { useAppStore } from '../../store/appStore';
 import { formatCurrency, isThisMonth } from '../../utils/formatters';
 
@@ -38,6 +40,7 @@ const MINI_STATS = (jobsByStatus: { new: number; in_progress: number; completed:
 ];
 
 export function StatisticsScreen() {
+  const { colors: C } = useTheme();
   const jobs = useAppStore((s) => s.jobs);
   const invoices = useAppStore((s) => s.invoices);
   const users = useAppStore((s) => s.users);
@@ -88,15 +91,15 @@ export function StatisticsScreen() {
   const totalInvoices = stats.invoiceStats.paid.length + stats.invoiceStats.sent.length + stats.invoiceStats.overdue.length;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Statistikk</Text>
+    <ThemedScreen>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
+        <Text style={[styles.title, { color: C.textPrimary }]}>Statistikk</Text>
         <Text style={styles.subtitle}>{monthName}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Hero revenue card */}
-        <View style={styles.heroCard}>
+        <View style={[styles.heroCard, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <Text style={styles.heroLabel}>TOTAL INNTEKT DENNE MÅNEDEN</Text>
           <Text style={styles.heroNumber}>{formatCurrency(stats.revenue)}</Text>
           <View style={styles.heroBar}>
@@ -105,7 +108,7 @@ export function StatisticsScreen() {
         </View>
 
         {/* 4 mini stat cards */}
-        <Text style={styles.sectionTitle}>JOBBOVERSIKT</Text>
+        <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>JOBBOVERSIKT</Text>
         <View style={styles.miniGrid}>
           {miniStats.map(({ label, count, color, bg }) => (
             <View key={label} style={[styles.miniCard, { backgroundColor: bg }]}>
@@ -118,8 +121,8 @@ export function StatisticsScreen() {
         {/* Tech performance */}
         {stats.techPerformance.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>INNTEKT PER TEKNIKER</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>INNTEKT PER TEKNIKER</Text>
+            <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
               {stats.techPerformance.map((t) => (
                 <ProgressRow
                   key={t.name}
@@ -134,8 +137,8 @@ export function StatisticsScreen() {
         )}
 
         {/* Invoice status */}
-        <Text style={styles.sectionTitle}>FAKTURASTATUS</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>FAKTURASTATUS</Text>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           {[
             {
               label: 'Betalt',
@@ -170,7 +173,7 @@ export function StatisticsScreen() {
           ))}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 

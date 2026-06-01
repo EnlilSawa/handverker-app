@@ -80,6 +80,8 @@ export interface Company {
   hourlyRate: number;
   calloutFee: number;
   paymentTermsDays: number;
+  logoUrl?: string | null;
+  accountNumber?: string | null;
   trialEndsAt?: string;
   subscriptionStatus?: SubscriptionStatus;
   onboardingCompleted?: boolean;

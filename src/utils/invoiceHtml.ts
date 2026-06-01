@@ -130,6 +130,7 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
   <!-- Header -->
   <div class="header">
     <div>
+      ${company?.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="height: 52px; max-width: 160px; object-fit: contain; margin-bottom: 8px; display: block;" />` : ''}
       <div class="company-name">${company?.name ?? 'Efero'}</div>
       ${company?.orgNumber ? `<div class="company-detail">Org.nr: ${company.orgNumber}</div>` : ''}
       ${company?.address ? `<div class="company-detail">${company.address}</div>` : ''}
@@ -153,7 +154,7 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
     </div>
   </div>
 
-  <!-- Dates -->
+  <!-- Dates + Kontonummer -->
   <div class="dates">
     <div>
       <div class="date-label">Fakturadato</div>
@@ -163,6 +164,11 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
       <div class="date-label">Forfall</div>
       <div class="date-value">${fmtDate(invoice.dueDate)}</div>
     </div>
+    ${company?.accountNumber ? `
+    <div>
+      <div class="date-label">Kontonummer</div>
+      <div class="date-value" style="font-weight: 700; color: #0A1B33; letter-spacing: 0.5px;">${company.accountNumber}</div>
+    </div>` : ''}
   </div>
 
   <!-- Line items -->
@@ -176,6 +182,7 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
     </thead>
     <tbody>
       ${lineItemsHtml}
+      ${invoice.note ? `<tr><td colspan="2" style="padding: 10px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B; font-style: italic;">${invoice.note}</td></tr>` : ''}
     </tbody>
   </table>
 
@@ -190,17 +197,12 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
     </div>
   </div>
 
-  ${invoice.note ? `
-  <!-- Note -->
-  <div style="margin-top: 24px; padding: 14px 16px; background: #F8FAFC; border-radius: 8px; border-left: 3px solid #E2E8F0;">
-    <div style="font-size: 10px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Notat</div>
-    <div style="font-size: 13px; color: #1F2937; font-style: italic; line-height: 1.5;">${invoice.note}</div>
-  </div>` : ''}
-
   <!-- Footer -->
   <div class="footer">
-    <p>Betalingsbetingelser: ${company?.paymentTermsDays ?? 14} dager netto.</p>
-    <p>Generert av Efero</p>
+    <p style="margin: 0; display: flex; justify-content: space-between;">
+      <span>Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto</span>
+      <span style="color: #CBD5E1;">Generert av Efero</span>
+    </p>
   </div>
 </body>
 </html>`;

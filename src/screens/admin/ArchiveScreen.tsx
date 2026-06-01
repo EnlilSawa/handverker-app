@@ -5,6 +5,8 @@ import {
   FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { Job } from '../../types';
@@ -25,18 +27,19 @@ function TableRow({ job, index, invoice, imageCount, onPress }: {
   imageCount: number;
   onPress: () => void;
 }) {
+  const { colors: C } = useTheme();
   const inv = invoice ? STATUS_CFG[invoice.status as keyof typeof STATUS_CFG] : null;
 
   return (
     <TouchableOpacity
-      style={[table.row, index % 2 === 1 && table.rowAlt]}
+      style={[table.row, { backgroundColor: index % 2 === 1 ? C.cardAlt : C.cardBg, borderBottomColor: C.border }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text style={[table.tdBold, { flex: 2 }]} numberOfLines={1}>{job.customerName}</Text>
-      <Text style={[table.td, { flex: 2 }]} numberOfLines={1}>{job.description}</Text>
-      <Text style={[table.td, { flex: 1.5 }]} numberOfLines={1}>{job.assignedTechnicianName ?? '—'}</Text>
-      <Text style={[table.td, { flex: 1 }]}>{formatShortDate(job.updatedAt)}</Text>
+      <Text style={[table.tdBold, { flex: 2, color: C.textPrimary }]} numberOfLines={1}>{job.customerName}</Text>
+      <Text style={[table.td, { flex: 2, color: C.textSecondary }]} numberOfLines={1}>{job.description}</Text>
+      <Text style={[table.td, { flex: 1.5, color: C.textSecondary }]} numberOfLines={1}>{job.assignedTechnicianName ?? '—'}</Text>
+      <Text style={[table.td, { flex: 1, color: C.textSecondary }]}>{formatShortDate(job.updatedAt)}</Text>
       <View style={[table.cell, { flex: 1 }]}>
         {inv ? (
           <View style={[table.badge, { backgroundColor: inv.bg }]}>
@@ -65,37 +68,36 @@ const table = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    // no backgroundColor — applied inline with C.cardBg/C.cardAlt
   },
-  rowAlt: { backgroundColor: '#F8FAFC' },
   cell: { flexDirection: 'row', alignItems: 'center' },
-  tdBold: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
-  td: { fontSize: 14, color: '#64748B' },
+  tdBold: { fontSize: 14, fontWeight: '600' },
+  td: { fontSize: 14 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   badgeText: { fontSize: 11, fontWeight: '600' },
   imagesPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
-  imagesPillText: { fontSize: 11, color: '#64748B', fontWeight: '600' },
+  imagesPillText: { fontSize: 11, fontWeight: '600' },
 });
 
 // ─── Mobile card ──────────────────────────────────────────────────────────────
 
 function MobileCard({ job, invoice, imageCount, onPress }: { job: Job; invoice: any; imageCount: number; onPress: () => void }) {
+  const { colors: C } = useTheme();
   const inv = invoice ? STATUS_CFG[invoice.status as keyof typeof STATUS_CFG] : null;
   return (
-    <TouchableOpacity style={card.container} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={[card.container, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={onPress} activeOpacity={0.7}>
       <View style={card.top}>
-        <Text style={card.name} numberOfLines={1}>{job.customerName}</Text>
+        <Text style={[card.name, { color: C.textPrimary }]} numberOfLines={1}>{job.customerName}</Text>
         {inv && (
           <View style={[card.badge, { backgroundColor: inv.bg }]}>
             <Text style={[card.badgeText, { color: inv.color }]}>{inv.label}</Text>
           </View>
         )}
       </View>
-      <Text style={card.desc} numberOfLines={1}>{job.description}</Text>
+      <Text style={[card.desc, { color: C.textSecondary }]} numberOfLines={1}>{job.description}</Text>
       <View style={card.bottom}>
-        <Text style={card.meta}>{job.assignedTechnicianName ?? 'Ingen tekniker'}</Text>
-        <Text style={card.meta}>Fullført {formatShortDate(job.updatedAt)}</Text>
+        <Text style={[card.meta, { color: C.textTertiary }]}>{job.assignedTechnicianName ?? 'Ingen tekniker'}</Text>
+        <Text style={[card.meta, { color: C.textTertiary }]}>Fullført {formatShortDate(job.updatedAt)}</Text>
         {imageCount > 0 && (
           <View style={card.imagesPill}>
             <Ionicons name="image-outline" size={11} color="#64748B" />
@@ -108,7 +110,7 @@ function MobileCard({ job, invoice, imageCount, onPress }: { job: Job; invoice: 
 }
 
 const card = StyleSheet.create({
-  container: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 4, borderLeftColor: '#64748B', padding: 16, marginBottom: 10 },
+  container: { borderRadius: 12, borderWidth: 1, borderLeftWidth: 4, borderLeftColor: '#64748B', padding: 16, marginBottom: 10 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   name: { fontSize: 15, fontWeight: '600', color: '#1F2937', flex: 1 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
@@ -124,6 +126,7 @@ const card = StyleSheet.create({
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export function ArchiveScreen({ navigation }: any) {
+  const { colors: C } = useTheme();
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
@@ -174,18 +177,18 @@ export function ArchiveScreen({ navigation }: any) {
   const goToDetail = (job: Job) => navigation.navigate('ArchiveDetail', { jobId: job.id });
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <ThemedScreen>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <View style={styles.headerLeft}>
-          <Text style={styles.title}>Arkiv</Text>
-          <Text style={styles.count}>{archivedJobs.length} fullførte jobber</Text>
+          <Text style={[styles.title, { color: C.textPrimary }]}>Arkiv</Text>
+          <Text style={[styles.count, { color: C.textSecondary }]}>{archivedJobs.length} fullførte jobber</Text>
         </View>
         <View style={styles.headerRight}>
-          <View style={styles.searchBox}>
-            <Ionicons name="search-outline" size={16} color="#94A3B8" />
+          <View style={[styles.searchBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+            <Ionicons name="search-outline" size={16} color={C.textTertiary} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: C.textPrimary }]}
               placeholder="Søk på kunde eller beskrivelse…"
               placeholderTextColor="#94A3B8"
               value={search}
@@ -199,23 +202,23 @@ export function ArchiveScreen({ navigation }: any) {
           </View>
           <View style={styles.monthWrap}>
             <TouchableOpacity
-              style={[styles.monthBtn, showMonthPicker && styles.monthBtnOpen]}
+              style={[styles.monthBtn, { backgroundColor: C.cardAlt, borderColor: C.border }, showMonthPicker && styles.monthBtnOpen]}
               onPress={() => setShowMonthPicker((v) => !v)}
             >
               <Ionicons name="calendar-outline" size={15} color="#64748B" />
-              <Text style={styles.monthBtnText}>{selectedMonth || 'Alle måneder'}</Text>
+              <Text style={[styles.monthBtnText, { color: C.textSecondary }]}>{selectedMonth || 'Alle måneder'}</Text>
               <Ionicons name={showMonthPicker ? 'chevron-up' : 'chevron-down'} size={14} color="#64748B" />
             </TouchableOpacity>
 
             {showMonthPicker && (
-              <View style={styles.monthDropdown}>
+              <View style={[styles.monthDropdown, { backgroundColor: C.cardBg, borderColor: C.border }]}>
                 {(['', ...months] as string[]).map((m) => (
                   <TouchableOpacity
                     key={m || '__all'}
-                    style={[styles.monthOption, selectedMonth === m && styles.monthOptionActive]}
+                    style={[styles.monthOption, { borderBottomColor: C.border, backgroundColor: C.cardBg }, selectedMonth === m && { backgroundColor: '#EEF4FF' }]}
                     onPress={() => { setSelectedMonth(m); setShowMonthPicker(false); }}
                   >
-                    <Text style={[styles.monthOptionText, selectedMonth === m && styles.monthOptionTextActive]}>
+                    <Text style={[styles.monthOptionText, { color: C.textPrimary }, selectedMonth === m && styles.monthOptionTextActive]}>
                       {m || 'Alle måneder'}
                     </Text>
                     {selectedMonth === m && (
@@ -241,13 +244,13 @@ export function ArchiveScreen({ navigation }: any) {
       {/* Content */}
       {filtered.length === 0 ? (
         <View style={styles.empty}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="archive-outline" size={36} color="#94A3B8" />
+          <View style={[styles.emptyIcon, { backgroundColor: C.cardAlt }]}>
+            <Ionicons name="archive-outline" size={36} color={C.textTertiary} />
           </View>
-          <Text style={styles.emptyTitle}>
+          <Text style={[styles.emptyTitle, { color: C.textPrimary }]}>
             {archivedJobs.length === 0 ? 'Ingen arkiverte jobber ennå' : 'Ingen treff'}
           </Text>
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, { color: C.textSecondary }]}>
             {archivedJobs.length === 0
               ? 'Fullførte jobber vises her automatisk'
               : 'Prøv et annet søkeord eller fjern filteret'}
@@ -256,14 +259,14 @@ export function ArchiveScreen({ navigation }: any) {
       ) : isWide ? (
         /* Web table */
         <ScrollView contentContainerStyle={styles.tableWrap}>
-          <View style={styles.tableCard}>
-            <View style={table.row} pointerEvents="none">
-              <Text style={[styles.th, { flex: 2 }]}>KUNDE</Text>
-              <Text style={[styles.th, { flex: 2 }]}>BESKRIVELSE</Text>
-              <Text style={[styles.th, { flex: 1.5 }]}>TEKNIKER</Text>
-              <Text style={[styles.th, { flex: 1 }]}>DATO FULLFØRT</Text>
-              <Text style={[styles.th, { flex: 1 }]}>FAKTURA</Text>
-              <Text style={[styles.th, { flex: 0.8, textAlign: 'right' }]}>BILDER</Text>
+          <View style={[styles.tableCard, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+            <View style={[table.row, { backgroundColor: C.cardAlt, borderBottomColor: C.border }]} pointerEvents="none">
+              <Text style={[styles.th, { flex: 2, color: C.textSecondary }]}>KUNDE</Text>
+              <Text style={[styles.th, { flex: 2, color: C.textSecondary }]}>BESKRIVELSE</Text>
+              <Text style={[styles.th, { flex: 1.5, color: C.textSecondary }]}>TEKNIKER</Text>
+              <Text style={[styles.th, { flex: 1, color: C.textSecondary }]}>DATO FULLFØRT</Text>
+              <Text style={[styles.th, { flex: 1, color: C.textSecondary }]}>FAKTURA</Text>
+              <Text style={[styles.th, { flex: 0.8, textAlign: 'right', color: C.textSecondary }]}>BILDER</Text>
             </View>
             {filtered.map((job, i) => (
               <TableRow
@@ -294,7 +297,7 @@ export function ArchiveScreen({ navigation }: any) {
         />
       )}
 
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 
@@ -306,37 +309,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
     flexWrap: 'wrap',
     gap: 12,
   },
   headerLeft: { gap: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
-  count: { fontSize: 13, color: '#64748B' },
+  title: { fontSize: 20, fontWeight: '600' },
+  count: { fontSize: 13 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F5F7FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     minWidth: 240,
   },
-  searchInput: { flex: 1, fontSize: 14, color: '#1F2937', outlineStyle: 'none' } as any,
+  searchInput: { flex: 1, fontSize: 14, outlineStyle: 'none' } as any,
   monthWrap: { position: 'relative', zIndex: 200 },
   monthBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F5F7FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -347,10 +344,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 42,
     right: 0,
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     minWidth: 190,
     overflow: 'hidden',
     zIndex: 201,
@@ -367,17 +362,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 11,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
   },
   monthOptionActive: { backgroundColor: '#EEF4FF' },
-  monthOptionText: { fontSize: 14, color: '#1F2937' },
+  monthOptionText: { fontSize: 14 },
   monthOptionTextActive: { color: '#2563FF', fontWeight: '600' },
   tableWrap: { padding: 24 },
-  tableCard: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden' },
-  th: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, backgroundColor: '#F8FAFC' },
+  tableCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  th: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   mobileList: { padding: 16, paddingBottom: 40 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937' },
-  emptyText: { fontSize: 14, color: '#64748B', textAlign: 'center', paddingHorizontal: 40 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  emptyTitle: { fontSize: 16, fontWeight: '600' },
+  emptyText: { fontSize: 14, textAlign: 'center', paddingHorizontal: 40 },
 });

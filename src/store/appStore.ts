@@ -52,6 +52,8 @@ function mapCompany(row: any): Company {
     hourlyRate: Number(row.hourly_rate),
     calloutFee: Number(row.callout_fee),
     paymentTermsDays: Number(row.payment_terms_days),
+    logoUrl: row.logo_url ?? null,
+    accountNumber: row.account_number ?? null,
     trialEndsAt: row.trial_ends_at ?? undefined,
     subscriptionStatus: row.subscription_status ?? undefined,
     onboardingCompleted: row.onboarding_completed ?? false,
@@ -111,10 +113,11 @@ interface AppState {
   updateJobStatus: (jobId: string, status: JobStatus, hours?: number, materials?: number) => Promise<void>;
   assignTechnician: (jobId: string, technicianId: string | null, technicianName: string | null) => Promise<void>;
 
-  generateInvoice: (jobId: string, hours: number, materials: number, note?: string) => Promise<Invoice>;
+  generateInvoice: (jobId: string, hours: number, materials: number, note?: string, extraLines?: { description: string; amount: number }[]) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
 
   updateCompany: (updates: Partial<Company>) => Promise<void>;
+  uploadCompanyLogo: (uri: string, mimeType: string) => Promise<void>;
 
   addTechnician: (name: string, email: string, phone: string) => Promise<void>;
   removeTechnician: (userId: string) => Promise<void>;
@@ -359,7 +362,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  generateInvoice: async (jobId, hours, materials, note) => {
+  generateInvoice: async (jobId, hours, materials, note, extraLines) => {
     const { jobs, company, companyId } = get();
     const job = jobs.find((j) => j.id === jobId);
     if (!job || !company) throw new Error('Jobb ikke funnet');
@@ -377,6 +380,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     ];
     if (materials > 0) lineItems.push({ description: 'Materiell', amount: materials });
+    if (extraLines?.length) lineItems.push(...extraLines);
     if (company.calloutFee > 0) lineItems.push({ description: 'Fremmøtegebyr', amount: company.calloutFee });
 
     const subtotalExVat = lineItems.reduce((sum, item) => sum + item.amount, 0);
@@ -420,7 +424,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateCompany: async (updates) => {
     const { companyId } = get();
-    await supabase
+    const { error } = await supabase
       .from('companies')
       .update({
         ...(updates.name && { name: updates.name }),
@@ -429,11 +433,41 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...(updates.hourlyRate !== undefined && { hourly_rate: updates.hourlyRate }),
         ...(updates.calloutFee !== undefined && { callout_fee: updates.calloutFee }),
         ...(updates.paymentTermsDays !== undefined && { payment_terms_days: updates.paymentTermsDays }),
+        ...(updates.accountNumber !== undefined && { account_number: updates.accountNumber }),
       })
       .eq('id', companyId);
 
+    if (error) throw new Error(error.message);
+
     set((state) => ({
       company: state.company ? { ...state.company, ...updates } : null,
+    }));
+  },
+
+  uploadCompanyLogo: async (uri, mimeType) => {
+    const { companyId } = get();
+    const response = await fetch(uri);
+    if (!response.ok) throw new Error('Kunne ikke lese bildefilen');
+    const blob = await response.blob();
+    const contentType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : mimeType;
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
+    const filePath = `${companyId}/logo.${ext}`;
+
+    const { error: storageError } = await supabase.storage
+      .from('company-logos')
+      .upload(filePath, blob, { contentType, upsert: true });
+    if (storageError) throw new Error(`Lagring feilet: ${storageError.message}`);
+
+    const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(filePath);
+
+    const { error: dbError } = await supabase
+      .from('companies')
+      .update({ logo_url: publicUrl })
+      .eq('id', companyId);
+    if (dbError) throw new Error(dbError.message);
+
+    set((state) => ({
+      company: state.company ? { ...state.company, logoUrl: publicUrl } : null,
     }));
   },
 

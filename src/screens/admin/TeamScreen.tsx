@@ -4,6 +4,8 @@ import {
   Modal, TextInput, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { User } from '../../types';
@@ -15,12 +17,13 @@ function initials(name: string) {
 }
 
 function TechCard({ user, index, onRemove }: { user: User; index: number; onRemove: () => void }) {
+  const { colors: C } = useTheme();
   const jobs = useAppStore((s) => s.jobs.filter((j) => j.assignedTechnicianId === user.id));
   const completed = jobs.filter((j) => j.status === 'completed').length;
   const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
       <View style={[styles.avatar, { backgroundColor: color }]}>
         <Text style={styles.avatarText}>{initials(user.name)}</Text>
       </View>
@@ -39,6 +42,7 @@ function TechCard({ user, index, onRemove }: { user: User; index: number; onRemo
 }
 
 export function TeamScreen() {
+  const { colors: C } = useTheme();
   const technicians = useAppStore((s) => s.users.filter((u) => u.role === 'technician'));
   const addTechnician = useAppStore((s) => s.addTechnician);
   const removeTechnician = useAppStore((s) => s.removeTechnician);
@@ -66,9 +70,9 @@ export function TeamScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Team</Text>
+    <ThemedScreen>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
+        <Text style={[styles.title, { color: C.textPrimary }]}>Team</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowModal(true)}>
           <Ionicons name="add" size={18} color="#FFFFFF" />
           <Text style={styles.addBtnText}>Legg til</Text>
@@ -98,7 +102,7 @@ export function TeamScreen() {
 
       <Modal visible={showModal} transparent animationType="slide">
         <View style={styles.overlay}>
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, { backgroundColor: C.cardBg }]}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Legg til tekniker</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -114,7 +118,7 @@ export function TeamScreen() {
               <View key={label} style={styles.field}>
                 <Text style={styles.fieldLabel}>{label}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]}
                   value={value}
                   onChangeText={setter}
                   placeholder={placeholder}
@@ -143,7 +147,7 @@ export function TeamScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 

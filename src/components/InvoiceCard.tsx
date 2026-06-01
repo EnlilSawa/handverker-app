@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Invoice, InvoiceStatus } from '../types';
 import { formatCurrency, formatShortDate } from '../utils/formatters';
+import { useTheme } from '../theme/ThemeContext';
 
 const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: string; border: string }> = {
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF', border: '#2563FF' },
@@ -9,50 +10,36 @@ const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: stri
   overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2', border: '#DC2626' },
 };
 
-interface InvoiceCardProps {
-  invoice: Invoice;
-  onPress?: () => void;
-}
-
-export function InvoiceCard({ invoice, onPress }: InvoiceCardProps) {
+export function InvoiceCard({ invoice, onPress }: { invoice: Invoice; onPress?: () => void }) {
+  const { colors: C } = useTheme();
   const cfg = STATUS_CFG[invoice.status];
-
   return (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: cfg.border }]}
-      onPress={onPress}
-      activeOpacity={0.7}
+      style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border, borderLeftColor: cfg.border }]}
+      onPress={onPress} activeOpacity={0.7}
     >
       <View style={styles.top}>
-        <Text style={styles.number}>{invoice.invoiceNumber}</Text>
+        <Text style={[styles.number, { color: C.textSecondary }]}>{invoice.invoiceNumber}</Text>
         <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
           <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
         </View>
       </View>
-      <Text style={styles.customer}>{invoice.customerName}</Text>
+      <Text style={[styles.customer, { color: C.textPrimary }]}>{invoice.customerName}</Text>
       <View style={styles.bottom}>
-        <Text style={styles.date}>Forfall: {formatShortDate(invoice.dueDate)}</Text>
-        <Text style={styles.amount}>{formatCurrency(invoice.total)}</Text>
+        <Text style={{ fontSize: 13, color: C.textTertiary }}>Forfall: {formatShortDate(invoice.dueDate)}</Text>
+        <Text style={[styles.amount, { color: C.textPrimary }]}>{formatCurrency(invoice.total)}</Text>
       </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 4,
-    padding: 16,
-  },
+  card: { borderRadius: 12, borderWidth: 1, borderLeftWidth: 4, padding: 16 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  number: { fontSize: 13, fontWeight: '600', color: '#64748B' },
+  number: { fontSize: 13, fontWeight: '600' },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   badgeText: { fontSize: 12, fontWeight: '600' },
-  customer: { fontSize: 15, fontWeight: '600', color: '#1F2937', marginBottom: 8 },
+  customer: { fontSize: 15, fontWeight: '600', marginBottom: 8 },
   bottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  date: { fontSize: 13, color: '#94A3B8' },
-  amount: { fontSize: 16, fontWeight: '700', color: '#1F2937' },
+  amount: { fontSize: 16, fontWeight: '700' },
 });

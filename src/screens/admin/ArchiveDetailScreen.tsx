@@ -4,6 +4,8 @@ import {
   Image, Modal, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { JobImage } from '../../types';
@@ -118,6 +120,7 @@ const fsv = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export function ArchiveDetailScreen({ route, navigation }: any) {
+  const { colors: C } = useTheme();
   const { jobId } = route.params as { jobId: string };
   const { width } = useWindowDimensions();
 
@@ -146,23 +149,23 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
   ];
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+    <ThemedScreen>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#1F2937" />
+          <Ionicons name="arrow-back" size={20} color={C.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{job.customerName}</Text>
-        <View style={styles.archivedBadge}>
-          <Ionicons name="archive-outline" size={12} color="#64748B" />
-          <Text style={styles.archivedText}>Arkivert</Text>
+        <Text style={[styles.headerTitle, { color: C.textPrimary }]} numberOfLines={1}>{job.customerName}</Text>
+        <View style={[styles.archivedBadge, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+          <Ionicons name="archive-outline" size={12} color={C.textSecondary} />
+          <Text style={[styles.archivedText, { color: C.textSecondary }]}>Arkivert</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Job info */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>JOBBINFORMASJON</Text>
-          <Text style={styles.customerName}>{job.customerName}</Text>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+          <Text style={[styles.cardLabel, { color: C.textSecondary }]}>JOBBINFORMASJON</Text>
+          <Text style={[styles.customerName, { color: C.textPrimary }]}>{job.customerName}</Text>
           {infoRows.map(({ icon, label, value }) =>
             value ? (
               <View key={label} style={styles.infoRow}>
@@ -178,15 +181,15 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
 
         {/* Invoice */}
         {invoice && (
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>FAKTURA</Text>
+          <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+            <Text style={[styles.cardLabel, { color: C.textSecondary }]}>FAKTURA</Text>
             <View style={styles.invoiceRow}>
               <View style={{ gap: 4 }}>
-                <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
-                <Text style={styles.invoiceDate}>Forfall: {invoice.dueDate?.slice(0, 10) ?? '—'}</Text>
+                <Text style={[styles.invoiceNumber, { color: C.textPrimary }]}>{invoice.invoiceNumber}</Text>
+                <Text style={[styles.invoiceDate, { color: C.textSecondary }]}>Forfall: {invoice.dueDate?.slice(0, 10) ?? '—'}</Text>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total)}</Text>
+                <Text style={[styles.invoiceAmount, { color: C.textPrimary }]}>{formatCurrency(invoice.total)}</Text>
                 {invoiceCfg && (
                   <View style={[styles.invBadge, { backgroundColor: invoiceCfg.bg }]}>
                     <Text style={[styles.invBadgeText, { color: invoiceCfg.color }]}>{invoiceCfg.label}</Text>
@@ -198,10 +201,10 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
         )}
 
         {/* Images */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <View style={styles.imagesHeader}>
-            <Text style={styles.cardLabel}>BILDER FRA JOBBEN</Text>
-            <Text style={styles.imageCount}>{images.length} bilde{images.length !== 1 ? 'r' : ''}</Text>
+            <Text style={[styles.cardLabel, { color: C.textSecondary }]}>BILDER FRA JOBBEN</Text>
+            <Text style={[styles.imageCount, { color: C.textSecondary }]}>{images.length} bilde{images.length !== 1 ? 'r' : ''}</Text>
           </View>
 
           <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowUploadModal(true)}>
@@ -241,7 +244,7 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
       />
 
       <FullscreenViewer image={viewingImage} onClose={() => setViewingImage(null)} />
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 

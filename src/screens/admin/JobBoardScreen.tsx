@@ -9,6 +9,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { JobCard } from '../../components/JobCard';
@@ -36,22 +38,13 @@ function greeting() {
 
 // ─── Web: stat card ───────────────────────────────────────────────────────────
 
-function StatCard({
-  label,
-  value,
-  color,
-  sub,
-}: {
-  label: string;
-  value: string;
-  color: string;
-  sub?: string;
-}) {
+function StatCard({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
+  const { colors: C } = useTheme();
   return (
-    <View style={statCard.card}>
-      <Text style={statCard.label}>{label}</Text>
+    <View style={[statCard.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+      <Text style={[statCard.label, { color: C.textSecondary }]}>{label}</Text>
       <Text style={[statCard.value, { color }]}>{value}</Text>
-      {sub ? <Text style={statCard.sub}>{sub}</Text> : null}
+      {sub ? <Text style={[statCard.sub, { color: C.textTertiary }]}>{sub}</Text> : null}
     </View>
   );
 }
@@ -74,14 +67,15 @@ const statCard = StyleSheet.create({
 // ─── Web: jobs table ──────────────────────────────────────────────────────────
 
 function JobsTable({ jobs, navigation }: { jobs: Job[]; navigation: any }) {
+  const { colors: C } = useTheme();
   return (
-    <View style={table.card}>
-      <View style={table.header}>
-        <Text style={[table.th, { flex: 2 }]}>KUNDE</Text>
-        <Text style={[table.th, { flex: 2 }]}>BESKRIVELSE</Text>
-        <Text style={[table.th, { flex: 1.5 }]}>TEKNIKER</Text>
-        <Text style={[table.th, { flex: 1 }]}>DATO</Text>
-        <Text style={[table.th, { flex: 1, textAlign: 'right' }]}>STATUS</Text>
+    <View style={[table.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+      <View style={[table.header, { backgroundColor: C.cardAlt, borderBottomColor: C.border }]}>
+        <Text style={[table.th, { flex: 2, color: C.textSecondary }]}>KUNDE</Text>
+        <Text style={[table.th, { flex: 2, color: C.textSecondary }]}>BESKRIVELSE</Text>
+        <Text style={[table.th, { flex: 1.5, color: C.textSecondary }]}>TEKNIKER</Text>
+        <Text style={[table.th, { flex: 1, color: C.textSecondary }]}>DATO</Text>
+        <Text style={[table.th, { flex: 1, textAlign: 'right', color: C.textSecondary }]}>STATUS</Text>
       </View>
       {jobs.length === 0 ? (
         <View style={table.empty}>
@@ -93,11 +87,11 @@ function JobsTable({ jobs, navigation }: { jobs: Job[]; navigation: any }) {
           return (
             <TouchableOpacity
               key={job.id}
-              style={[table.row, i % 2 === 1 && table.rowAlt]}
+              style={[table.row, { backgroundColor: C.cardBg, borderBottomColor: C.border }, i % 2 === 1 && { backgroundColor: C.cardAlt }]}
               onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
               activeOpacity={0.7}
             >
-              <Text style={[table.tdBold, { flex: 2 }]} numberOfLines={1}>
+              <Text style={[table.tdBold, { flex: 2, color: C.textPrimary }]} numberOfLines={1}>
                 {job.customerName}
               </Text>
               <Text style={[table.td, { flex: 2 }]} numberOfLines={1}>
@@ -167,6 +161,7 @@ const table = StyleSheet.create({
 // ─── Web layout ───────────────────────────────────────────────────────────────
 
 function WebJobBoard({ navigation }: { navigation: any }) {
+  const { pageBg, colors: C } = useTheme();
   const jobs = useAppStore((s) => s.jobs);
   const invoices = useAppStore((s) => s.invoices);
   const currentUser = useAppStore((s) => s.currentUser);
@@ -193,12 +188,12 @@ function WebJobBoard({ navigation }: { navigation: any }) {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F5F7FA' }}>
+    <View style={{ flex: 1, backgroundColor: pageBg }}>
       {/* Top bar */}
-      <View style={web.topBar}>
+      <View style={[web.topBar, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <View>
-          <Text style={web.pageTitle}>Jobbtavle</Text>
-          <Text style={web.pageDate}>{greeting()}{firstName ? `, ${firstName}` : ''} · {dateLabel}</Text>
+          <Text style={[web.pageTitle, { color: C.textPrimary }]}>Jobbtavle</Text>
+          <Text style={[web.pageDate, { color: C.textSecondary }]}>{greeting()}{firstName ? `, ${firstName}` : ''} · {dateLabel}</Text>
         </View>
         <TouchableOpacity style={web.addBtn} onPress={() => navigation.navigate('NewJob')}>
           <Ionicons name="add" size={18} color="#FFFFFF" />
@@ -257,6 +252,7 @@ const web = StyleSheet.create({
 // ─── Mobile layout ────────────────────────────────────────────────────────────
 
 function MobileJobBoard({ navigation }: { navigation: any }) {
+  const { colors: C } = useTheme();
   const jobs = useAppStore((s) => s.jobs);
   const invoices = useAppStore((s) => s.invoices);
   const currentUser = useAppStore((s) => s.currentUser);
@@ -289,11 +285,11 @@ function MobileJobBoard({ navigation }: { navigation: any }) {
   const dateLabel = new Date().toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <SafeAreaView style={mobile.safe}>
-      <View style={mobile.header}>
+    <ThemedScreen>
+      <View style={[mobile.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <View>
-          <Text style={mobile.greeting}>{greeting()}{firstName ? `, ${firstName}` : ''}</Text>
-          <Text style={mobile.date}>{dateLabel}</Text>
+          <Text style={[mobile.greeting, { color: C.textPrimary }]}>{greeting()}{firstName ? `, ${firstName}` : ''}</Text>
+          <Text style={[mobile.date, { color: C.textSecondary }]}>{dateLabel}</Text>
         </View>
         <TouchableOpacity style={mobile.addBtn} onPress={() => navigation.navigate('NewJob')}>
           <Ionicons name="add" size={22} color="#FFFFFF" />
@@ -301,13 +297,13 @@ function MobileJobBoard({ navigation }: { navigation: any }) {
       </View>
 
       {/* 3 stat tiles */}
-      <View style={mobile.statsRow}>
+      <View style={[mobile.statsRow, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         {[
           { label: 'Inntekt mnd.', value: formatCurrency(stats.monthRevenue), color: '#15803D' },
           { label: 'Aktive jobber', value: String(stats.active), color: '#2563FF' },
           { label: 'Ubetalte', value: String(stats.unpaid), color: '#DC2626' },
         ].map((s) => (
-          <View key={s.label} style={mobile.statTile}>
+          <View key={s.label} style={[mobile.statTile, { backgroundColor: C.cardBg, borderColor: C.border }]}>
             <Text style={[mobile.statValue, { color: s.color }]}>{s.value}</Text>
             <Text style={mobile.statLabel}>{s.label}</Text>
           </View>
@@ -315,7 +311,7 @@ function MobileJobBoard({ navigation }: { navigation: any }) {
       </View>
 
       {/* Tab switcher */}
-      <View style={mobile.tabBar}>
+      <View style={[mobile.tabBar, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         {columns.map((col, index) => {
           const cfg = STATUS_CFG[col.status];
           const isActive = activeColumn === index;
@@ -370,7 +366,7 @@ function MobileJobBoard({ navigation }: { navigation: any }) {
           </View>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 

@@ -1,31 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 
-interface StatBoxProps {
-  label: string;
-  value: string;
-  color?: string;
-}
-
-export function StatBox({ label, value, color = '#2563FF' }: StatBoxProps) {
+export function StatBox({ label, value, color = '#2563FF' }: { label: string; value: string; color?: string }) {
+  const { colors: C } = useTheme();
   return (
-    <View style={[styles.card, { borderLeftColor: color }]}>
+    <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border, borderLeftColor: color }]}>
       <Text style={[styles.value, { color }]}>{value}</Text>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: C.textSecondary }]}>{label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 4,
-    padding: 16,
-  },
+  card: { flex: 1, borderRadius: 12, borderWidth: 1, borderLeftWidth: 4, padding: 16 },
   value: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  label: { fontSize: 12, color: '#64748B', marginTop: 4, fontWeight: '500' },
+  label: { fontSize: 12, marginTop: 4, fontWeight: '500' },
 });

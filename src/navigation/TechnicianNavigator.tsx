@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTheme } from '../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { TechJobsScreen } from '../screens/technician/TechJobsScreen';
 import { TechMapScreen } from '../screens/technician/TechMapScreen';
@@ -13,7 +14,7 @@ const JobsStack = createNativeStackNavigator();
 
 function TechJobsStackNavigator() {
   return (
-    <JobsStack.Navigator screenOptions={{ headerShown: false }}>
+    <JobsStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
       <JobsStack.Screen name="TechJobList" component={TechJobsScreen} />
       <JobsStack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
     </JobsStack.Navigator>
@@ -25,6 +26,7 @@ export function TechnicianNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        sceneContainerStyle: { backgroundColor: 'transparent' },
         tabBarActiveTintColor: '#2D6BE4',
         tabBarInactiveTintColor: '#AAAAAA',
         tabBarStyle: {

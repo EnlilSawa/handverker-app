@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +24,7 @@ const ArchiveStack = createNativeStackNavigator();
 
 function JobsStackNavigator() {
   return (
-    <JobsStack.Navigator screenOptions={{ headerShown: false }}>
+    <JobsStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
       <JobsStack.Screen name="JobBoard" component={JobBoardScreen} />
       <JobsStack.Screen name="NewJob" component={NewJobScreen} />
       <JobsStack.Screen name="JobDetail" component={JobDetailScreen} />
@@ -33,7 +34,7 @@ function JobsStackNavigator() {
 
 function InvoiceStackNavigator() {
   return (
-    <InvoiceStack.Navigator screenOptions={{ headerShown: false }}>
+    <InvoiceStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
       <InvoiceStack.Screen name="InvoiceList" component={InvoicesScreen} />
       <InvoiceStack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
     </InvoiceStack.Navigator>
@@ -42,7 +43,7 @@ function InvoiceStackNavigator() {
 
 function ArchiveStackNavigator() {
   return (
-    <ArchiveStack.Navigator screenOptions={{ headerShown: false }}>
+    <ArchiveStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
       <ArchiveStack.Screen name="ArchiveList" component={ArchiveScreen} />
       <ArchiveStack.Screen name="ArchiveDetail" component={ArchiveDetailScreen} />
     </ArchiveStack.Navigator>
@@ -62,6 +63,7 @@ const NAV_ITEMS = [
 
 function AdminSidebar({ activeTab, onNavigate }: { activeTab: string; onNavigate: (tab: string) => void }) {
   const logout = useAppStore((s) => s.logout);
+  const { isDark, toggleTheme } = useTheme();
 
   return (
     <View style={sidebar.container}>
@@ -93,6 +95,16 @@ function AdminSidebar({ activeTab, onNavigate }: { activeTab: string; onNavigate
           );
         })}
       </View>
+
+      {/* Theme toggle */}
+      <TouchableOpacity style={sidebar.themeBtn} onPress={toggleTheme} activeOpacity={0.8}>
+        <Ionicons
+          name={isDark ? 'sunny-outline' : 'moon-outline'}
+          size={16}
+          color="rgba(255,255,255,0.65)"
+        />
+        <Text style={sidebar.themeLabel}>{isDark ? 'Lys modus' : 'Mørk modus'}</Text>
+      </TouchableOpacity>
 
       {/* Logout at bottom */}
       <TouchableOpacity style={sidebar.logoutBtn} onPress={logout}>
@@ -131,12 +143,20 @@ const sidebar = StyleSheet.create({
   navItemActive: { backgroundColor: '#2563FF' },
   navLabel: { fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
   navLabelActive: { color: '#FFFFFF', fontWeight: '600' },
+  themeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+  },
+  themeLabel: { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 13,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.08)',
   },
@@ -147,11 +167,12 @@ const sidebar = StyleSheet.create({
 
 function AdminWebLayout() {
   const [activeTab, setActiveTab] = useState('Jobber');
+  const { pageBg } = useTheme();
 
   return (
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#0A1B33' }}>
       <AdminSidebar activeTab={activeTab} onNavigate={setActiveTab} />
-      <View style={{ flex: 1, backgroundColor: '#F5F7FA', overflow: 'hidden' }}>
+      <View style={{ flex: 1, backgroundColor: pageBg, overflow: 'hidden' }}>
         {activeTab === 'Jobber' && <JobsStackNavigator />}
         {activeTab === 'Team' && <TeamScreen />}
         {activeTab === 'Faktura' && <InvoiceStackNavigator />}
@@ -170,6 +191,7 @@ function AdminMobileLayout() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        sceneContainerStyle: { backgroundColor: 'transparent' },
         tabBarActiveTintColor: '#2563FF',
         tabBarInactiveTintColor: '#94A3B8',
         tabBarStyle: {

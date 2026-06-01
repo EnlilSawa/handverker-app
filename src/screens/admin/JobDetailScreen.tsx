@@ -5,6 +5,8 @@ import {
   Image, Linking, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { JobImage, JobNote, JobStatus } from '../../types';
@@ -36,7 +38,8 @@ function initials(name: string) {
 }
 
 function SectionLabel({ title }: { title: string }) {
-  return <Text style={styles.sectionLabel}>{title}</Text>;
+  const { colors: C } = useTheme();
+  return <Text style={[styles.sectionLabel, { color: '#64748B' }]}>{title}</Text>;
 }
 
 // ─── Locked image cell ────────────────────────────────────────────────────────
@@ -44,6 +47,7 @@ function SectionLabel({ title }: { title: string }) {
 function LockedImage({ image, thumbSize, onPress }: {
   image: JobImage; thumbSize: number; onPress: () => void;
 }) {
+  const { colors: C } = useTheme();
   const lc = image.label ? LABEL_CFG[image.label] : null;
   const dateStr = image.uploadedAt
     ? new Date(image.uploadedAt).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })
@@ -62,7 +66,7 @@ function LockedImage({ image, thumbSize, onPress }: {
       </TouchableOpacity>
       {image.note ? (
         <View style={lockedCell.noteRow}>
-          <Ionicons name="lock-closed-outline" size={11} color="#94A3B8" />
+          <Ionicons name="lock-closed-outline" size={11} color={C.textTertiary} />
           <Text style={lockedCell.note} numberOfLines={2}>{image.note}</Text>
         </View>
       ) : null}
@@ -128,6 +132,7 @@ function TechPickerModal({ visible, technicians, selectedId, onSelect, onClose }
   visible: boolean; technicians: any[]; selectedId: string | null;
   onSelect: (id: string | null, name: string | null) => void; onClose: () => void;
 }) {
+  const { colors: C } = useTheme();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={tp.overlay}>
@@ -135,7 +140,7 @@ function TechPickerModal({ visible, technicians, selectedId, onSelect, onClose }
           <View style={tp.header}>
             <Text style={tp.title}>Velg tekniker</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={22} color="#64748B" />
+              <Ionicons name="close" size={22} color={C.textSecondary} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={tp.item} onPress={() => { onSelect(null, null); onClose(); }}>
@@ -177,6 +182,7 @@ const tp = StyleSheet.create({
 function GenerateInvoiceModal({ visible, jobId, onClose }: {
   visible: boolean; jobId: string; onClose: (invoiceId?: string) => void;
 }) {
+  const { colors: C } = useTheme();
   const company = useAppStore((s) => s.company);
   const jobs = useAppStore((s) => s.jobs);
   const generateInvoice = useAppStore((s) => s.generateInvoice);
@@ -242,7 +248,7 @@ function GenerateInvoiceModal({ visible, jobId, onClose }: {
               <View style={inv.header}>
                 <Text style={inv.title}>Generer faktura</Text>
                 <TouchableOpacity onPress={() => onClose()}>
-                  <Ionicons name="close" size={22} color="#64748B" />
+                  <Ionicons name="close" size={22} color={C.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -257,7 +263,7 @@ function GenerateInvoiceModal({ visible, jobId, onClose }: {
                     onChangeText={(t) => { setHours(t); setErr(''); }}
                     keyboardType="decimal-pad"
                     placeholder="1.5"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={C.textTertiary}
                   />
                 </View>
                 <View style={[inv.field, { marginLeft: 12 }]}>
@@ -268,7 +274,7 @@ function GenerateInvoiceModal({ visible, jobId, onClose }: {
                     onChangeText={(t) => { setMaterials(t); setErr(''); }}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={C.textTertiary}
                   />
                 </View>
               </View>
@@ -282,7 +288,7 @@ function GenerateInvoiceModal({ visible, jobId, onClose }: {
                     value={note}
                     onChangeText={(t) => { if (t.length <= 500) setNote(t); }}
                     placeholder="Legg til et notat til kunden, f.eks. garantivilkår eller beskrivelse av arbeidet..."
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={C.textTertiary}
                     multiline
                     maxLength={500}
                   />
@@ -293,7 +299,7 @@ function GenerateInvoiceModal({ visible, jobId, onClose }: {
               {/* Live total hint */}
               {h > 0 && (
                 <View style={inv.hintRow}>
-                  <Ionicons name="receipt-outline" size={14} color="#64748B" />
+                  <Ionicons name="receipt-outline" size={14} color={C.textSecondary} />
                   <Text style={inv.hintText}>
                     Estimert total: {total.toLocaleString('nb-NO')} kr inkl. MVA
                   </Text>
@@ -322,7 +328,7 @@ function GenerateInvoiceModal({ visible, jobId, onClose }: {
                   <Text style={inv.previewBadgeText}>FORHÅNDSVISNING</Text>
                 </View>
                 <TouchableOpacity onPress={() => onClose()}>
-                  <Ionicons name="close" size={22} color="#64748B" />
+                  <Ionicons name="close" size={22} color={C.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -539,6 +545,7 @@ const inv = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export function JobDetailScreen({ route, navigation }: any) {
+  const { colors: C } = useTheme();
   const { jobId } = route.params as { jobId: string };
   const { width } = useWindowDimensions();
 
@@ -582,16 +589,16 @@ export function JobDetailScreen({ route, navigation }: any) {
   }, [jobId]);
 
   if (!job) return (
-    <SafeAreaView style={styles.safe}>
+    <ThemedScreen>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#1F2937" />
+          <Ionicons name="arrow-back" size={22} color={C.textPrimary} />
         </TouchableOpacity>
       </View>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: '#64748B' }}>Jobb ikke funnet</Text>
       </View>
-    </SafeAreaView>
+    </ThemedScreen>
   );
 
   const currentStatus = STATUS_OPTIONS.find((s) => s.status === job.status)!;
@@ -664,11 +671,11 @@ export function JobDetailScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <ThemedScreen>
       {/* Top navigation bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#1F2937" />
+          <Ionicons name="arrow-back" size={22} color={C.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>Jobbdetaljer</Text>
         <TouchableOpacity
@@ -685,14 +692,14 @@ export function JobDetailScreen({ route, navigation }: any) {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
         {/* ── Hero: name + status + date ───────────────────────────────── */}
-        <View style={styles.heroCard}>
+        <View style={[styles.heroCard, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
           {isEditing ? (
             <TextInput
               style={styles.heroNameInput}
               value={editName}
               onChangeText={setEditName}
               placeholder="Kundenavn"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={C.textTertiary}
             />
           ) : (
             <Text style={styles.heroName}>{job.customerName}</Text>
@@ -719,22 +726,22 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Kundeinformasjon ─────────────────────────────────────────── */}
         <SectionLabel title="KUNDEINFORMASJON" />
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
           {isEditing ? (
             <>
               <View style={styles.editField}>
                 <Text style={styles.editLabel}>TELEFON</Text>
-                <TextInput style={styles.editInput} value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" placeholder="92345678" placeholderTextColor="#94A3B8" />
+                <TextInput style={styles.editInput} value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" placeholder="92345678" placeholderTextColor={C.textTertiary} />
               </View>
               <View style={styles.editField}>
                 <Text style={styles.editLabel}>ADRESSE</Text>
-                <TextInput style={styles.editInput} value={editAddress} onChangeText={setEditAddress} placeholder="Gateveien 1, Oslo" placeholderTextColor="#94A3B8" />
+                <TextInput style={styles.editInput} value={editAddress} onChangeText={setEditAddress} placeholder="Gateveien 1, Oslo" placeholderTextColor={C.textTertiary} />
               </View>
             </>
           ) : (
             <>
               <View style={styles.infoRow}>
-                <Ionicons name="person-outline" size={16} color="#64748B" />
+                <Ionicons name="person-outline" size={16} color={C.textSecondary} />
                 <Text style={styles.infoValue}>{job.customerName}</Text>
               </View>
               {job.customerPhone ? (
@@ -758,7 +765,7 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Jobbinformasjon ──────────────────────────────────────────── */}
         <SectionLabel title="JOBBINFORMASJON" />
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
           {isEditing ? (
             <>
               <View style={styles.editField}>
@@ -770,29 +777,29 @@ export function JobDetailScreen({ route, navigation }: any) {
                   multiline
                   numberOfLines={3}
                   placeholder="Beskriv jobben…"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={C.textTertiary}
                 />
               </View>
               <View style={styles.dateRow}>
                 <View style={[styles.editField, { flex: 1 }]}>
                   <Text style={styles.editLabel}>DATO</Text>
-                  <TextInput style={styles.editInput} value={editDate} onChangeText={setEditDate} placeholder="2025-05-15" placeholderTextColor="#94A3B8" />
+                  <TextInput style={styles.editInput} value={editDate} onChangeText={setEditDate} placeholder="2025-05-15" placeholderTextColor={C.textTertiary} />
                 </View>
                 <View style={{ width: 12 }} />
                 <View style={[styles.editField, { width: 90 }]}>
                   <Text style={styles.editLabel}>KL.</Text>
-                  <TextInput style={styles.editInput} value={editTime} onChangeText={setEditTime} placeholder="09:00" placeholderTextColor="#94A3B8" />
+                  <TextInput style={styles.editInput} value={editTime} onChangeText={setEditTime} placeholder="09:00" placeholderTextColor={C.textTertiary} />
                 </View>
               </View>
             </>
           ) : (
             <>
               <View style={styles.infoRow}>
-                <Ionicons name="document-text-outline" size={16} color="#64748B" />
+                <Ionicons name="document-text-outline" size={16} color={C.textSecondary} />
                 <Text style={[styles.infoValue, { flex: 1 }]}>{job.description}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Ionicons name="calendar-outline" size={16} color="#64748B" />
+                <Ionicons name="calendar-outline" size={16} color={C.textSecondary} />
                 <Text style={styles.infoValue}>{formatScheduled()}</Text>
               </View>
             </>
@@ -803,7 +810,7 @@ export function JobDetailScreen({ route, navigation }: any) {
             <View style={styles.techAvatarCircle}>
               {job.assignedTechnicianName
                 ? <Text style={styles.techAvatarText}>{initials(job.assignedTechnicianName)}</Text>
-                : <Ionicons name="person-outline" size={14} color="#64748B" />
+                : <Ionicons name="person-outline" size={14} color={C.textSecondary} />
               }
             </View>
             <Text style={[styles.infoValue, { flex: 1 }]}>
@@ -829,14 +836,14 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Notater ──────────────────────────────────────────────────── */}
         <SectionLabel title="NOTATER" />
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
           <View style={styles.noteInputRow}>
             <TextInput
               style={styles.noteInput}
               value={noteText}
               onChangeText={setNoteText}
               placeholder="Legg til notat…"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={C.textTertiary}
               multiline
             />
             <TouchableOpacity
@@ -870,7 +877,7 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Faktura ──────────────────────────────────────────────────── */}
         <SectionLabel title="FAKTURA" />
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
           {invoice ? (
             <TouchableOpacity
               style={styles.invoiceRow}
@@ -889,7 +896,7 @@ export function JobDetailScreen({ route, navigation }: any) {
                   </View>
                 )}
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.generateBtn} onPress={() => setShowInvoiceModal(true)}>
@@ -901,7 +908,7 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Bilder ───────────────────────────────────────────────────── */}
         <SectionLabel title="BILDER FRA JOBBEN" />
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
           <View style={styles.imagesHeader}>
             <Text style={styles.imageCount}>{images.length} bilde{images.length !== 1 ? 'r' : ''}</Text>
           </View>
@@ -930,7 +937,7 @@ export function JobDetailScreen({ route, navigation }: any) {
           )}
 
           <View style={styles.lockHint}>
-            <Ionicons name="lock-closed-outline" size={12} color="#94A3B8" />
+            <Ionicons name="lock-closed-outline" size={12} color={C.textTertiary} />
             <Text style={styles.lockHintText}>Bilder og notater kan ikke endres etter opplasting</Text>
           </View>
         </View>
@@ -984,7 +991,7 @@ export function JobDetailScreen({ route, navigation }: any) {
       />
 
       <FullscreenViewer image={viewingImage} onClose={() => setViewingImage(null)} />
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 

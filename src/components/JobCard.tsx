@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Job, JobStatus } from '../types';
 import { formatTime } from '../utils/formatters';
+import { useTheme } from '../theme/ThemeContext';
 
 const STATUS_CFG: Record<JobStatus, { label: string; color: string; bg: string }> = {
   new: { label: 'Ny', color: '#2563FF', bg: '#EEF4FF' },
@@ -14,43 +15,32 @@ function initials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
-interface JobCardProps {
-  job: Job;
-  onPress?: () => void;
-}
-
-export function JobCard({ job, onPress }: JobCardProps) {
+export function JobCard({ job, onPress }: { job: Job; onPress?: () => void }) {
+  const { colors: C } = useTheme();
   const cfg = STATUS_CFG[job.status];
-
   return (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: cfg.color }]}
-      onPress={onPress}
-      activeOpacity={0.7}
+      style={[styles.card, { borderLeftColor: cfg.color, backgroundColor: C.cardBg, borderColor: C.border }]}
+      onPress={onPress} activeOpacity={0.7}
     >
       <View style={styles.topRow}>
-        <Text style={styles.customerName} numberOfLines={1}>{job.customerName}</Text>
-        <Text style={styles.time}>{formatTime(job.scheduledAt)}</Text>
+        <Text style={[styles.name, { color: C.textPrimary }]} numberOfLines={1}>{job.customerName}</Text>
+        <Text style={{ fontSize: 12, color: C.textTertiary, marginLeft: 8 }}>{formatTime(job.scheduledAt)}</Text>
       </View>
-
-      <Text style={styles.description} numberOfLines={1}>{job.description}</Text>
-
-      <View style={styles.addressRow}>
-        <Ionicons name="location-outline" size={12} color="#94A3B8" />
-        <Text style={styles.address} numberOfLines={1}>{job.address}</Text>
+      <Text style={{ fontSize: 13, color: C.textSecondary, marginBottom: 6 }} numberOfLines={1}>{job.description}</Text>
+      <View style={styles.row}>
+        <Ionicons name="location-outline" size={12} color={C.textTertiary} />
+        <Text style={{ fontSize: 12, color: C.textTertiary, flex: 1 }} numberOfLines={1}>{job.address}</Text>
       </View>
-
       <View style={styles.footer}>
-        <View style={styles.techRow}>
+        <View style={styles.row}>
           {job.assignedTechnicianName ? (
             <>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials(job.assignedTechnicianName)}</Text>
-              </View>
-              <Text style={styles.techName}>{job.assignedTechnicianName}</Text>
+              <View style={styles.avatar}><Text style={styles.avatarText}>{initials(job.assignedTechnicianName)}</Text></View>
+              <Text style={{ fontSize: 12, color: C.textSecondary }}>{job.assignedTechnicianName}</Text>
             </>
           ) : (
-            <Text style={styles.unassigned}>Ikke tildelt</Text>
+            <Text style={{ fontSize: 12, color: C.textTertiary, fontStyle: 'italic' }}>Ikke tildelt</Text>
           )}
         </View>
         <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
@@ -62,34 +52,13 @@ export function JobCard({ job, onPress }: JobCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 4,
-    padding: 16,
-    marginBottom: 10,
-  },
+  card: { borderRadius: 12, borderWidth: 1, borderLeftWidth: 4, padding: 16, marginBottom: 10 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  customerName: { fontSize: 15, fontWeight: '600', color: '#1F2937', flex: 1 },
-  time: { fontSize: 12, color: '#94A3B8', marginLeft: 8 },
-  description: { fontSize: 13, color: '#64748B', marginBottom: 6, lineHeight: 18 },
-  addressRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 },
-  address: { fontSize: 12, color: '#94A3B8', flex: 1 },
+  name: { fontSize: 15, fontWeight: '600', flex: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  techRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  avatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#0A1B33',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  avatar: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#0A1B33', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
   avatarText: { fontSize: 8, fontWeight: '700', color: '#FFFFFF' },
-  techName: { fontSize: 12, color: '#64748B' },
-  unassigned: { fontSize: 12, color: '#94A3B8', fontStyle: 'italic' },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   badgeText: { fontSize: 11, fontWeight: '600' },
 });

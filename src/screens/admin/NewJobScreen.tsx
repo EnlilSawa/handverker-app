@@ -4,6 +4,8 @@ import {
   TouchableOpacity, Modal, FlatList, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { todayISO } from '../../utils/formatters';
@@ -13,6 +15,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function NewJobScreen({ navigation }: any) {
+  const { colors: C } = useTheme();
   const technicians = useAppStore((s) => s.users.filter((u) => u.role === 'technician'));
   const addJob = useAppStore((s) => s.addJob);
 
@@ -53,33 +56,33 @@ export function NewJobScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+    <ThemedScreen>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#1F2937" />
         </TouchableOpacity>
-        <Text style={styles.title}>Ny jobb</Text>
+        <Text style={[styles.title, { color: C.textPrimary }]}>Ny jobb</Text>
         <View style={{ width: 22 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <Text style={styles.cardTitle}>KUNDEINFORMASJON</Text>
           <View style={styles.field}>
             <FieldLabel>Kundenavn *</FieldLabel>
-            <TextInput style={styles.input} placeholder="Per Hansen" placeholderTextColor="#94A3B8" value={customerName} onChangeText={setCustomerName} />
+            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="Per Hansen" placeholderTextColor="#94A3B8" value={customerName} onChangeText={setCustomerName} />
           </View>
           <View style={styles.field}>
             <FieldLabel>Telefonnummer</FieldLabel>
-            <TextInput style={styles.input} placeholder="92345678" placeholderTextColor="#94A3B8" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" />
+            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="92345678" placeholderTextColor="#94A3B8" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" />
           </View>
           <View style={styles.field}>
             <FieldLabel>Adresse *</FieldLabel>
-            <TextInput style={styles.input} placeholder="Gateveien 1, 0150 Oslo" placeholderTextColor="#94A3B8" value={address} onChangeText={setAddress} />
+            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="Gateveien 1, 0150 Oslo" placeholderTextColor="#94A3B8" value={address} onChangeText={setAddress} />
           </View>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <Text style={styles.cardTitle}>JOBBDETALJER</Text>
           <View style={styles.field}>
             <FieldLabel>Beskrivelse *</FieldLabel>
@@ -105,12 +108,12 @@ export function NewJobScreen({ navigation }: any) {
           <View style={styles.dateRow}>
             <View style={[styles.field, { flex: 1 }]}>
               <FieldLabel>Dato</FieldLabel>
-              <TextInput style={styles.input} placeholder="2024-05-15" placeholderTextColor="#94A3B8" value={date} onChangeText={setDate} />
+              <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="2024-05-15" placeholderTextColor="#94A3B8" value={date} onChangeText={setDate} />
             </View>
             <View style={{ width: 12 }} />
             <View style={[styles.field, { width: 90 }]}>
               <FieldLabel>Kl.</FieldLabel>
-              <TextInput style={styles.input} placeholder="09:00" placeholderTextColor="#94A3B8" value={time} onChangeText={setTime} />
+              <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="09:00" placeholderTextColor="#94A3B8" value={time} onChangeText={setTime} />
             </View>
           </View>
         </View>
@@ -161,7 +164,7 @@ export function NewJobScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 

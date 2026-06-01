@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { useAppStore } from '../../store/appStore';
 import { InvoiceCard } from '../../components/InvoiceCard';
 import { InvoicePreviewModal } from '../../components/InvoicePreviewModal';
@@ -16,6 +18,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 ];
 
 export function InvoicesScreen({ navigation }: any) {
+  const { colors: C } = useTheme();
   const invoices = useAppStore((s) => s.invoices);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -35,9 +38,9 @@ export function InvoicesScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Fakturaer</Text>
+    <ThemedScreen>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
+        <Text style={[styles.title, { color: C.textPrimary }]}>Fakturaer</Text>
       </View>
 
       <View style={styles.summaryRow}>
@@ -83,7 +86,7 @@ export function InvoicesScreen({ navigation }: any) {
       />
 
       <InvoicePreviewModal invoiceId={previewId} onClose={() => setPreviewId(null)} />
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  ScrollView, ActivityIndicator,
+  ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/appStore';
@@ -32,10 +32,11 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
 
   const handleViewPdf = async () => {
     setPdfLoading(true);
+    setFeedback('');
     try {
       await viewInvoicePdf(invoice!, company);
-    } catch {
-      // ignore
+    } catch (e: any) {
+      setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
       setPdfLoading(false);
     }
@@ -43,10 +44,11 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
 
   const handleDownloadPdf = async () => {
     setPdfLoading(true);
+    setFeedback('');
     try {
       await downloadInvoicePdf(invoice!, company);
-    } catch {
-      // ignore
+    } catch (e: any) {
+      setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
       setPdfLoading(false);
     }
@@ -97,6 +99,11 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
 
             {/* Document */}
             <View style={styles.document}>
+              {/* Logo */}
+              {company?.logoUrl ? (
+                <Image source={{ uri: company.logoUrl }} style={styles.logo} resizeMode="contain" />
+              ) : null}
+
               {/* FROM / TO */}
               <View style={styles.partyRow}>
                 <View style={styles.party}>
@@ -121,50 +128,56 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                   <Text style={styles.dateLabel}>FAKTURADATO</Text>
                   <Text style={styles.dateValue}>{formatDate(invoice.createdAt)}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
+                <View style={{ alignItems: 'center' }}>
                   <Text style={styles.dateLabel}>FORFALL</Text>
                   <Text style={[styles.dateValue, isOverdue && { color: '#DC2626', fontWeight: '600' }]}>
                     {formatShortDate(invoice.dueDate)}
                   </Text>
                 </View>
+                {company?.accountNumber ? (
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.dateLabel}>KONTONUMMER</Text>
+                    <Text style={styles.accountNumber}>{company.accountNumber}</Text>
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.divider} />
 
               {/* Line items */}
               <Text style={styles.sectionTitle}>SPESIFIKASJON</Text>
-              {invoice.lineItems.map((item, i) => (
-                <View key={i} style={styles.lineItem}>
-                  <Text style={styles.lineDesc}>{item.description}</Text>
-                  <Text style={styles.lineAmount}>{formatCurrency(item.amount)}</Text>
+              <View style={styles.linesBlock}>
+                {invoice.lineItems.map((item, i) => {
+                  const isLast = i === invoice.lineItems.length - 1 && !invoice.note;
+                  return (
+                    <View key={i} style={[styles.lineItem, isLast && { borderBottomWidth: 0 }]}>
+                      <Text style={styles.lineDesc}>{item.description}</Text>
+                      <Text style={styles.lineAmount}>{formatCurrency(item.amount)}</Text>
+                    </View>
+                  );
+                })}
+                {invoice.note ? (
+                  <View style={[styles.lineItem, { borderBottomWidth: 0 }]}>
+                    <Text style={styles.inlineNoteText}>{invoice.note}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.totalsBlock}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Sum eks. MVA</Text>
+                  <Text style={styles.totalValue}>{formatCurrency(invoice.subtotalExVat)}</Text>
                 </View>
-              ))}
-
-              <View style={styles.divider} />
-
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Sum eks. MVA</Text>
-                <Text style={styles.totalValue}>{formatCurrency(invoice.subtotalExVat)}</Text>
-              </View>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>MVA 25%</Text>
-                <Text style={styles.totalValue}>{formatCurrency(invoice.vat)}</Text>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>MVA 25%</Text>
+                  <Text style={styles.totalValue}>{formatCurrency(invoice.vat)}</Text>
+                </View>
+                <View style={styles.grandRow}>
+                  <Text style={styles.grandLabel}>TOTALT INKL. MVA</Text>
+                  <Text style={styles.grandValue}>{formatCurrency(invoice.total)}</Text>
+                </View>
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.grandRow}>
-                <Text style={styles.grandLabel}>TOTALT INKL. MVA</Text>
-                <Text style={styles.grandValue}>{formatCurrency(invoice.total)}</Text>
-              </View>
-
-              {invoice.note ? (
-                <>
-                  <View style={styles.divider} />
-                  <Text style={styles.noteLabel}>NOTAT</Text>
-                  <Text style={styles.noteText}>{invoice.note}</Text>
-                </>
-              ) : null}
             </View>
 
             {/* PDF actions */}
@@ -219,9 +232,6 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
               </View>
             )}
 
-            <Text style={styles.terms}>
-              Betalingsbetingelser: {company?.paymentTermsDays ?? 14} dager netto.
-            </Text>
           </ScrollView>
         </View>
       </View>
@@ -279,6 +289,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
+  logo: { width: 140, height: 50, marginBottom: 28 },
   partyRow: { flexDirection: 'row', gap: 12 },
   party: { flex: 1, gap: 2 },
   partyLabel: {
@@ -288,7 +299,7 @@ const styles = StyleSheet.create({
   partyName: { fontSize: 14, fontWeight: '600', color: '#0A1B33' },
   partyDetail: { fontSize: 12, color: '#64748B' },
 
-  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 2 },
+  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 8 },
 
   datesRow: { flexDirection: 'row', justifyContent: 'space-between' },
   dateLabel: { fontSize: 10, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
@@ -297,20 +308,35 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 10, fontWeight: '700', color: '#94A3B8',
     textTransform: 'uppercase', letterSpacing: 0.5,
+    marginBottom: 4,
   },
-  lineItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  lineDesc: { fontSize: 13, color: '#1F2937', flex: 1, marginRight: 8 },
-  lineAmount: { fontSize: 13, color: '#1F2937', fontWeight: '500' },
+  linesBlock: { gap: 0 },
+  lineItem: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: '#E2E8F0',
+  },
+  lineDesc: { fontSize: 15, color: '#1F2937', flex: 1, marginRight: 12 },
+  lineAmount: { fontSize: 15, color: '#1F2937', fontWeight: '600' },
+  inlineNoteText: { fontSize: 13, color: '#64748B', fontStyle: 'italic', lineHeight: 19, flex: 1 },
 
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  totalLabel: { fontSize: 13, color: '#64748B' },
-  totalValue: { fontSize: 13, color: '#64748B' },
-
-  grandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  noteLabel: { fontSize: 10, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
-  noteText: { fontSize: 13, color: '#1F2937', fontStyle: 'italic', lineHeight: 19 },
-  grandLabel: { fontSize: 13, fontWeight: '700', color: '#0A1B33' },
-  grandValue: { fontSize: 24, fontWeight: '700', color: '#2563FF' },
+  totalsBlock: {
+    borderTopWidth: 2, borderTopColor: '#E2E8F0',
+    paddingTop: 4, gap: 0,
+  },
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+  },
+  totalLabel: { fontSize: 14, color: '#64748B' },
+  totalValue: { fontSize: 14, color: '#64748B' },
+  grandRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 16,
+  },
+  grandLabel: { fontSize: 15, fontWeight: '600', color: '#0A1B33' },
+  grandValue: { fontSize: 18, fontWeight: '600', color: '#0A1B33' },
 
   pdfRow: {
     flexDirection: 'row',
@@ -349,8 +375,15 @@ const styles = StyleSheet.create({
   },
   paidBtnText: { color: '#15803D', fontSize: 14, fontWeight: '600' },
 
-  terms: {
-    fontSize: 12, color: '#94A3B8',
-    textAlign: 'center', marginTop: 16, paddingHorizontal: 20,
+  paymentBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    marginHorizontal: 20,
+    marginBottom: 8,
   },
+  paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  accountNumber: { fontSize: 14, color: '#0A1B33', fontWeight: '700', letterSpacing: 0.5 },
 });
