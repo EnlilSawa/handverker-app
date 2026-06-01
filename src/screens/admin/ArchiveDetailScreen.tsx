@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Modal, useWindowDimensions,
-} from 'react-native';
+  Image, Modal, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
@@ -15,13 +14,11 @@ import { ImageUploadModal } from '../../components/ImageUploadModal';
 const STATUS_CFG = {
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF' },
   paid: { label: 'Betalt', color: '#15803D', bg: '#F0FDF4' },
-  overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' },
-};
+  overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' } };
 
 const LABEL_CFG = {
   'før': { label: 'Før', color: '#C2410C', bg: '#FFF7ED' },
-  'etter': { label: 'Etter', color: '#15803D', bg: '#F0FDF4' },
-};
+  'etter': { label: 'Etter', color: '#15803D', bg: '#F0FDF4' } };
 
 // ─── Locked image cell ────────────────────────────────────────────────────────
 
@@ -68,13 +65,11 @@ const cell = StyleSheet.create({
   img: { width: '100%', height: '100%' },
   badge: {
     position: 'absolute', top: 6, left: 6,
-    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8,
-  },
+    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
   badgeText: { fontSize: 10, fontWeight: '700' },
   noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 5 },
-  note: { fontSize: 12, color: '#64748B', fontStyle: 'italic', flex: 1, lineHeight: 16 },
-  meta: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
-});
+  note: { fontSize: 12, fontStyle: 'italic', flex: 1, lineHeight: 16 },
+  meta: { fontSize: 11, marginTop: 2 } });
 
 // ─── Fullscreen viewer ────────────────────────────────────────────────────────
 
@@ -112,10 +107,8 @@ const fsv = StyleSheet.create({
   img: { width: '100%', height: '70%' },
   noteBar: {
     position: 'absolute', bottom: 48, left: 20, right: 20,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-  },
-  noteText: { fontSize: 14, color: 'rgba(255,255,255,0.8)', fontStyle: 'italic', flex: 1 },
-});
+    flexDirection: 'row', alignItems: 'center', gap: 6 },
+  noteText: { fontSize: 14, color: 'rgba(255,255,255,0.8)', fontStyle: 'italic', flex: 1 } });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
@@ -249,42 +242,36 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 16,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0', gap: 12,
-  },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: '600', color: '#1F2937' },
+    paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, gap: 12 },
+  headerTitle: { flex: 1, fontSize: 17, fontWeight: '600' },
   archivedBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F1F5F9', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  archivedText: { fontSize: 12, color: '#64748B', fontWeight: '500' },
+  archivedText: { fontSize: 12, fontWeight: '500' },
   content: { padding: 20, gap: 16, paddingBottom: 48 },
-  card: {
-    backgroundColor: '#FFFFFF', borderRadius: 12,
-    borderWidth: 1, borderColor: '#E2E8F0', padding: 20, gap: 12,
-  },
-  cardLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6 },
-  customerName: { fontSize: 20, fontWeight: '700', color: '#0A1B33', marginTop: -4 },
+  card: { borderRadius: 12,
+    borderWidth: 1, padding: 20, gap: 12 },
+  cardLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
+  customerName: { fontSize: 20, fontWeight: '700', marginTop: -4 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  infoLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
-  infoValue: { fontSize: 14, color: '#1F2937', marginTop: 1 },
+  infoLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  infoValue: { fontSize: 14, marginTop: 1 },
   invoiceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  invoiceNumber: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
-  invoiceDate: { fontSize: 13, color: '#64748B' },
-  invoiceAmount: { fontSize: 20, fontWeight: '700', color: '#0A1B33' },
+  invoiceNumber: { fontSize: 15, fontWeight: '600' },
+  invoiceDate: { fontSize: 13 },
+  invoiceAmount: { fontSize: 20, fontWeight: '700' },
   invBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   invBadgeText: { fontSize: 12, fontWeight: '600' },
   imagesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  imageCount: { fontSize: 13, color: '#64748B' },
+  imageCount: { fontSize: 13 },
   uploadBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     borderWidth: 1.5, borderColor: '#2563FF', borderStyle: 'dashed',
-    borderRadius: 10, paddingVertical: 14, backgroundColor: '#EEF4FF',
-  },
+    borderRadius: 10, paddingVertical: 14, backgroundColor: '#EEF4FF' },
   uploadBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
   noImages: { alignItems: 'center', paddingVertical: 20, gap: 8 },
-  noImagesText: { fontSize: 14, color: '#94A3B8' },
+  noImagesText: { fontSize: 14 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   lockHint: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4 },
-  lockHintText: { fontSize: 12, color: '#94A3B8', fontStyle: 'italic' },
-});
+  lockHintText: { fontSize: 12, fontStyle: 'italic' } });

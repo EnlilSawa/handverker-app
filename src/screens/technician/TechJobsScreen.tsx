@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Modal,
-  TextInput, TouchableOpacity, KeyboardAvoidingView, Platform,
-} from 'react-native';
+  TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
@@ -40,8 +39,7 @@ export function TechJobsScreen() {
   );
 
   const todayLabel = new Date().toLocaleDateString('nb-NO', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  });
+    weekday: 'long', day: 'numeric', month: 'long' });
 
   const confirmDone = () => {
     if (!selectedJob) return;
@@ -144,56 +142,47 @@ export function TechJobsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
-  subtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
+    borderBottomWidth: 1 },
+  title: { fontSize: 20, fontWeight: '600' },
+  subtitle: { fontSize: 13, marginTop: 2 },
   avatarCircle: {
     width: 42,
     height: 42,
     borderRadius: 21,
     backgroundColor: '#0A1B33',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   avatarText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   list: { padding: 20, paddingBottom: 40 },
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#64748B' },
-  emptyText: { fontSize: 14, color: '#94A3B8' },
+  emptyTitle: { fontSize: 16, fontWeight: '600' },
+  emptyText: { fontSize: 14 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
-    gap: 14,
-  },
+    gap: 14 },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sheetTitle: { fontSize: 18, fontWeight: '600', color: '#1F2937' },
-  sheetSub: { fontSize: 14, color: '#64748B', marginTop: -6 },
+  sheetTitle: { fontSize: 18, fontWeight: '600' },
+  sheetSub: { fontSize: 14, marginTop: -6 },
   formRow: { flexDirection: 'row' },
   formField: { flex: 1 },
-  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  fieldLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   fieldInput: {
     height: 52,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 16,
-    color: '#1F2937',
-    backgroundColor: '#F8FAFC',
-  },
+     },
   errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 },
   errorText: { fontSize: 13, color: '#DC2626' },
   infoBox: {
@@ -202,8 +191,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: '#EEF4FF',
     borderRadius: 10,
-    padding: 12,
-  },
+    padding: 12 },
   infoText: { fontSize: 13, color: '#2563FF', flex: 1 },
   confirmBtn: {
     flexDirection: 'row',
@@ -212,7 +200,5 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 52,
     backgroundColor: '#2563FF',
-    borderRadius: 10,
-  },
-  confirmBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
-});
+    borderRadius: 10 },
+  confirmBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' } });

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Image,
-  ScrollView, TouchableOpacity, ActivityIndicator, Platform,
-} from 'react-native';
+  ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -82,8 +81,7 @@ export function SettingsScreen() {
       result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: false,
-        quality: 0.9,
-      });
+        quality: 0.9 });
     } catch { setLogoError('Kunne ikke åpne bildebibliotek'); return; }
     if (result.canceled || result.assets.length === 0) return;
     setLogoUploading(true);
@@ -111,8 +109,7 @@ export function SettingsScreen() {
         hourlyRate: rate,
         calloutFee: callout,
         paymentTermsDays: terms,
-        accountNumber: accountNumber.trim() || null,
-      });
+        accountNumber: accountNumber.trim() || null });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e: any) {
@@ -203,72 +200,57 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1 },
   // Logo styles
   logoHint: { fontSize: 13, marginTop: -4 },
   logoPreviewWrap: {
-    borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0',
-    padding: 12, alignItems: 'center', backgroundColor: '#FFFFFF',
-  },
+    borderRadius: 10, borderWidth: 1,
+    padding: 12, alignItems: 'center' },
   logoPreview: { width: '100%', height: 80, maxWidth: 240 },
   logoPlaceholder: {
     borderRadius: 10, borderWidth: 1, borderStyle: 'dashed',
-    paddingVertical: 24, alignItems: 'center', gap: 8,
-  },
+    paddingVertical: 24, alignItems: 'center', gap: 8 },
   logoPlaceholderText: { fontSize: 13 },
   logoErrorBox: { backgroundColor: '#FEF2F2', borderRadius: 8, padding: 10 },
   logoErrorText: { fontSize: 13, color: '#DC2626' },
   uploadLogoBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, paddingVertical: 12, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#2563FF', backgroundColor: '#EEF4FF',
-  },
+    borderWidth: 1.5, borderColor: '#2563FF', backgroundColor: '#EEF4FF' },
   uploadLogoBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
   header: {
     paddingHorizontal: 24,
     paddingVertical: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
+    borderBottomWidth: 1 },
+  title: { fontSize: 20, fontWeight: '600' },
   content: { padding: 20, gap: 16, paddingBottom: 48 },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     padding: 20,
-    gap: 14,
-  },
+    gap: 14 },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    marginBottom: -2,
-  },
+    marginBottom: -2 },
   field: { gap: 6 },
-  fieldLabel: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  fieldLabel: { fontSize: 13, fontWeight: '500' },
   input: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: '#1F2937',
-    backgroundColor: '#F8FAFC',
-  },
-  inputFocused: { borderColor: '#2563FF', borderWidth: 1.5, backgroundColor: '#FFFFFF' },
+     },
+  inputFocused: { borderColor: '#2563FF', borderWidth: 1.5 },
   saveBtn: {
     height: 52,
     backgroundColor: '#2563FF',
     borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   saveBtnSuccess: { backgroundColor: '#15803D' },
   saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   logoutBtn: {
@@ -277,7 +259,5 @@ const styles = StyleSheet.create({
     borderColor: '#DC2626',
     borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutText: { color: '#DC2626', fontSize: 15, fontWeight: '600' },
-});
+    justifyContent: 'center' },
+  logoutText: { color: '#DC2626', fontSize: 15, fontWeight: '600' } });

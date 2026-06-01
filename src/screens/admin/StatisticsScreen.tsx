@@ -25,18 +25,17 @@ function ProgressRow({ name, revenue, jobs, max }: { name: string; revenue: numb
 const bar = StyleSheet.create({
   row: { marginBottom: 18 },
   labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  name: { flex: 1, fontSize: 14, fontWeight: '600', color: '#1F2937' },
-  jobs: { fontSize: 13, color: '#94A3B8', marginRight: 12 },
-  amount: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
+  name: { flex: 1, fontSize: 14, fontWeight: '600' },
+  jobs: { fontSize: 13, marginRight: 12 },
+  amount: { fontSize: 14, fontWeight: '600' },
   track: { height: 6, borderRadius: 3, backgroundColor: '#E2E8F0', overflow: 'hidden' },
-  fill: { height: 6, borderRadius: 3, backgroundColor: '#2563FF' },
-});
+  fill: { height: 6, borderRadius: 3, backgroundColor: '#2563FF' } });
 
 const MINI_STATS = (jobsByStatus: { new: number; in_progress: number; completed: number }, totalJobs: number) => [
   { label: 'Nye', count: jobsByStatus.new, color: '#2563FF', bg: '#EEF4FF' },
   { label: 'Pågår', count: jobsByStatus.in_progress, color: '#C2410C', bg: '#FFF7ED' },
   { label: 'Ferdig', count: jobsByStatus.completed, color: '#15803D', bg: '#F0FDF4' },
-  { label: 'Totalt', count: totalJobs, color: '#64748B', bg: '#F1F5F9' },
+  { label: 'Totalt', count: totalJobs, bg: '#F1F5F9' },
 ];
 
 export function StatisticsScreen() {
@@ -61,16 +60,14 @@ export function StatisticsScreen() {
     const jobsByStatus = {
       new: jobs.filter((j) => j.status === 'new').length,
       in_progress: jobs.filter((j) => j.status === 'in_progress').length,
-      completed: jobs.filter((j) => j.status === 'completed').length,
-    };
+      completed: jobs.filter((j) => j.status === 'completed').length };
 
     const techPerformance = users
       .filter((u) => u.role === 'technician')
       .map((u) => ({
         name: u.name,
         revenue: revenueByTech[u.id] ?? 0,
-        jobs: jobs.filter((j) => j.assignedTechnicianId === u.id && isThisMonth(j.createdAt)).length,
-      }))
+        jobs: jobs.filter((j) => j.assignedTechnicianId === u.id && isThisMonth(j.createdAt)).length }))
       .sort((a, b) => b.revenue - a.revenue);
 
     const maxRevenue = Math.max(...techPerformance.map((t) => t.revenue), 1);
@@ -78,8 +75,7 @@ export function StatisticsScreen() {
     const invoiceStats = {
       paid: invoices.filter((i) => i.status === 'paid'),
       sent: invoices.filter((i) => i.status === 'sent'),
-      overdue: invoices.filter((i) => i.status === 'overdue'),
-    };
+      overdue: invoices.filter((i) => i.status === 'overdue') };
 
     return { revenue, jobsByStatus, techPerformance, maxRevenue, totalJobs: jobs.length, invoiceStats };
   }, [jobs, invoices, users]);
@@ -145,22 +141,18 @@ export function StatisticsScreen() {
               color: '#2563FF',
               bg: '#EEF4FF',
               count: stats.invoiceStats.paid.length,
-              amount: stats.invoiceStats.paid.reduce((s, i) => s + i.total, 0),
-            },
+              amount: stats.invoiceStats.paid.reduce((s, i) => s + i.total, 0) },
             {
               label: 'Utestående',
-              color: '#64748B',
               bg: '#F1F5F9',
               count: stats.invoiceStats.sent.length,
-              amount: stats.invoiceStats.sent.reduce((s, i) => s + i.total, 0),
-            },
+              amount: stats.invoiceStats.sent.reduce((s, i) => s + i.total, 0) },
             {
               label: 'Forfalt',
               color: '#DC2626',
               bg: '#FEF2F2',
               count: stats.invoiceStats.overdue.length,
-              amount: stats.invoiceStats.overdue.reduce((s, i) => s + i.total, 0),
-            },
+              amount: stats.invoiceStats.overdue.reduce((s, i) => s + i.total, 0) },
           ].map(({ label, color, bg, count, amount }) => (
             <View key={label} style={styles.invoiceRow}>
               <View style={[styles.dot, { backgroundColor: color }]} />
@@ -178,60 +170,46 @@ export function StatisticsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1 },
   header: {
     paddingHorizontal: 24,
     paddingVertical: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  title: { fontSize: 20, fontWeight: '600', color: '#1F2937' },
-  subtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
+    borderBottomWidth: 1 },
+  title: { fontSize: 20, fontWeight: '600' },
+  subtitle: { fontSize: 13, marginTop: 2 },
   content: { padding: 24, gap: 16, paddingBottom: 48 },
   heroCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderLeftWidth: 4,
     borderLeftColor: '#15803D',
     padding: 20,
-    gap: 8,
-  },
+    gap: 8 },
   heroLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
+    letterSpacing: 0.6 },
   heroNumber: { fontSize: 32, fontWeight: '700', color: '#15803D', letterSpacing: -1 },
   heroBar: { height: 4, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden', marginTop: 4 },
   heroBarFill: { height: 4, backgroundColor: '#15803D', borderRadius: 2 },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    marginBottom: -4,
-  },
+    marginBottom: -4 },
   miniGrid: { flexDirection: 'row', gap: 12 },
-  miniCard: { flex: 1, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', padding: 16, alignItems: 'center', gap: 4 },
+  miniCard: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 16, alignItems: 'center', gap: 4 },
   miniCount: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  miniLabel: { fontSize: 12, color: '#64748B', fontWeight: '500' },
+  miniLabel: { fontSize: 12, fontWeight: '500' },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 20,
-  },
+    padding: 20 },
   invoiceRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  invoiceLabel: { flex: 1, fontSize: 14, color: '#1F2937', fontWeight: '500' },
+  invoiceLabel: { flex: 1, fontSize: 14, fontWeight: '500' },
   countPill: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   countPillText: { fontSize: 13, fontWeight: '700' },
-  invoiceAmount: { fontSize: 14, fontWeight: '600', color: '#1F2937', minWidth: 80, textAlign: 'right' },
-});
+  invoiceAmount: { fontSize: 14, fontWeight: '600', minWidth: 80, textAlign: 'right' } });

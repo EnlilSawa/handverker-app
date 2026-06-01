@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, ScrollView,
-  TouchableOpacity, Modal, FlatList, ActivityIndicator,
-} from 'react-native';
+  TouchableOpacity, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
@@ -45,8 +44,7 @@ export function NewJobScreen({ navigation }: any) {
         assignedTechnicianId: selectedTech?.id ?? null,
         assignedTechnicianName: selectedTech?.name ?? null,
         scheduledAt: `${date}T${time}:00`,
-        status: 'new',
-      });
+        status: 'new' });
       navigation.goBack();
     } catch {
       setError('Kunne ikke lagre jobben. Prøv igjen.');
@@ -99,7 +97,7 @@ export function NewJobScreen({ navigation }: any) {
           <View style={styles.field}>
             <FieldLabel>Tekniker</FieldLabel>
             <TouchableOpacity style={styles.picker} onPress={() => setShowPicker(true)}>
-              <Text style={[styles.pickerText, !selectedTech && { color: '#94A3B8' }]}>
+              <Text style={[styles.pickerText, !selectedTech && {  }]}>
                 {selectedTech?.name ?? 'Velg tekniker...'}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#64748B" />
@@ -169,53 +167,41 @@ export function NewJobScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  title: { fontSize: 17, fontWeight: '600', color: '#1F2937' },
+    borderBottomWidth: 1 },
+  title: { fontSize: 17, fontWeight: '600' },
   content: { padding: 20, gap: 16, paddingBottom: 40 },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     padding: 20,
-    gap: 14,
-  },
-  cardTitle: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6 },
+    gap: 14 },
+  cardTitle: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
   field: { gap: 6 },
-  fieldLabel: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  fieldLabel: { fontSize: 13, fontWeight: '500' },
   input: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: '#1F2937',
-    backgroundColor: '#F8FAFC',
-  },
+     },
   textArea: { height: 88, textAlignVertical: 'top', paddingTop: 12 },
   picker: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-  },
-  pickerText: { fontSize: 15, color: '#1F2937' },
+    alignItems: 'center' },
+  pickerText: { fontSize: 15 },
   dateRow: { flexDirection: 'row', alignItems: 'flex-end' },
   errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 14 },
   errorText: { fontSize: 13, color: '#DC2626' },
@@ -224,35 +210,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563FF',
     borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '60%',
-  },
+    maxHeight: '60%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 17, fontWeight: '600', color: '#1F2937' },
+  modalTitle: { fontSize: 17, fontWeight: '600' },
   techItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 13,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    gap: 12,
-  },
+    gap: 12 },
   techAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: '#EEF4FF',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   techAvatarText: { color: '#2563FF', fontWeight: '700', fontSize: 13 },
-  techItemText: { flex: 1, fontSize: 15, color: '#1F2937' },
-});
+  techItemText: { flex: 1, fontSize: 15 } });
