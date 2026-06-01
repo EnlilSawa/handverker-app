@@ -590,7 +590,7 @@ export function JobDetailScreen({ route, navigation }: any) {
 
   if (!job) return (
     <ThemedScreen>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color={C.textPrimary} />
         </TouchableOpacity>
@@ -673,11 +673,11 @@ export function JobDetailScreen({ route, navigation }: any) {
   return (
     <ThemedScreen>
       {/* Top navigation bar */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={C.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Jobbdetaljer</Text>
+        <Text style={[styles.topBarTitle, { color: C.textPrimary }]}>Jobbdetaljer</Text>
         <TouchableOpacity
           style={[styles.editToggleBtn, isEditing && styles.editToggleBtnActive]}
           onPress={isEditing ? cancelEditing : startEditing}
@@ -692,19 +692,19 @@ export function JobDetailScreen({ route, navigation }: any) {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
         {/* ── Hero: name + status + date ───────────────────────────────── */}
-        <View style={[styles.heroCard, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <View style={[styles.heroCard, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           {isEditing ? (
             <TextInput
-              style={styles.heroNameInput}
+              style={[styles.heroNameInput, { color: C.textPrimary, borderBottomColor: '#2563FF' }]}
               value={editName}
               onChangeText={setEditName}
               placeholder="Kundenavn"
               placeholderTextColor={C.textTertiary}
             />
           ) : (
-            <Text style={styles.heroName}>{job.customerName}</Text>
+            <Text style={[styles.heroName, { color: C.textPrimary }]}>{job.customerName}</Text>
           )}
-          <Text style={styles.heroMeta}>Opprettet {formatDate(job.createdAt)}</Text>
+          <Text style={[styles.heroMeta, { color: C.textSecondary }]}>Opprettet {formatDate(job.createdAt)}</Text>
 
           <View style={styles.heroActions}>
             <TouchableOpacity
@@ -726,28 +726,28 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Kundeinformasjon ─────────────────────────────────────────── */}
         <SectionLabel title="KUNDEINFORMASJON" />
-        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           {isEditing ? (
             <>
               <View style={styles.editField}>
-                <Text style={styles.editLabel}>TELEFON</Text>
-                <TextInput style={styles.editInput} value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" placeholder="92345678" placeholderTextColor={C.textTertiary} />
+                <Text style={[styles.editLabel, { color: C.textSecondary }]}>TELEFON</Text>
+                <TextInput style={[styles.editInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]} value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" placeholder="92345678" placeholderTextColor={C.textTertiary} />
               </View>
               <View style={styles.editField}>
-                <Text style={styles.editLabel}>ADRESSE</Text>
-                <TextInput style={styles.editInput} value={editAddress} onChangeText={setEditAddress} placeholder="Gateveien 1, Oslo" placeholderTextColor={C.textTertiary} />
+                <Text style={[styles.editLabel, { color: C.textSecondary }]}>ADRESSE</Text>
+                <TextInput style={[styles.editInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]} value={editAddress} onChangeText={setEditAddress} placeholder="Gateveien 1, Oslo" placeholderTextColor={C.textTertiary} />
               </View>
             </>
           ) : (
             <>
               <View style={styles.infoRow}>
                 <Ionicons name="person-outline" size={16} color={C.textSecondary} />
-                <Text style={styles.infoValue}>{job.customerName}</Text>
+                <Text style={[styles.infoValue, { color: C.textPrimary }]}>{job.customerName}</Text>
               </View>
               {job.customerPhone ? (
                 <TouchableOpacity style={styles.infoRow} onPress={() => Linking.openURL(`tel:${job.customerPhone}`)}>
                   <Ionicons name="call-outline" size={16} color="#2563FF" />
-                  <Text style={[styles.infoValue, styles.infoLink]}>{job.customerPhone}</Text>
+                  <Text style={[styles.infoValue, styles.infoLink, { color: '#2563FF' }]}>{job.customerPhone}</Text>
                 </TouchableOpacity>
               ) : null}
               {job.address ? (
@@ -756,7 +756,7 @@ export function JobDetailScreen({ route, navigation }: any) {
                   onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(job.address)}`)}
                 >
                   <Ionicons name="location-outline" size={16} color="#2563FF" />
-                  <Text style={[styles.infoValue, styles.infoLink]}>{job.address}</Text>
+                  <Text style={[styles.infoValue, styles.infoLink, { color: '#2563FF' }]}>{job.address}</Text>
                 </TouchableOpacity>
               ) : null}
             </>
@@ -765,13 +765,13 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Jobbinformasjon ──────────────────────────────────────────── */}
         <SectionLabel title="JOBBINFORMASJON" />
-        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           {isEditing ? (
             <>
               <View style={styles.editField}>
-                <Text style={styles.editLabel}>BESKRIVELSE</Text>
+                <Text style={[styles.editLabel, { color: C.textSecondary }]}>BESKRIVELSE</Text>
                 <TextInput
-                  style={[styles.editInput, styles.editTextArea]}
+                  style={[styles.editInput, styles.editTextArea, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]}
                   value={editDescription}
                   onChangeText={setEditDescription}
                   multiline
@@ -782,13 +782,13 @@ export function JobDetailScreen({ route, navigation }: any) {
               </View>
               <View style={styles.dateRow}>
                 <View style={[styles.editField, { flex: 1 }]}>
-                  <Text style={styles.editLabel}>DATO</Text>
-                  <TextInput style={styles.editInput} value={editDate} onChangeText={setEditDate} placeholder="2025-05-15" placeholderTextColor={C.textTertiary} />
+                  <Text style={[styles.editLabel, { color: C.textSecondary }]}>DATO</Text>
+                  <TextInput style={[styles.editInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]} value={editDate} onChangeText={setEditDate} placeholder="2025-05-15" placeholderTextColor={C.textTertiary} />
                 </View>
                 <View style={{ width: 12 }} />
                 <View style={[styles.editField, { width: 90 }]}>
-                  <Text style={styles.editLabel}>KL.</Text>
-                  <TextInput style={styles.editInput} value={editTime} onChangeText={setEditTime} placeholder="09:00" placeholderTextColor={C.textTertiary} />
+                  <Text style={[styles.editLabel, { color: C.textSecondary }]}>KL.</Text>
+                  <TextInput style={[styles.editInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]} value={editTime} onChangeText={setEditTime} placeholder="09:00" placeholderTextColor={C.textTertiary} />
                 </View>
               </View>
             </>
@@ -796,18 +796,18 @@ export function JobDetailScreen({ route, navigation }: any) {
             <>
               <View style={styles.infoRow}>
                 <Ionicons name="document-text-outline" size={16} color={C.textSecondary} />
-                <Text style={[styles.infoValue, { flex: 1 }]}>{job.description}</Text>
+                <Text style={[styles.infoValue, { flex: 1, color: C.textPrimary }]}>{job.description}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Ionicons name="calendar-outline" size={16} color={C.textSecondary} />
-                <Text style={styles.infoValue}>{formatScheduled()}</Text>
+                <Text style={[styles.infoValue, { color: C.textPrimary }]}>{formatScheduled()}</Text>
               </View>
             </>
           )}
 
           {/* Tekniker — always visible */}
           <TouchableOpacity style={styles.techRow} onPress={() => setShowTechPicker(true)}>
-            <View style={styles.techAvatarCircle}>
+            <View style={[styles.techAvatarCircle, { backgroundColor: "#0A1B33" }]}>
               {job.assignedTechnicianName
                 ? <Text style={styles.techAvatarText}>{initials(job.assignedTechnicianName)}</Text>
                 : <Ionicons name="person-outline" size={14} color={C.textSecondary} />
@@ -816,7 +816,7 @@ export function JobDetailScreen({ route, navigation }: any) {
             <Text style={[styles.infoValue, { flex: 1 }]}>
               {job.assignedTechnicianName ?? 'Ikke tildelt'}
             </Text>
-            <Text style={styles.changeLink}>Endre</Text>
+            <Text style={[styles.changeLink, { color: '#2563FF' }]}>Endre</Text>
           </TouchableOpacity>
         </View>
 
@@ -836,10 +836,10 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Notater ──────────────────────────────────────────────────── */}
         <SectionLabel title="NOTATER" />
-        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <View style={styles.noteInputRow}>
             <TextInput
-              style={styles.noteInput}
+              style={[styles.noteInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]}
               value={noteText}
               onChangeText={setNoteText}
               placeholder="Legg til notat…"
@@ -859,16 +859,16 @@ export function JobDetailScreen({ route, navigation }: any) {
           </View>
 
           {notes.length === 0 ? (
-            <Text style={styles.emptyNotes}>Ingen notater ennå</Text>
+            <Text style={[styles.emptyNotes, { color: C.textTertiary }]}>Ingen notater ennå</Text>
           ) : (
             <View style={styles.notesList}>
               {notes.map((note: JobNote) => (
-                <View key={note.id} style={styles.noteItem}>
+                <View key={note.id} style={[styles.noteItem, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
                   <View style={styles.noteHeader}>
-                    <Text style={styles.noteMeta}>{note.authorName}</Text>
-                    <Text style={styles.noteMeta}>{formatNoteDate(note.createdAt)}</Text>
+                    <Text style={[styles.noteMeta, { color: C.textTertiary }]}>{note.authorName}</Text>
+                    <Text style={[styles.noteMeta, { color: C.textTertiary }]}>{formatNoteDate(note.createdAt)}</Text>
                   </View>
-                  <Text style={styles.noteContent}>{note.content}</Text>
+                  <Text style={[styles.noteContent, { color: C.textPrimary }]}>{note.content}</Text>
                 </View>
               ))}
             </View>
@@ -877,7 +877,7 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Faktura ──────────────────────────────────────────────────── */}
         <SectionLabel title="FAKTURA" />
-        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           {invoice ? (
             <TouchableOpacity
               style={styles.invoiceRow}
@@ -885,11 +885,11 @@ export function JobDetailScreen({ route, navigation }: any) {
               activeOpacity={0.7}
             >
               <View style={{ gap: 4 }}>
-                <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
-                <Text style={styles.invoiceMeta}>Forfall: {invoice.dueDate?.slice(0, 10)}</Text>
+                <Text style={[styles.invoiceNumber, { color: C.textPrimary }]}>{invoice.invoiceNumber}</Text>
+                <Text style={[styles.invoiceMeta, { color: C.textSecondary }]}>Forfall: {invoice.dueDate?.slice(0, 10)}</Text>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total)}</Text>
+                <Text style={[styles.invoiceAmount, { color: C.textPrimary }]}>{formatCurrency(invoice.total)}</Text>
                 {invoiceCfg && (
                   <View style={[styles.invBadge, { backgroundColor: invoiceCfg.bg }]}>
                     <Text style={[styles.invBadgeText, { color: invoiceCfg.color }]}>{invoiceCfg.label}</Text>
@@ -908,9 +908,9 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Bilder ───────────────────────────────────────────────────── */}
         <SectionLabel title="BILDER FRA JOBBEN" />
-        <View style={[styles.card, { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <View style={styles.imagesHeader}>
-            <Text style={styles.imageCount}>{images.length} bilde{images.length !== 1 ? 'r' : ''}</Text>
+            <Text style={[styles.imageCount, { color: C.textSecondary }]}>{images.length} bilde{images.length !== 1 ? 'r' : ''}</Text>
           </View>
 
           <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowUploadModal(true)}>
@@ -938,7 +938,7 @@ export function JobDetailScreen({ route, navigation }: any) {
 
           <View style={styles.lockHint}>
             <Ionicons name="lock-closed-outline" size={12} color={C.textTertiary} />
-            <Text style={styles.lockHintText}>Bilder og notater kan ikke endres etter opplasting</Text>
+            <Text style={[styles.lockHintText, { color: C.textTertiary }]}>Bilder og notater kan ikke endres etter opplasting</Text>
           </View>
         </View>
 
