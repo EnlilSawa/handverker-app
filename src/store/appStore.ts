@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer } from '../types';
+import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer, Quote, QuoteLine, QuoteStatus } from '../types';
 import { supabase } from '../lib/supabase';
 import { addDays } from '../utils/formatters';
 
@@ -71,6 +71,32 @@ function mapUser(row: any): User {
   };
 }
 
+function mapQuote(row: any): Quote {
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    customerId: row.customer_id ?? null,
+    customerName: row.customer_name,
+    customerEmail: row.customer_email,
+    customerPhone: row.customer_phone ?? null,
+    customerAddress: row.customer_address ?? null,
+    title: row.title,
+    description: row.description ?? null,
+    lines: (row.lines ?? []) as QuoteLine[],
+    subtotalExVat: Number(row.subtotal_ex_vat),
+    vat: Number(row.vat),
+    totalAmount: Number(row.total_amount),
+    status: row.status as QuoteStatus,
+    validUntil: row.valid_until,
+    quoteNumber: row.quote_number ?? '',
+    acceptedByName: row.accepted_by_name ?? null,
+    acceptedAt: row.accepted_at ?? null,
+    declinedReason: row.declined_reason ?? null,
+    jobId: row.job_id ?? null,
+    createdAt: row.created_at,
+  };
+}
+
 function mapCustomer(row: any): Customer {
   return {
     id: row.id,
@@ -104,6 +130,7 @@ interface AppState {
   jobs: Job[];
   invoices: Invoice[];
   company: Company | null;
+  quotes: Quote[];
   customers: Customer[];
   jobImages: Record<string, JobImage[]>;
   jobNotes: Record<string, JobNote[]>;
@@ -140,6 +167,12 @@ interface AppState {
     address?: string; description?: string; scheduledAt?: string;
   }) => Promise<void>;
 
+  loadQuotes: () => Promise<void>;
+  createQuote: (data: Omit<Quote, 'id'|'companyId'|'quoteNumber'|'status'|'acceptedByName'|'acceptedAt'|'declinedReason'|'jobId'|'createdAt'>) => Promise<Quote>;
+  updateQuoteStatus: (id: string, status: QuoteStatus, extra?: { acceptedByName?: string; declinedReason?: string }) => Promise<void>;
+  convertQuoteToJob: (quoteId: string) => Promise<void>;
+  sendQuoteEmail: (quoteId: string) => Promise<void>;
+
   loadCustomers: () => Promise<void>;
   createCustomer: (name: string, phone?: string, address?: string) => Promise<Customer>;
   getOrCreateCustomer: (name: string, phone?: string, address?: string) => Promise<string | null>;
@@ -160,6 +193,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   jobs: [],
   invoices: [],
   company: null,
+  quotes: [],
   customers: [],
   jobImages: {},
   jobNotes: {},
@@ -316,6 +350,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       if (usersData) set({ users: usersData.map(mapUser) });
 
+      // Load quotes
+      const { data: quotesData } = await supabase
+        .from('quotes')
+        .select('*')
+        .eq('company_id', profileData.company_id)
+        .order('created_at', { ascending: false });
+      if (quotesData) set({ quotes: quotesData.map(mapQuote) });
+
       // Load customers
       const { data: customersData } = await supabase
         .from('customers')
@@ -324,6 +366,100 @@ export const useAppStore = create<AppState>((set, get) => ({
         .order('name', { ascending: true });
       if (customersData) set({ customers: customersData.map(mapCustomer) });
     }
+  },
+
+  loadQuotes: async () => {
+    const { companyId } = get();
+    if (!companyId) return;
+    const { data, error } = await supabase
+      .from('quotes')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
+    if (!error && data) set({ quotes: data.map(mapQuote) });
+  },
+
+  createQuote: async (data) => {
+    const { companyId } = get();
+    const { data: qNum } = await supabase.rpc('next_quote_number', { p_company_id: companyId });
+    const { data: row, error } = await supabase
+      .from('quotes')
+      .insert({
+        company_id: companyId,
+        customer_id: data.customerId,
+        customer_name: data.customerName,
+        customer_email: data.customerEmail,
+        customer_phone: data.customerPhone || null,
+        customer_address: data.customerAddress || null,
+        title: data.title,
+        description: data.description || null,
+        lines: data.lines,
+        subtotal_ex_vat: data.subtotalExVat,
+        vat: data.vat,
+        total_amount: data.totalAmount,
+        valid_until: data.validUntil,
+        quote_number: qNum,
+        status: 'pending',
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    const quote = mapQuote(row);
+    set((state) => ({ quotes: [quote, ...state.quotes] }));
+    return quote;
+  },
+
+  updateQuoteStatus: async (id, status, extra) => {
+    const { error } = await supabase
+      .from('quotes')
+      .update({
+        status,
+        ...(extra?.acceptedByName && { accepted_by_name: extra.acceptedByName, accepted_at: new Date().toISOString() }),
+        ...(extra?.declinedReason !== undefined && { declined_reason: extra.declinedReason }),
+      })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+    set((state) => ({
+      quotes: state.quotes.map((q) =>
+        q.id === id ? {
+          ...q,
+          status,
+          acceptedByName: extra?.acceptedByName ?? q.acceptedByName,
+          acceptedAt: extra?.acceptedByName ? new Date().toISOString() : q.acceptedAt,
+          declinedReason: extra?.declinedReason ?? q.declinedReason,
+        } : q
+      ),
+    }));
+  },
+
+  convertQuoteToJob: async (quoteId) => {
+    const { quotes } = get();
+    const quote = quotes.find((q) => q.id === quoteId);
+    if (!quote) throw new Error('Tilbud ikke funnet');
+    await get().addJob({
+      customerName: quote.customerName,
+      customerPhone: quote.customerPhone ?? '',
+      address: quote.customerAddress ?? '',
+      description: `${quote.title}\n\n${quote.description ?? ''}`.trim(),
+      assignedTechnicianId: null,
+      assignedTechnicianName: null,
+      scheduledAt: new Date().toISOString(),
+      status: 'new',
+    });
+    // Find the newly created job (last in list)
+    const { jobs } = get();
+    const newJob = jobs[jobs.length - 1];
+    if (newJob) {
+      await supabase.from('quotes').update({ job_id: newJob.id }).eq('id', quoteId);
+      set((state) => ({
+        quotes: state.quotes.map((q) => q.id === quoteId ? { ...q, jobId: newJob.id } : q),
+      }));
+    }
+  },
+
+  sendQuoteEmail: async (quoteId) => {
+    const { error } = await supabase.functions.invoke('send-quote-email', { body: { quoteId } });
+    if (error) throw new Error(`E-post feilet: ${error.message}`);
   },
 
   loadCustomers: async () => {

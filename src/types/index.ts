@@ -52,6 +52,39 @@ export interface Invoice {
   note?: string | null;
 }
 
+export interface QuoteLine {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+}
+
+export type QuoteStatus = 'pending' | 'accepted' | 'declined' | 'expired';
+
+export interface Quote {
+  id: string;
+  companyId: string;
+  customerId: string | null;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
+  customerAddress: string | null;
+  title: string;
+  description: string | null;
+  lines: QuoteLine[];
+  subtotalExVat: number;
+  vat: number;
+  totalAmount: number;
+  status: QuoteStatus;
+  validUntil: string;
+  quoteNumber: string;
+  acceptedByName: string | null;
+  acceptedAt: string | null;
+  declinedReason: string | null;
+  jobId: string | null;
+  createdAt: string;
+}
+
 export interface Customer {
   id: string;
   companyId: string;

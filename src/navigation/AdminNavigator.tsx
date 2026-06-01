@@ -15,6 +15,9 @@ import { StatisticsScreen } from '../screens/admin/StatisticsScreen';
 import { SettingsScreen } from '../screens/admin/SettingsScreen';
 import { ArchiveScreen } from '../screens/admin/ArchiveScreen';
 import { ArchiveDetailScreen } from '../screens/admin/ArchiveDetailScreen';
+import { QuotesScreen } from '../screens/admin/QuotesScreen';
+import { NewQuoteScreen } from '../screens/admin/NewQuoteScreen';
+import { QuoteDetailScreen } from '../screens/admin/QuoteDetailScreen';
 import { CustomersScreen } from '../screens/admin/CustomersScreen';
 import { CustomerDetailScreen } from '../screens/admin/CustomerDetailScreen';
 import { useAppStore } from '../store/appStore';
@@ -23,6 +26,7 @@ const Tab = createBottomTabNavigator();
 const JobsStack = createNativeStackNavigator();
 const InvoiceStack = createNativeStackNavigator();
 const ArchiveStack = createNativeStackNavigator();
+const QuotesStack = createNativeStackNavigator();
 const CustomersStack = createNativeStackNavigator();
 
 function JobsStackNavigator() {
@@ -53,6 +57,16 @@ function ArchiveStackNavigator() {
   );
 }
 
+function QuotesStackNavigator() {
+  return (
+    <QuotesStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+      <QuotesStack.Screen name="QuotesList" component={QuotesScreen} />
+      <QuotesStack.Screen name="NewQuote" component={NewQuoteScreen} />
+      <QuotesStack.Screen name="QuoteDetail" component={QuoteDetailScreen} />
+    </QuotesStack.Navigator>
+  );
+}
+
 function CustomersStackNavigator() {
   return (
     <CustomersStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
@@ -68,6 +82,7 @@ function CustomersStackNavigator() {
 
 const NAV_ITEMS = [
   { name: 'Jobber', label: 'Jobbtavle', icon: 'home-outline' as const },
+  { name: 'Tilbud', label: 'Tilbud', icon: 'document-text-outline' as const },
   { name: 'Kunder', label: 'Kunder', icon: 'person-outline' as const },
   { name: 'Team', label: 'Team', icon: 'people-outline' as const },
   { name: 'Faktura', label: 'Faktura', icon: 'document-text-outline' as const },
@@ -189,6 +204,7 @@ function AdminWebLayout() {
       <AdminSidebar activeTab={activeTab} onNavigate={setActiveTab} />
       <View style={{ flex: 1, backgroundColor: pageBg, overflow: 'hidden' }}>
         {activeTab === 'Jobber' && <JobsStackNavigator />}
+        {activeTab === 'Tilbud' && <QuotesStackNavigator />}
         {activeTab === 'Kunder' && <CustomersStackNavigator />}
         {activeTab === 'Team' && <TeamScreen />}
         {activeTab === 'Faktura' && <InvoiceStackNavigator />}
@@ -220,6 +236,7 @@ function AdminMobileLayout() {
         tabBarIcon: ({ color }) => {
           const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
             Jobber: 'home-outline',
+            Tilbud: 'document-text-outline',
             Kunder: 'person-outline',
             Team: 'people-outline',
             Faktura: 'document-text-outline',
@@ -232,6 +249,7 @@ function AdminMobileLayout() {
       })}
     >
       <Tab.Screen name="Jobber" component={JobsStackNavigator} />
+      <Tab.Screen name="Tilbud" component={QuotesStackNavigator} />
       <Tab.Screen name="Kunder" component={CustomersStackNavigator} />
       <Tab.Screen name="Team" component={TeamScreen} />
       <Tab.Screen name="Faktura" component={InvoiceStackNavigator} />
