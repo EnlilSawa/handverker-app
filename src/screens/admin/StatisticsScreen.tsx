@@ -7,15 +7,16 @@ import { useAppStore } from '../../store/appStore';
 import { formatCurrency, isThisMonth } from '../../utils/formatters';
 
 function ProgressRow({ name, revenue, jobs, max }: { name: string; revenue: number; jobs: number; max: number }) {
+  const { colors: C } = useTheme();
   const pct = max > 0 ? Math.min((revenue / max) * 100, 100) : 0;
   return (
     <View style={bar.row}>
       <View style={bar.labelRow}>
-        <Text style={bar.name} numberOfLines={1}>{name.split(' ')[0]}</Text>
-        <Text style={bar.jobs}>{jobs} jobber</Text>
-        <Text style={bar.amount}>{formatCurrency(revenue)}</Text>
+        <Text style={[bar.name, { color: C.textPrimary }]} numberOfLines={1}>{name.split(' ')[0]}</Text>
+        <Text style={[bar.jobs, { color: C.textTertiary }]}>{jobs} jobber</Text>
+        <Text style={[bar.amount, { color: C.textPrimary }]}>{formatCurrency(revenue)}</Text>
       </View>
-      <View style={bar.track}>
+      <View style={[bar.track, { backgroundColor: C.border }]}>
         <View style={[bar.fill, { width: `${pct}%` as any }]} />
       </View>
     </View>
@@ -28,14 +29,14 @@ const bar = StyleSheet.create({
   name: { flex: 1, fontSize: 14, fontWeight: '600' },
   jobs: { fontSize: 13, marginRight: 12 },
   amount: { fontSize: 14, fontWeight: '600' },
-  track: { height: 6, borderRadius: 3, backgroundColor: '#E2E8F0', overflow: 'hidden' },
+  track: { height: 6, borderRadius: 3, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3, backgroundColor: '#2563FF' } });
 
 const MINI_STATS = (jobsByStatus: { new: number; in_progress: number; completed: number }, totalJobs: number) => [
   { label: 'Nye', count: jobsByStatus.new, color: '#2563FF', bg: '#EEF4FF' },
   { label: 'Pågår', count: jobsByStatus.in_progress, color: '#C2410C', bg: '#FFF7ED' },
   { label: 'Ferdig', count: jobsByStatus.completed, color: '#15803D', bg: '#F0FDF4' },
-  { label: 'Totalt', count: totalJobs, bg: '#F1F5F9' },
+  { label: 'Totalt', count: totalJobs, color: undefined, bg: undefined },
 ];
 
 export function StatisticsScreen() {
@@ -98,7 +99,7 @@ export function StatisticsScreen() {
         <View style={[styles.heroCard, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <Text style={[styles.heroLabel, { color: C.textSecondary }]}>TOTAL INNTEKT DENNE MÅNEDEN</Text>
           <Text style={[styles.heroNumber, { color: '#34D399' }]}>{formatCurrency(stats.revenue)}</Text>
-          <View style={styles.heroBar}>
+          <View style={[styles.heroBar, { backgroundColor: C.border }]}>
             <View style={[styles.heroBarFill, { width: stats.revenue > 0 ? '100%' : '0%' }]} />
           </View>
         </View>
@@ -107,8 +108,8 @@ export function StatisticsScreen() {
         <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>JOBBOVERSIKT</Text>
         <View style={styles.miniGrid}>
           {miniStats.map(({ label, count, color, bg }) => (
-            <View key={label} style={[styles.miniCard, { backgroundColor: bg }]}>
-              <Text style={[styles.miniCount, { color }]}>{count}</Text>
+            <View key={label} style={[styles.miniCard, { backgroundColor: bg ?? C.cardAlt, borderColor: C.border }]}>
+              <Text style={[styles.miniCount, { color: color ?? C.textPrimary }]}>{count}</Text>
               <Text style={[styles.miniLabel, { color: C.textSecondary }]}>{label}</Text>
             </View>
           ))}
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6 },
   heroNumber: { fontSize: 32, fontWeight: '700', color: '#15803D', letterSpacing: -1 },
-  heroBar: { height: 4, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden', marginTop: 4 },
+  heroBar: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: 4 },
   heroBarFill: { height: 4, backgroundColor: '#15803D', borderRadius: 2 },
   sectionTitle: {
     fontSize: 11,
