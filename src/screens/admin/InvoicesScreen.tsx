@@ -44,12 +44,12 @@ export function InvoicesScreen({ navigation }: any) {
       </View>
 
       <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { borderLeftColor: '#15803D' }]}>
-          <Text style={styles.summaryLabel}>Innbetalt</Text>
+        <View style={[styles.summaryCard, { borderLeftColor: '#15803D', backgroundColor: C.cardBg, borderColor: C.border }]}>
+          <Text style={[styles.summaryLabel, { color: C.textSecondary }]}>Innbetalt</Text>
           <Text style={[styles.summaryValue, { color: '#15803D' }]}>{formatCurrency(totalPaid)}</Text>
         </View>
-        <View style={[styles.summaryCard, { borderLeftColor: '#C2410C' }]}>
-          <Text style={styles.summaryLabel}>Utestående</Text>
+        <View style={[styles.summaryCard, { borderLeftColor: '#C2410C', backgroundColor: C.cardBg, borderColor: C.border }]}>
+          <Text style={[styles.summaryLabel, { color: C.textSecondary }]}>Utestående</Text>
           <Text style={[styles.summaryValue, { color: '#C2410C' }]}>{formatCurrency(totalUnpaid)}</Text>
         </View>
       </View>
@@ -58,10 +58,10 @@ export function InvoicesScreen({ navigation }: any) {
         {FILTERS.map((f) => (
           <TouchableOpacity
             key={f.key}
-            style={[styles.filterBtn, filter === f.key && styles.filterBtnActive]}
+            style={[styles.filterBtn, { backgroundColor: C.cardBg, borderColor: C.border }, filter === f.key && styles.filterBtnActive]}
             onPress={() => setFilter(f.key)}
           >
-            <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>
+            <Text style={[styles.filterText, { color: C.textSecondary }, filter === f.key && styles.filterTextActive]}>
               {f.label}
             </Text>
           </TouchableOpacity>
@@ -80,7 +80,7 @@ export function InvoicesScreen({ navigation }: any) {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>Ingen fakturaer</Text>
+            <Text style={[styles.emptyText, { color: C.textTertiary }]}>Ingen fakturaer</Text>
           </View>
         }
       />
