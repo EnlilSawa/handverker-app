@@ -15,13 +15,13 @@ function initials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function CustomerCard({ customer, jobCount, lastJobDate, onPress, C }: {
+function CustomerCard({ customer, jobCount, lastJobDate, onPress }: {
   customer: Customer;
   jobCount: number;
   lastJobDate: string | null;
   onPress: () => void;
-  C: any;
 }) {
+  const { colors: C } = useTheme();
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}
@@ -135,7 +135,6 @@ export function CustomersScreen({ navigation }: any) {
             jobCount={jobStats[item.id]?.count ?? 0}
             lastJobDate={jobStats[item.id]?.lastDate ?? null}
             onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
-            C={C}
           />
         )}
         ListEmptyComponent={
