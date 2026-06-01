@@ -27,8 +27,8 @@ function TechCard({ user, index, onRemove }: { user: User; index: number; onRemo
         <Text style={styles.avatarText}>{initials(user.name)}</Text>
       </View>
       <View style={styles.info}>
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.phone}>{user.phone}</Text>
+        <Text style={[styles.name, { color: C.textPrimary }]}>{user.name}</Text>
+        <Text style={[styles.phone, { color: C.textSecondary }]}>{user.phone}</Text>
       </View>
       <View style={[styles.jobsPill, { backgroundColor: '#EEF4FF' }]}>
         <Text style={[styles.jobsPillText, { color: '#2563FF' }]}>{completed} jobber</Text>
@@ -87,11 +87,11 @@ export function TeamScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
+            <View style={[styles.emptyIcon, { backgroundColor: C.cardAlt }]}>
               <Ionicons name="people-outline" size={32} color="#64748B" />
             </View>
-            <Text style={styles.emptyTitle}>Ingen teknikere ennå</Text>
-            <Text style={styles.emptyText}>Legg til teknikere for å tildele jobber</Text>
+            <Text style={[styles.emptyTitle, { color: C.textPrimary }]}>Ingen teknikere ennå</Text>
+            <Text style={[styles.emptyText, { color: C.textSecondary }]}>Legg til teknikere for å tildele jobber</Text>
             <TouchableOpacity style={styles.emptyBtn} onPress={() => setShowModal(true)}>
               <Text style={styles.emptyBtnText}>Legg til første tekniker</Text>
             </TouchableOpacity>
@@ -103,7 +103,7 @@ export function TeamScreen() {
         <View style={styles.overlay}>
           <View style={[styles.sheet, { backgroundColor: C.cardBg }]}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Legg til tekniker</Text>
+              <Text style={[styles.sheetTitle, { color: C.textPrimary }]}>Legg til tekniker</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Ionicons name="close" size={22} color="#64748B" />
               </TouchableOpacity>
@@ -115,7 +115,7 @@ export function TeamScreen() {
               { label: 'TELEFON', value: phone, setter: setPhone, placeholder: '92345678' },
             ].map(({ label, value, setter, placeholder }) => (
               <View key={label} style={styles.field}>
-                <Text style={styles.fieldLabel}>{label}</Text>
+                <Text style={[styles.fieldLabel, { color: C.textSecondary }]}>{label}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]}
                   value={value}
@@ -195,7 +195,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4 },
