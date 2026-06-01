@@ -10,7 +10,8 @@ import { useAppStore } from '../../store/appStore';
 import { todayISO } from '../../utils/formatters';
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.fieldLabel}>{children}</Text>;
+  const { colors: C } = useTheme();
+  return <Text style={[styles.fieldLabel, { color: C.textSecondary }]}>{children}</Text>;
 }
 
 export function NewJobScreen({ navigation, route }: any) {
@@ -58,7 +59,7 @@ export function NewJobScreen({ navigation, route }: any) {
     <ThemedScreen>
       <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#1F2937" />
+          <Ionicons name="arrow-back" size={22} color={C.textPrimary} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: C.textPrimary }]}>Ny jobb</Text>
         <View style={{ width: 22 }} />
@@ -66,7 +67,7 @@ export function NewJobScreen({ navigation, route }: any) {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
-          <Text style={styles.cardTitle}>KUNDEINFORMASJON</Text>
+          <Text style={[styles.cardTitle, { color: C.textSecondary }]}>KUNDEINFORMASJON</Text>
           <View style={styles.field}>
             <FieldLabel>Kundenavn *</FieldLabel>
             <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="Per Hansen" placeholderTextColor="#94A3B8" value={customerName} onChangeText={setCustomerName} />
@@ -82,11 +83,11 @@ export function NewJobScreen({ navigation, route }: any) {
         </View>
 
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
-          <Text style={styles.cardTitle}>JOBBDETALJER</Text>
+          <Text style={[styles.cardTitle, { color: C.textSecondary }]}>JOBBDETALJER</Text>
           <View style={styles.field}>
             <FieldLabel>Beskrivelse *</FieldLabel>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]}
               placeholder="Beskriv problemet eller arbeidet..."
               placeholderTextColor="#94A3B8"
               value={description}
@@ -97,11 +98,11 @@ export function NewJobScreen({ navigation, route }: any) {
           </View>
           <View style={styles.field}>
             <FieldLabel>Tekniker</FieldLabel>
-            <TouchableOpacity style={styles.picker} onPress={() => setShowPicker(true)}>
-              <Text style={[styles.pickerText, !selectedTech && {  }]}>
+            <TouchableOpacity style={[styles.picker, { backgroundColor: C.cardAlt, borderColor: C.border }]} onPress={() => setShowPicker(true)}>
+              <Text style={[styles.pickerText, { color: selectedTech ? C.textPrimary : C.textTertiary }]}>
                 {selectedTech?.name ?? 'Velg tekniker...'}
               </Text>
-              <Ionicons name="chevron-down" size={18} color="#64748B" />
+              <Ionicons name="chevron-down" size={18} color={C.textSecondary} />
             </TouchableOpacity>
           </View>
           <View style={styles.dateRow}>
@@ -134,28 +135,28 @@ export function NewJobScreen({ navigation, route }: any) {
 
       <Modal visible={showPicker} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { backgroundColor: C.cardBg }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Velg tekniker</Text>
+              <Text style={[styles.modalTitle, { color: C.textPrimary }]}>Velg tekniker</Text>
               <TouchableOpacity onPress={() => setShowPicker(false)}>
-                <Ionicons name="close" size={22} color="#64748B" />
+                <Ionicons name="close" size={22} color={C.textSecondary} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.techItem} onPress={() => { setSelectedTech(null); setShowPicker(false); }}>
-              <Text style={styles.techItemText}>Ikke tildelt</Text>
+            <TouchableOpacity style={[styles.techItem, { borderBottomColor: C.border }]} onPress={() => { setSelectedTech(null); setShowPicker(false); }}>
+              <Text style={[styles.techItemText, { color: C.textPrimary }]}>Ikke tildelt</Text>
             </TouchableOpacity>
             <FlatList
               data={technicians}
               keyExtractor={(u) => u.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.techItem}
+                  style={[styles.techItem, { borderBottomColor: C.border }]}
                   onPress={() => { setSelectedTech({ id: item.id, name: item.name }); setShowPicker(false); }}
                 >
                   <View style={styles.techAvatar}>
                     <Text style={styles.techAvatarText}>{item.name[0]}</Text>
                   </View>
-                  <Text style={styles.techItemText}>{item.name}</Text>
+                  <Text style={[styles.techItemText, { color: C.textPrimary }]}>{item.name}</Text>
                   {selectedTech?.id === item.id && <Ionicons name="checkmark" size={18} color="#2563FF" />}
                 </TouchableOpacity>
               )}
