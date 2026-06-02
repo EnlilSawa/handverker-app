@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer, Quote, QuoteLine, QuoteStatus } from '../types';
+import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer, Quote, QuoteLine, QuoteStatus, AppNotification } from '../types';
 import { supabase } from '../lib/supabase';
 import { addDays } from '../utils/formatters';
 
@@ -33,6 +33,7 @@ function mapInvoice(row: any): Invoice {
     jobId: row.job_id ?? '',
     customerName: row.customer_name,
     customerAddress: row.customer_address,
+    customerEmail: row.customer_email ?? null,
     lineItems: row.line_items as InvoiceLineItem[],
     subtotalExVat: Number(row.subtotal_ex_vat),
     vat: Number(row.vat),
@@ -58,6 +59,10 @@ function mapCompany(row: any): Company {
     trialEndsAt: row.trial_ends_at ?? undefined,
     subscriptionStatus: row.subscription_status ?? undefined,
     onboardingCompleted: row.onboarding_completed ?? false,
+    notifyReminder3days: row.notify_reminder_3days ?? true,
+    notifyDueToday: row.notify_due_today ?? true,
+    notifyOverdue1day: row.notify_overdue_1day ?? true,
+    notifyOverdue7days: row.notify_overdue_7days ?? true,
   };
 }
 
@@ -102,8 +107,21 @@ function mapCustomer(row: any): Customer {
     id: row.id,
     companyId: row.company_id,
     name: row.name,
+    email: row.email ?? null,
     phone: row.phone ?? null,
     address: row.address ?? null,
+    createdAt: row.created_at,
+  };
+}
+
+function mapAppNotification(row: any): AppNotification {
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    invoiceId: row.invoice_id ?? null,
+    type: row.type,
+    message: row.message,
+    readAt: row.read_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -132,6 +150,8 @@ interface AppState {
   company: Company | null;
   quotes: Quote[];
   customers: Customer[];
+  appNotifications: AppNotification[];
+  pendingInvoicePreview: string | null;
   jobImages: Record<string, JobImage[]>;
   jobNotes: Record<string, JobNote[]>;
   loading: boolean;
@@ -174,8 +194,19 @@ interface AppState {
   sendQuoteEmail: (quoteId: string) => Promise<void>;
 
   loadCustomers: () => Promise<void>;
-  createCustomer: (name: string, phone?: string, address?: string) => Promise<Customer>;
+  createCustomer: (name: string, phone?: string, address?: string, email?: string) => Promise<Customer>;
   getOrCreateCustomer: (name: string, phone?: string, address?: string) => Promise<string | null>;
+
+  loadNotifications: () => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  setPendingInvoicePreview: (invoiceId: string | null) => void;
+  updateNotificationSettings: (settings: {
+    notifyReminder3days?: boolean;
+    notifyDueToday?: boolean;
+    notifyOverdue1day?: boolean;
+    notifyOverdue7days?: boolean;
+  }) => Promise<void>;
 
   loadJobImages: (jobId: string) => Promise<void>;
   uploadJobImage: (jobId: string, uri: string, mimeType: string, label?: 'før' | 'etter' | null, note?: string) => Promise<void>;
@@ -195,6 +226,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   company: null,
   quotes: [],
   customers: [],
+  appNotifications: [],
+  pendingInvoicePreview: null,
   jobImages: {},
   jobNotes: {},
   loading: false,
@@ -365,6 +398,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         .eq('company_id', profileData.company_id)
         .order('name', { ascending: true });
       if (customersData) set({ customers: customersData.map(mapCustomer) });
+
+      // Load in-app notifications
+      const { data: notifData } = await supabase
+        .from('app_notifications')
+        .select('*')
+        .eq('company_id', profileData.company_id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (notifData) set({ appNotifications: notifData.map(mapAppNotification) });
     }
   },
 
@@ -473,11 +515,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!error && data) set({ customers: data.map(mapCustomer) });
   },
 
-  createCustomer: async (name, phone, address) => {
+  createCustomer: async (name, phone, address, email) => {
     const { companyId } = get();
     const { data, error } = await supabase
       .from('customers')
-      .insert({ company_id: companyId, name: name.trim(), phone: phone?.trim() || null, address: address?.trim() || null })
+      .insert({
+        company_id: companyId,
+        name: name.trim(),
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        address: address?.trim() || null,
+      })
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -607,6 +655,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const vat = Math.round(subtotalExVat * 25) / 100;
     const total = subtotalExVat + vat;
 
+    // Hent kunde-e-post for påminnelser
+    let customerEmail: string | null = null;
+    if (job.customerId) {
+      const { data: cust } = await supabase
+        .from('customers')
+        .select('email')
+        .eq('id', job.customerId)
+        .maybeSingle();
+      customerEmail = cust?.email ?? null;
+    }
+
     const { data, error } = await supabase
       .from('invoices')
       .insert({
@@ -615,6 +674,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         invoice_number: invoiceNumber,
         customer_name: job.customerName,
         customer_address: job.address,
+        customer_email: customerEmail,
         line_items: lineItems,
         subtotal_ex_vat: subtotalExVat,
         vat,
@@ -640,6 +700,28 @@ export const useAppStore = create<AppState>((set, get) => ({
         inv.id === invoiceId ? { ...inv, status } : inv
       ),
     }));
+
+    if (status === 'paid') {
+      const { companyId } = get();
+      const invoice = get().invoices.find((i) => i.id === invoiceId);
+      if (invoice && companyId) {
+        const { data: row } = await supabase
+          .from('app_notifications')
+          .insert({
+            company_id: companyId,
+            invoice_id: invoiceId,
+            type: 'payment_received',
+            message: `${invoice.customerName} har betalt faktura ${invoice.invoiceNumber}`,
+          })
+          .select()
+          .single();
+        if (row) {
+          set((state) => ({
+            appNotifications: [mapAppNotification(row), ...state.appNotifications],
+          }));
+        }
+      }
+    }
   },
 
   updateCompany: async (updates) => {
@@ -711,6 +793,61 @@ export const useAppStore = create<AppState>((set, get) => ({
   removeTechnician: async (userId) => {
     await supabase.from('profiles').delete().eq('id', userId);
     set((state) => ({ users: state.users.filter((u) => u.id !== userId) }));
+  },
+
+  loadNotifications: async () => {
+    const { companyId } = get();
+    if (!companyId) return;
+    const { data } = await supabase
+      .from('app_notifications')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (data) set({ appNotifications: data.map(mapAppNotification) });
+  },
+
+  markNotificationRead: async (id) => {
+    await supabase.from('app_notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
+    set((state) => ({
+      appNotifications: state.appNotifications.map((n) =>
+        n.id === id ? { ...n, readAt: new Date().toISOString() } : n
+      ),
+    }));
+  },
+
+  markAllNotificationsRead: async () => {
+    const { companyId, appNotifications } = get();
+    if (!companyId) return;
+    const unread = appNotifications.filter((n) => !n.readAt);
+    if (!unread.length) return;
+    const now = new Date().toISOString();
+    await supabase
+      .from('app_notifications')
+      .update({ read_at: now })
+      .eq('company_id', companyId)
+      .is('read_at', null);
+    set((state) => ({
+      appNotifications: state.appNotifications.map((n) => ({ ...n, readAt: n.readAt ?? now })),
+    }));
+  },
+
+  setPendingInvoicePreview: (invoiceId) => {
+    set({ pendingInvoicePreview: invoiceId });
+  },
+
+  updateNotificationSettings: async (settings) => {
+    const { companyId } = get();
+    const dbFields: Record<string, boolean | undefined> = {};
+    if (settings.notifyReminder3days !== undefined) dbFields.notify_reminder_3days = settings.notifyReminder3days;
+    if (settings.notifyDueToday !== undefined) dbFields.notify_due_today = settings.notifyDueToday;
+    if (settings.notifyOverdue1day !== undefined) dbFields.notify_overdue_1day = settings.notifyOverdue1day;
+    if (settings.notifyOverdue7days !== undefined) dbFields.notify_overdue_7days = settings.notifyOverdue7days;
+    const { error } = await supabase.from('companies').update(dbFields).eq('id', companyId);
+    if (error) throw new Error(error.message);
+    set((state) => ({
+      company: state.company ? { ...state.company, ...settings } : null,
+    }));
   },
 
   loadJobImages: async (jobId) => {

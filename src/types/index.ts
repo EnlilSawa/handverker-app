@@ -42,6 +42,7 @@ export interface Invoice {
   jobId: string;
   customerName: string;
   customerAddress: string;
+  customerEmail?: string | null;
   lineItems: InvoiceLineItem[];
   subtotalExVat: number;
   vat: number;
@@ -89,8 +90,21 @@ export interface Customer {
   id: string;
   companyId: string;
   name: string;
+  email: string | null;
   phone: string | null;
   address: string | null;
+  createdAt: string;
+}
+
+export type AppNotificationType = 'overdue_7days' | 'payment_received';
+
+export interface AppNotification {
+  id: string;
+  companyId: string;
+  invoiceId: string | null;
+  type: AppNotificationType;
+  message: string;
+  readAt: string | null;
   createdAt: string;
 }
 
@@ -128,4 +142,8 @@ export interface Company {
   trialEndsAt?: string;
   subscriptionStatus?: SubscriptionStatus;
   onboardingCompleted?: boolean;
+  notifyReminder3days?: boolean;
+  notifyDueToday?: boolean;
+  notifyOverdue1day?: boolean;
+  notifyOverdue7days?: boolean;
 }

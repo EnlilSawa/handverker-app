@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Image,
-  ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+  ScrollView, TouchableOpacity, ActivityIndicator, Platform, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -40,12 +40,36 @@ function FieldInput({ label, value, onChangeText, keyboardType = 'default', plac
   );
 }
 
+function NotifToggle({ label, description, value, onChange }: {
+  label: string;
+  description: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const { colors: C } = useTheme();
+  return (
+    <View style={[notifStyles.row, { borderBottomColor: C.border }]}>
+      <View style={notifStyles.rowText}>
+        <Text style={[notifStyles.rowLabel, { color: C.textPrimary }]}>{label}</Text>
+        <Text style={[notifStyles.rowDesc, { color: C.textTertiary }]}>{description}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: '#E2E8F0', true: '#2563FF' }}
+        thumbColor="#FFFFFF"
+      />
+    </View>
+  );
+}
+
 export function SettingsScreen() {
   const { colors: C } = useTheme();
   const company = useAppStore((s) => s.company);
   const logout = useAppStore((s) => s.logout);
   const updateCompany = useAppStore((s) => s.updateCompany);
   const uploadCompanyLogo = useAppStore((s) => s.uploadCompanyLogo);
+  const updateNotificationSettings = useAppStore((s) => s.updateNotificationSettings);
 
   const [name, setName] = useState(company?.name ?? '');
   const [orgNumber, setOrgNumber] = useState(company?.orgNumber ?? '');
@@ -59,6 +83,11 @@ export function SettingsScreen() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState('');
 
+  const [notif3days, setNotif3days] = useState(company?.notifyReminder3days ?? true);
+  const [notifDueToday, setNotifDueToday] = useState(company?.notifyDueToday ?? true);
+  const [notifOverdue1, setNotifOverdue1] = useState(company?.notifyOverdue1day ?? true);
+  const [notifOverdue7, setNotifOverdue7] = useState(company?.notifyOverdue7days ?? true);
+
   // Sync all fields when company loads from Supabase (async after mount)
   React.useEffect(() => {
     if (!company) return;
@@ -69,6 +98,10 @@ export function SettingsScreen() {
     setCalloutFee(String(company.calloutFee ?? 350));
     setPaymentTerms(String(company.paymentTermsDays ?? 14));
     setAccountNumber(company.accountNumber ?? '');
+    setNotif3days(company.notifyReminder3days ?? true);
+    setNotifDueToday(company.notifyDueToday ?? true);
+    setNotifOverdue1(company.notifyOverdue1day ?? true);
+    setNotifOverdue7(company.notifyOverdue7days ?? true);
   }, [company?.id]);
 
   const handleUploadLogo = async () => {
@@ -93,6 +126,21 @@ export function SettingsScreen() {
       setLogoError(e.message ?? 'Opplasting feilet');
     } finally {
       setLogoUploading(false);
+    }
+  };
+
+  const handleNotifToggle = async (key: 'notifyReminder3days' | 'notifyDueToday' | 'notifyOverdue1day' | 'notifyOverdue7days', val: boolean) => {
+    const setters = {
+      notifyReminder3days: setNotif3days,
+      notifyDueToday: setNotifDueToday,
+      notifyOverdue1day: setNotifOverdue1,
+      notifyOverdue7days: setNotifOverdue7,
+    };
+    setters[key](val);
+    try {
+      await updateNotificationSettings({ [key]: val });
+    } catch {
+      setters[key](!val);
     }
   };
 
@@ -182,6 +230,37 @@ export function SettingsScreen() {
           <FieldInput label="Betalingsbetingelser (dager)" value={paymentTerms} onChangeText={setPaymentTerms} keyboardType="numeric" placeholder="14" />
         </View>
 
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+          <SectionHeader title="VARSLER" />
+          <Text style={[{ fontSize: 13, color: C.textTertiary, marginTop: -4 }]}>
+            E-postvarsler sendes automatisk til kunden basert på forfallsdato.
+          </Text>
+          <NotifToggle
+            label="Påminnelse 3 dager før"
+            description="Sendes kl 08:00 tre dager før forfall"
+            value={notif3days}
+            onChange={(v) => handleNotifToggle('notifyReminder3days', v)}
+          />
+          <NotifToggle
+            label="Varsel på forfallsdagen"
+            description="Sendes kl 08:00 på forfallsdato"
+            value={notifDueToday}
+            onChange={(v) => handleNotifToggle('notifyDueToday', v)}
+          />
+          <NotifToggle
+            label="Første purring (1 dag over)"
+            description="Faktura merkes som forfalt og kunde purres"
+            value={notifOverdue1}
+            onChange={(v) => handleNotifToggle('notifyOverdue1day', v)}
+          />
+          <NotifToggle
+            label="Andre purring (7 dager over)"
+            description="Mer alvorlig purring + varsel til deg i appen"
+            value={notifOverdue7}
+            onChange={(v) => handleNotifToggle('notifyOverdue7days', v)}
+          />
+        </View>
+
         {saveError ? (
           <View style={{ backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 }}>
             <Text style={{ fontSize: 13, color: '#DC2626' }}>{saveError}</Text>
@@ -262,3 +341,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center' },
   logoutText: { color: '#DC2626', fontSize: 15, fontWeight: '600' } });
+
+const notifStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  rowText: { flex: 1, gap: 2 },
+  rowLabel: { fontSize: 14, fontWeight: '500' },
+  rowDesc: { fontSize: 12 },
+});

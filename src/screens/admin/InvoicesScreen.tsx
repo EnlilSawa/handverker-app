@@ -20,8 +20,17 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 export function InvoicesScreen({ navigation }: any) {
   const { colors: C } = useTheme();
   const invoices = useAppStore((s) => s.invoices);
+  const pendingInvoicePreview = useAppStore((s) => s.pendingInvoicePreview);
+  const setPendingInvoicePreview = useAppStore((s) => s.setPendingInvoicePreview);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [previewId, setPreviewId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (pendingInvoicePreview) {
+      setPreviewId(pendingInvoicePreview);
+      setPendingInvoicePreview(null);
+    }
+  }, [pendingInvoicePreview]);
 
   const filtered = useMemo(
     () => (filter === 'all' ? invoices : invoices.filter((i) => i.status === filter)),

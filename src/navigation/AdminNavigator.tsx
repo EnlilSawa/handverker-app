@@ -21,6 +21,7 @@ import { QuoteDetailScreen } from '../screens/admin/QuoteDetailScreen';
 import { CustomersScreen } from '../screens/admin/CustomersScreen';
 import { CustomerDetailScreen } from '../screens/admin/CustomerDetailScreen';
 import { useAppStore } from '../store/appStore';
+import { NotificationBell } from '../components/NotificationBell';
 
 const Tab = createBottomTabNavigator();
 const JobsStack = createNativeStackNavigator();
@@ -93,13 +94,20 @@ const NAV_ITEMS = [
 
 function AdminSidebar({ activeTab, onNavigate }: { activeTab: string; onNavigate: (tab: string) => void }) {
   const logout = useAppStore((s) => s.logout);
+  const setPendingInvoicePreview = useAppStore((s) => s.setPendingInvoicePreview);
   const { isDark, toggleTheme } = useTheme();
+
+  const handleBellNavigate = (invoiceId: string) => {
+    setPendingInvoicePreview(invoiceId);
+    onNavigate('Faktura');
+  };
 
   return (
     <View style={sidebar.container}>
-      {/* Logo */}
-      <View style={sidebar.logoArea}>
+      {/* Logo + bjelle */}
+      <View style={[sidebar.logoArea, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
         <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={20} />
+        <NotificationBell onNavigateToInvoice={handleBellNavigate} />
       </View>
 
       {/* Nav items */}

@@ -61,6 +61,7 @@ export function CustomersScreen({ navigation }: any) {
   const [showNewModal, setShowNewModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [newAddress, setNewAddress] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
@@ -89,8 +90,8 @@ export function CustomersScreen({ navigation }: any) {
     if (!newName.trim()) { setCreateError('Fyll inn kundenavn'); return; }
     setCreating(true);
     try {
-      await createCustomer(newName.trim(), newPhone.trim(), newAddress.trim());
-      setNewName(''); setNewPhone(''); setNewAddress('');
+      await createCustomer(newName.trim(), newPhone.trim(), newAddress.trim(), newEmail.trim() || undefined);
+      setNewName(''); setNewPhone(''); setNewEmail(''); setNewAddress('');
       setShowNewModal(false);
     } catch (e: any) {
       setCreateError(e.message ?? 'Kunne ikke opprette kunde');
@@ -163,10 +164,11 @@ export function CustomersScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
             {[
-              { label: 'NAVN *', value: newName, setter: setNewName, placeholder: 'Kjetil Hansen', phone: false },
-              { label: 'TELEFON', value: newPhone, setter: setNewPhone, placeholder: '92345678', phone: true },
-              { label: 'ADRESSE', value: newAddress, setter: setNewAddress, placeholder: 'Gateveien 1, Oslo', phone: false },
-            ].map(({ label, value, setter, placeholder, phone }) => (
+              { label: 'NAVN *', value: newName, setter: setNewName, placeholder: 'Kjetil Hansen', kb: 'default' },
+              { label: 'TELEFON', value: newPhone, setter: setNewPhone, placeholder: '92345678', kb: 'phone-pad' },
+              { label: 'E-POST (for påminnelser)', value: newEmail, setter: setNewEmail, placeholder: 'kjetil@example.com', kb: 'email-address' },
+              { label: 'ADRESSE', value: newAddress, setter: setNewAddress, placeholder: 'Gateveien 1, Oslo', kb: 'default' },
+            ].map(({ label, value, setter, placeholder, kb }) => (
               <View key={label} style={styles.field}>
                 <Text style={[styles.fieldLabel, { color: C.textSecondary }]}>{label}</Text>
                 <TextInput
@@ -175,7 +177,8 @@ export function CustomersScreen({ navigation }: any) {
                   onChangeText={setter}
                   placeholder={placeholder}
                   placeholderTextColor={C.textTertiary}
-                  keyboardType={phone ? 'phone-pad' : 'default'}
+                  keyboardType={kb as any}
+                  autoCapitalize={kb === 'email-address' ? 'none' : 'sentences'}
                 />
               </View>
             ))}
