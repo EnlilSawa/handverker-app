@@ -919,7 +919,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .from('job-images')
       .getPublicUrl(filePath);
 
-    const { data, error: dbError } = await supabase
+    const { error: dbError } = await supabase
       .from('job_images')
       .insert({
         job_id: jobId,
@@ -928,20 +928,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         label: label ?? null,
         note: note?.trim() || null,
         uploaded_by: currentUser?.name ?? null,
-      })
-      .select()
-      .single();
+      });
 
     if (dbError) throw new Error(`Database feilet: ${dbError.message}`);
 
-    if (data) {
-      set((state) => ({
-        jobImages: {
-          ...state.jobImages,
-          [jobId]: [...(state.jobImages[jobId] ?? []), mapJobImage(data)],
-        },
-      }));
-    }
+    await get().loadJobImages(jobId);
   },
 
   updateJob: async (jobId, updates) => {
