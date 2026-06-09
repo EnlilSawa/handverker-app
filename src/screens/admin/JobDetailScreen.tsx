@@ -836,44 +836,58 @@ export function JobDetailScreen({ route, navigation }: any) {
 
         {/* ── Notater ──────────────────────────────────────────────────── */}
         <SectionLabel title="NOTATER" />
-        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
-          <View style={styles.noteInputRow}>
-            <TextInput
-              style={[styles.noteInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]}
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholder="Legg til notat…"
-              placeholderTextColor={C.textTertiary}
-              multiline
-            />
+
+        {job.status === 'completed' ? (
+          /* Completed: info banner only — no input */
+          <View style={[styles.noteCompletedBanner, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+            <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
+            <Text style={styles.noteCompletedText}>Jobben er fullført — nye notater kan ikke legges til</Text>
+          </View>
+        ) : (
+          /* Active: textarea + button */
+          <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border, gap: 10 }]}>
+            <View style={styles.noteTextareaWrap}>
+              <TextInput
+                style={[styles.noteTextarea, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: noteText.length > 0 ? '#2563FF' : C.border }]}
+                value={noteText}
+                onChangeText={(t) => { if (t.length <= 500) setNoteText(t); }}
+                placeholder="Legg til et notat..."
+                placeholderTextColor={C.textTertiary}
+                multiline
+                textAlignVertical="top"
+              />
+              <Text style={styles.noteCounter}>{noteText.length}/500</Text>
+            </View>
             <TouchableOpacity
-              style={[styles.noteBtn, (!noteText.trim() || savingNote) && styles.noteBtnDisabled]}
+              style={[styles.noteAddBtn, (!noteText.trim() || savingNote) && styles.noteAddBtnDisabled]}
               onPress={handleSaveNote}
               disabled={!noteText.trim() || savingNote}
             >
               {savingNote
                 ? <ActivityIndicator size="small" color="#FFFFFF" />
-                : <Text style={styles.noteBtnText}>Lagre</Text>
+                : <Text style={styles.noteAddBtnText}>Legg til notat</Text>
               }
             </TouchableOpacity>
           </View>
+        )}
 
-          {notes.length === 0 ? (
-            <Text style={[styles.emptyNotes, { color: C.textTertiary }]}>Ingen notater ennå</Text>
-          ) : (
-            <View style={styles.notesList}>
-              {notes.map((note: JobNote) => (
-                <View key={note.id} style={[styles.noteItem, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
-                  <View style={styles.noteHeader}>
-                    <Text style={[styles.noteMeta, { color: C.textTertiary }]}>{note.authorName}</Text>
-                    <Text style={[styles.noteMeta, { color: C.textTertiary }]}>{formatNoteDate(note.createdAt)}</Text>
-                  </View>
-                  <Text style={[styles.noteContent, { color: C.textPrimary }]}>{note.content}</Text>
+        {/* Notes list — always visible, newest first */}
+        {notes.length === 0 ? (
+          <Text style={[styles.emptyNotes, { color: C.textTertiary }]}>Ingen notater ennå</Text>
+        ) : (
+          notes.map((note: JobNote) => (
+            <View key={note.id} style={[styles.noteItem, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+              <View style={styles.noteItemHeader}>
+                <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
+                <View style={styles.noteDateRow}>
+                  <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
+                  <Text style={styles.noteDateText}>{formatNoteDate(note.createdAt)}</Text>
                 </View>
-              ))}
+              </View>
+              <Text style={[styles.noteBody, { color: C.textPrimary }]}>{note.content}</Text>
             </View>
-          )}
-        </View>
+          ))
+        )}
 
         {/* ── Faktura ──────────────────────────────────────────────────── */}
         <SectionLabel title="FAKTURA" />
@@ -1120,28 +1134,45 @@ const styles = StyleSheet.create({
   saveEditsBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 
   // Notes
-  noteInputRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
-  noteInput: {
-    flex: 1, minHeight: 44, maxHeight: 100, borderWidth: 1, borderColor: '#E2E8F0',
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: '#1F2937', backgroundColor: '#F8FAFC',
+  noteTextareaWrap: { position: 'relative' },
+  noteTextarea: {
+    height: 80,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 24,
+    fontSize: 14,
+    backgroundColor: '#F8FAFC',
     textAlignVertical: 'top',
   },
-  noteBtn: {
-    height: 44, paddingHorizontal: 16, borderRadius: 10,
-    backgroundColor: '#2563FF', justifyContent: 'center', alignItems: 'center',
+  noteCounter: {
+    position: 'absolute', bottom: 7, right: 10,
+    fontSize: 11, color: '#94A3B8',
   },
-  noteBtnDisabled: { backgroundColor: '#CBD5E1' },
-  noteBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  emptyNotes: { fontSize: 14, color: '#94A3B8', textAlign: 'center', paddingVertical: 8 },
-  notesList: { gap: 10 },
+  noteAddBtn: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 20, paddingVertical: 8,
+    borderRadius: 8, backgroundColor: '#2563FF',
+  },
+  noteAddBtnDisabled: { backgroundColor: '#CBD5E1' },
+  noteAddBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  noteCompletedBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderWidth: 1, borderRadius: 10, padding: 12, paddingHorizontal: 14,
+  },
+  noteCompletedText: { fontSize: 13, color: '#64748B', fontStyle: 'italic', flex: 1 },
+  emptyNotes: { fontSize: 14, textAlign: 'center', paddingVertical: 8 },
   noteItem: {
-    backgroundColor: '#F8FAFC', borderRadius: 10,
-    padding: 12, borderWidth: 1, borderColor: '#F1F5F9',
+    borderRadius: 10, padding: 14, paddingHorizontal: 16,
+    borderWidth: 1, marginTop: 0,
   },
-  noteHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  noteMeta: { fontSize: 12, color: '#94A3B8', fontWeight: '500' },
-  noteContent: { fontSize: 14, color: '#1F2937', lineHeight: 20 },
+  noteItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  noteAuthor: { fontSize: 13, fontWeight: '600', color: '#0A1B33' },
+  noteDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  noteDateText: { fontSize: 12, color: '#64748B' },
+  noteBody: { fontSize: 14, color: '#1F2937', lineHeight: 22 },
 
   // Invoice
   invoiceRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

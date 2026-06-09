@@ -124,6 +124,7 @@ export interface JobNote {
   jobId: string;
   content: string;
   authorName: string;
+  authorRole: string;
   createdAt: string;
 }
 

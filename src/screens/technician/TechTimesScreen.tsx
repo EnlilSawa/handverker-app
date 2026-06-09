@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedScreen } from '../../components/ThemedScreen';
+import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 import { formatShortDate, formatTime } from '../../utils/formatters';
 
 export function TechTimesScreen() {
+  const { colors: C } = useTheme();
   const currentUser = useAppStore((s) => s.currentUser);
   const jobs = useAppStore((s) => s.jobs);
 
@@ -23,23 +24,21 @@ export function TechTimesScreen() {
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - now.getDay() + 1);
     weekStart.setHours(0, 0, 0, 0);
-
-    const thisWeek = completedJobs.filter(
-      (j) => new Date(j.updatedAt) >= weekStart
-    );
-
-    const totalHours = thisWeek.reduce((s, j) => s + (j.hoursWorked ?? 0), 0);
-    const totalJobs = thisWeek.length;
-    return { totalHours, totalJobs };
+    const thisWeek = completedJobs.filter((j) => new Date(j.updatedAt) >= weekStart);
+    return {
+      totalHours: thisWeek.reduce((s, j) => s + (j.hoursWorked ?? 0), 0),
+      totalJobs: thisWeek.length,
+    };
   }, [completedJobs]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Timer</Text>
-        <Text style={styles.subtitle}>Logg og oversikt</Text>
+    <ThemedScreen>
+      <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
+        <Text style={[styles.title, { color: C.textPrimary }]}>Timer</Text>
+        <Text style={[styles.subtitle, { color: C.textSecondary }]}>Logg og oversikt</Text>
       </View>
 
+      {/* Ukestatistikk — alltid navy, ingen theme */}
       <View style={styles.weekCard}>
         <Text style={styles.weekTitle}>Denne uken</Text>
         <View style={styles.weekStats}>
@@ -56,7 +55,7 @@ export function TechTimesScreen() {
       </View>
 
       <View style={styles.listHeader}>
-        <Text style={styles.listTitle}>Timelogg</Text>
+        <Text style={[styles.listTitle, { color: C.textSecondary }]}>TIMELOGG</Text>
       </View>
 
       <FlatList
@@ -64,85 +63,54 @@ export function TechTimesScreen() {
         keyExtractor={(j) => j.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
             <View style={styles.cardLeft}>
-              <Text style={styles.cardDate}>{formatShortDate(item.updatedAt)}</Text>
+              <Text style={[styles.cardDate, { color: C.textSecondary }]}>{formatShortDate(item.updatedAt)}</Text>
               <View style={styles.hoursTag}>
                 <Text style={styles.hoursText}>{item.hoursWorked}t</Text>
               </View>
             </View>
             <View style={styles.cardRight}>
-              <Text style={styles.customerName}>{item.customerName}</Text>
-              <Text style={styles.description} numberOfLines={1}>{item.description}</Text>
-              <Text style={styles.meta}>Ferdig kl. {formatTime(item.updatedAt)}</Text>
+              <Text style={[styles.customerName, { color: C.textPrimary }]}>{item.customerName}</Text>
+              <Text style={[styles.description, { color: C.textSecondary }]} numberOfLines={1}>{item.description}</Text>
+              <Text style={[styles.meta, { color: C.textTertiary }]}>Ferdig kl. {formatTime(item.updatedAt)}</Text>
             </View>
           </View>
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="time-outline" size={40} color={colors.border} />
-            <Text style={styles.emptyText}>Ingen fullførte jobber ennå</Text>
+            <Ionicons name="time-outline" size={40} color={C.border} />
+            <Text style={[styles.emptyText, { color: C.textTertiary }]}>Ingen fullførte jobber ennå</Text>
           </View>
         }
       />
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.backgroundSecondary },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: { fontSize: 22, fontWeight: '800', color: colors.textDark },
-  subtitle: { fontSize: 13, color: colors.textGray, marginTop: 2 },
-  weekCard: {
-    backgroundColor: colors.primary,
-    margin: 16,
-    borderRadius: 16,
-    padding: 20,
-  },
-  weekTitle: { fontSize: 13, color: colors.white + 'cc', fontWeight: '600', marginBottom: 12 },
+  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  title: { fontSize: 22, fontWeight: '700' },
+  subtitle: { fontSize: 13, marginTop: 2 },
+  weekCard: { backgroundColor: '#0A1B33', margin: 16, borderRadius: 16, padding: 20 },
+  weekTitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: 12 },
   weekStats: { flexDirection: 'row', alignItems: 'center' },
   weekStat: { flex: 1, alignItems: 'center' },
-  weekStatValue: { fontSize: 40, fontWeight: '800', color: colors.white },
-  weekStatLabel: { fontSize: 14, color: colors.white + 'cc', marginTop: 2 },
-  weekDivider: { width: 1, height: 50, backgroundColor: colors.white + '30' },
-  listHeader: {
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  listTitle: { fontSize: 13, fontWeight: '700', color: colors.textGray, textTransform: 'uppercase', letterSpacing: 0.5 },
+  weekStatValue: { fontSize: 40, fontWeight: '800', color: '#FFFFFF' },
+  weekStatLabel: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  weekDivider: { width: 1, height: 50, backgroundColor: 'rgba(255,255,255,0.2)' },
+  listHeader: { paddingHorizontal: 20, paddingBottom: 8 },
+  listTitle: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   list: { paddingHorizontal: 16, gap: 8, paddingBottom: 40 },
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    padding: 12,
-    flexDirection: 'row',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
+  card: { borderRadius: 10, padding: 12, flexDirection: 'row', gap: 12, borderWidth: 1 },
   cardLeft: { alignItems: 'center', gap: 6 },
-  cardDate: { fontSize: 11, color: colors.textGray, fontWeight: '500' },
-  hoursTag: {
-    backgroundColor: colors.primary + '15',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  hoursText: { fontSize: 15, fontWeight: '800', color: colors.primary },
+  cardDate: { fontSize: 11, fontWeight: '500' },
+  hoursTag: { backgroundColor: 'rgba(37,99,255,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  hoursText: { fontSize: 15, fontWeight: '800', color: '#2563FF' },
   cardRight: { flex: 1, gap: 2 },
-  customerName: { fontSize: 14, fontWeight: '700', color: colors.textDark },
-  description: { fontSize: 12, color: colors.textGray },
-  meta: { fontSize: 11, color: colors.textLight },
+  customerName: { fontSize: 14, fontWeight: '700' },
+  description: { fontSize: 12 },
+  meta: { fontSize: 11 },
   empty: { alignItems: 'center', paddingTop: 60, gap: 8 },
-  emptyText: { fontSize: 14, color: colors.textLight },
+  emptyText: { fontSize: 14 },
 });

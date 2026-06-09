@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Modal, TextInput, ActivityIndicator } from 'react-native';
+  Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
@@ -15,7 +15,9 @@ function initials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function TechCard({ user, index, onRemove }: { user: User; index: number; onRemove: () => void }) {
+function TechCard({ user, index, onRemove, onResetPassword }: {
+  user: User; index: number; onRemove: () => void; onResetPassword: () => void;
+}) {
   const { colors: C } = useTheme();
   const jobs = useAppStore((s) => s.jobs.filter((j) => j.assignedTechnicianId === user.id));
   const completed = jobs.filter((j) => j.status === 'completed').length;
@@ -23,19 +25,29 @@ function TechCard({ user, index, onRemove }: { user: User; index: number; onRemo
 
   return (
     <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
-      <View style={[styles.avatar, { backgroundColor: color }]}>
-        <Text style={styles.avatarText}>{initials(user.name)}</Text>
+      {/* Top row */}
+      <View style={styles.cardRow}>
+        <View style={[styles.avatar, { backgroundColor: color }]}>
+          <Text style={styles.avatarText}>{initials(user.name)}</Text>
+        </View>
+        <View style={styles.info}>
+          <Text style={[styles.name, { color: C.textPrimary }]}>{user.name}</Text>
+          <Text style={[styles.phone, { color: C.textSecondary }]}>{user.phone}</Text>
+        </View>
+        <View style={[styles.jobsPill, { backgroundColor: '#EEF4FF' }]}>
+          <Text style={[styles.jobsPillText, { color: '#2563FF' }]}>{completed} jobber</Text>
+        </View>
+        <TouchableOpacity style={styles.removeBtn} onPress={onRemove}>
+          <Ionicons name="trash-outline" size={17} color="#DC2626" />
+        </TouchableOpacity>
       </View>
-      <View style={styles.info}>
-        <Text style={[styles.name, { color: C.textPrimary }]}>{user.name}</Text>
-        <Text style={[styles.phone, { color: C.textSecondary }]}>{user.phone}</Text>
+      {/* Reset password row */}
+      <View style={[styles.cardDivider, { borderTopColor: C.border }]}>
+        <TouchableOpacity onPress={onResetPassword} style={styles.resetBtn}>
+          <Ionicons name="key-outline" size={13} color="#64748B" />
+          <Text style={styles.resetBtnText}>Tilbakestill passord</Text>
+        </TouchableOpacity>
       </View>
-      <View style={[styles.jobsPill, { backgroundColor: '#EEF4FF' }]}>
-        <Text style={[styles.jobsPillText, { color: '#2563FF' }]}>{completed} jobber</Text>
-      </View>
-      <TouchableOpacity style={styles.removeBtn} onPress={onRemove}>
-        <Ionicons name="trash-outline" size={17} color="#DC2626" />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -45,26 +57,57 @@ export function TeamScreen() {
   const technicians = useAppStore((s) => s.users.filter((u) => u.role === 'technician'));
   const addTechnician = useAppStore((s) => s.addTechnician);
   const removeTechnician = useAppStore((s) => s.removeTechnician);
+  const resetTechnicianPassword = useAppStore((s) => s.resetTechnicianPassword);
 
+  // Add technician state
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
+
+  // Reset password state
+  const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [resetPw, setResetPw] = useState('');
+  const [showResetPw, setShowResetPw] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
+
+  const resetForm = () => { setName(''); setEmail(''); setPhone(''); setPassword(''); setAddError(''); };
 
   const handleAdd = async () => {
     setAddError('');
     if (!name.trim() || !email.trim()) { setAddError('Fyll inn navn og e-post'); return; }
+    if (password.length < 8) { setAddError('Midlertidig passord må ha minst 8 tegn'); return; }
     setAdding(true);
     try {
-      await addTechnician(name.trim(), email.trim().toLowerCase(), phone.trim());
-      setName(''); setEmail(''); setPhone('');
+      await addTechnician(name.trim(), email.trim().toLowerCase(), phone.trim(), password);
+      resetForm();
       setShowModal(false);
     } catch (err: any) {
       setAddError(err.message ?? 'Kunne ikke legge til tekniker');
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setResetError('');
+    if (resetPw.length < 8) { setResetError('Passordet må ha minst 8 tegn'); return; }
+    setResetting(true);
+    try {
+      await resetTechnicianPassword(resetTarget!.id, resetPw);
+      setResetSuccess(true);
+      setResetPw('');
+      setTimeout(() => { setResetSuccess(false); setResetTarget(null); }, 1500);
+    } catch (err: any) {
+      setResetError(err.message ?? 'Kunne ikke tilbakestille passord');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -83,7 +126,12 @@ export function TeamScreen() {
         keyExtractor={(u) => u.id}
         contentContainerStyle={styles.list}
         renderItem={({ item, index }) => (
-          <TechCard user={item} index={index} onRemove={() => removeTechnician(item.id)} />
+          <TechCard
+            user={item}
+            index={index}
+            onRemove={() => removeTechnician(item.id)}
+            onResetPassword={() => { setResetTarget(item); setResetPw(''); setResetError(''); setResetSuccess(false); setShowResetPw(false); }}
+          />
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -101,19 +149,24 @@ export function TeamScreen() {
 
       <Modal visible={showModal} transparent animationType="slide">
         <View style={styles.overlay}>
-          <View style={[styles.sheet, { backgroundColor: C.cardBg }]}>
+          <ScrollView
+            style={[styles.sheet, { backgroundColor: C.cardBg }]}
+            contentContainerStyle={{ paddingBottom: 32 }}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+          >
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: C.textPrimary }]}>Legg til tekniker</Text>
-              <TouchableOpacity onPress={() => setShowModal(false)}>
+              <TouchableOpacity onPress={() => { resetForm(); setShowModal(false); }}>
                 <Ionicons name="close" size={22} color="#64748B" />
               </TouchableOpacity>
             </View>
 
             {[
-              { label: 'FULLT NAVN', value: name, setter: setName, placeholder: 'Magnus Olsen' },
-              { label: 'E-POST', value: email, setter: setEmail, placeholder: 'magnus@firma.no' },
-              { label: 'TELEFON', value: phone, setter: setPhone, placeholder: '92345678' },
-            ].map(({ label, value, setter, placeholder }) => (
+              { label: 'FULLT NAVN',  value: name,  setter: setName,  placeholder: 'Magnus Olsen',    cap: 'words' as const },
+              { label: 'E-POST',      value: email, setter: setEmail, placeholder: 'magnus@firma.no', cap: 'none'  as const },
+              { label: 'TELEFON',     value: phone, setter: setPhone, placeholder: '92345678',        cap: 'none'  as const },
+            ].map(({ label, value, setter, placeholder, cap }) => (
               <View key={label} style={styles.field}>
                 <Text style={[styles.fieldLabel, { color: C.textSecondary }]}>{label}</Text>
                 <TextInput
@@ -122,10 +175,33 @@ export function TeamScreen() {
                   onChangeText={setter}
                   placeholder={placeholder}
                   placeholderTextColor="#94A3B8"
-                  autoCapitalize={label === 'E-POST' ? 'none' : 'words'}
+                  autoCapitalize={cap}
+                  keyboardType={label === 'TELEFON' ? 'phone-pad' : 'default'}
                 />
               </View>
             ))}
+
+            {/* Midlertidig passord */}
+            <View style={styles.field}>
+              <Text style={[styles.fieldLabel, { color: C.textSecondary }]}>MIDLERTIDIG PASSORD</Text>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Minst 8 tegn"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword((v) => !v)}>
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.passwordHint, { color: C.textTertiary }]}>
+                Teknikeren bruker dette ved første innlogging
+              </Text>
+            </View>
 
             {addError ? (
               <View style={styles.errorBox}>
@@ -141,6 +217,64 @@ export function TeamScreen() {
               {adding
                 ? <ActivityIndicator color="#FFFFFF" />
                 : <Text style={styles.saveBtnText}>Legg til tekniker</Text>
+              }
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Tilbakestill passord modal */}
+      <Modal visible={!!resetTarget} transparent animationType="slide">
+        <View style={styles.overlay}>
+          <View style={[styles.sheet, { backgroundColor: C.cardBg }]}>
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: C.textPrimary }]}>
+                Nytt passord for {resetTarget?.name}
+              </Text>
+              <TouchableOpacity onPress={() => setResetTarget(null)}>
+                <Ionicons name="close" size={22} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.field}>
+              <Text style={[styles.fieldLabel, { color: C.textSecondary }]}>NYTT PASSORD</Text>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]}
+                  value={resetPw}
+                  onChangeText={setResetPw}
+                  placeholder="Minst 8 tegn"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showResetPw}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowResetPw((v) => !v)}>
+                  <Ionicons name={showResetPw ? 'eye-off-outline' : 'eye-outline'} size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {resetError ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{resetError}</Text>
+              </View>
+            ) : null}
+
+            {resetSuccess ? (
+              <View style={styles.successBox}>
+                <Ionicons name="checkmark-circle" size={16} color="#15803D" />
+                <Text style={styles.successText}>Passord oppdatert!</Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.saveBtn, resetting && { opacity: 0.7 }]}
+              onPress={handleResetPassword}
+              disabled={resetting}
+            >
+              {resetting
+                ? <ActivityIndicator color="#FFFFFF" />
+                : <Text style={styles.saveBtnText}>Lagre nytt passord</Text>
               }
             </TouchableOpacity>
           </View>
@@ -170,13 +304,21 @@ const styles = StyleSheet.create({
     paddingVertical: 9 },
   addBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   list: { padding: 20, gap: 10, paddingBottom: 40 },
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14 },
+  card: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  cardRow: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: 14, padding: 16,
+  },
+  cardDivider: {
+    borderTopWidth: 1, paddingHorizontal: 16, paddingVertical: 8,
+  },
+  resetBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  resetBtnText: { fontSize: 13, color: '#64748B' },
+  successBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#F0FDF4', borderRadius: 10, padding: 12,
+  },
+  successText: { fontSize: 13, color: '#15803D', fontWeight: '600' },
   avatar: {
     width: 44,
     height: 44,
@@ -232,5 +374,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 4 },
   saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  passwordRow: { position: 'relative' },
+  passwordInput: { paddingRight: 48 },
+  eyeBtn: { position: 'absolute', right: 14, top: 16 },
+  passwordHint: { fontSize: 12, marginTop: 4 },
   errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 },
   errorText: { fontSize: 13, color: '#DC2626' } });

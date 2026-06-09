@@ -7,7 +7,7 @@ import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
-import { JobImage } from '../../types';
+import { JobImage, JobNote } from '../../types';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import { ImageUploadModal } from '../../components/ImageUploadModal';
 
@@ -120,12 +120,17 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
   const job = useAppStore((s) => s.jobs.find((j) => j.id === jobId));
   const invoice = useAppStore((s) => s.invoices.find((inv) => inv.jobId === jobId));
   const images = useAppStore((s) => s.jobImages[jobId] ?? []);
+  const notes = useAppStore((s) => s.jobNotes[jobId] ?? []);
   const loadJobImages = useAppStore((s) => s.loadJobImages);
+  const loadJobNotes = useAppStore((s) => s.loadJobNotes);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [viewingImage, setViewingImage] = useState<JobImage | null>(null);
 
-  useEffect(() => { loadJobImages(jobId); }, [jobId]);
+  useEffect(() => {
+    loadJobImages(jobId);
+    loadJobNotes(jobId);
+  }, [jobId]);
 
   if (!job) return null;
 
@@ -192,6 +197,39 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
             </View>
           </View>
         )}
+
+        {/* Notes — read only */}
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+          <Text style={[styles.cardLabel, { color: C.textSecondary }]}>NOTATER</Text>
+
+          {/* Archived banner */}
+          <View style={styles.archivedNoteBanner}>
+            <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
+            <Text style={styles.archivedNoteBannerText}>Arkivert jobb — notater kan ikke endres</Text>
+          </View>
+
+          {notes.length === 0 ? (
+            <Text style={[styles.emptyNotes, { color: C.textTertiary }]}>Ingen notater på denne jobben</Text>
+          ) : (
+            notes.map((note: JobNote) => {
+              const d = new Date(note.createdAt);
+              const dateStr = d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })
+                + ' kl. ' + d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+              return (
+                <View key={note.id} style={[styles.noteItem, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+                  <View style={styles.noteItemHeader}>
+                    <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
+                    <View style={styles.noteDateRow}>
+                      <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
+                      <Text style={styles.noteDateText}>{dateStr}</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.noteBody, { color: C.textPrimary }]}>{note.content}</Text>
+                </View>
+              );
+            })
+          )}
+        </View>
 
         {/* Images */}
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
@@ -274,4 +312,17 @@ const styles = StyleSheet.create({
   noImagesText: { fontSize: 14 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   lockHint: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4 },
-  lockHintText: { fontSize: 12, fontStyle: 'italic' } });
+  lockHintText: { fontSize: 12, fontStyle: 'italic' },
+  archivedNoteBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#F5F7FA', borderRadius: 8, padding: 10,
+  },
+  archivedNoteBannerText: { fontSize: 13, color: '#64748B', fontStyle: 'italic' },
+  emptyNotes: { fontSize: 14, textAlign: 'center', paddingVertical: 4 },
+  noteItem: { borderRadius: 10, padding: 14, paddingHorizontal: 16, borderWidth: 1 },
+  noteItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  noteAuthor: { fontSize: 13, fontWeight: '600' },
+  noteDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  noteDateText: { fontSize: 12, color: '#64748B' },
+  noteBody: { fontSize: 14, lineHeight: 22 },
+});

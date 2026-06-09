@@ -179,7 +179,9 @@ interface AppState {
   updateCompany: (updates: Partial<Company>) => Promise<void>;
   uploadCompanyLogo: (uri: string, mimeType: string) => Promise<void>;
 
-  addTechnician: (name: string, email: string, phone: string) => Promise<void>;
+  addTechnician: (name: string, email: string, phone: string, password: string) => Promise<void>;
+  resetTechnicianPassword: (userId: string, newPassword: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   removeTechnician: (userId: string) => Promise<void>;
 
   updateJob: (jobId: string, updates: {
@@ -609,7 +611,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     if (status === 'completed') {
-      await get().generateInvoice(jobId, hours ?? 1, materials ?? 0);
+      try {
+        await get().generateInvoice(jobId, hours ?? 1, materials ?? 0);
+      } catch (invoiceError) {
+        // Faktura feilet — rull tilbake jobbstatus til in_progress
+        await supabase
+          .from('jobs')
+          .update({ status: 'in_progress', hours_worked: null, materials_cost: null })
+          .eq('id', jobId);
+        set((state) => ({
+          jobs: state.jobs.map((j) =>
+            j.id === jobId ? { ...j, status: 'in_progress' as const } : j
+          ),
+        }));
+        throw invoiceError;
+      }
     }
   },
 
@@ -780,14 +796,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  addTechnician: async (name, email, phone) => {
-    const { data, error } = await supabase.rpc('add_technician_to_team', {
+  addTechnician: async (name, email, phone, password) => {
+    const { data, error } = await supabase.rpc('create_technician_with_password', {
       p_name: name,
       p_email: email,
       p_phone: phone,
+      p_password: password,
     });
     if (error) throw new Error(error.message);
     set((state) => ({ users: [...state.users, mapUser(data)] }));
+  },
+
+  resetTechnicianPassword: async (userId, newPassword) => {
+    const { error } = await supabase.rpc('reset_technician_password', {
+      p_user_id: userId,
+      p_new_password: newPassword,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  updatePassword: async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
   },
 
   removeTechnician: async (userId) => {
@@ -939,7 +969,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .from('job_notes')
       .select('*')
       .eq('job_id', jobId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
     if (!error && data) {
       set((state) => ({
         jobNotes: {
@@ -949,6 +979,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             jobId: row.job_id,
             content: row.content,
             authorName: row.author_name,
+            authorRole: row.author_role ?? 'admin',
             createdAt: row.created_at,
           })),
         },
@@ -959,31 +990,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addJobNote: async (jobId, content) => {
     const { currentUser, companyId } = get();
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('job_notes')
       .insert({
         job_id: jobId,
         company_id: companyId,
         content: content.trim(),
         author_name: currentUser?.name ?? 'Ukjent',
-      })
-      .select()
-      .single();
-    if (!error && data) {
-      const note: JobNote = {
-        id: data.id,
-        jobId: data.job_id,
-        content: data.content,
-        authorName: data.author_name,
-        createdAt: data.created_at,
-      };
-      set((state) => ({
-        jobNotes: {
-          ...state.jobNotes,
-          [jobId]: [...(state.jobNotes[jobId] ?? []), note],
-        },
-      }));
-    }
+        author_role: currentUser?.role ?? 'admin',
+      });
+    if (error) throw new Error(error.message);
+    // Last notater på nytt for korrekt rekkefølge og oppdatert store
+    await get().loadJobNotes(jobId);
   },
 
 }));

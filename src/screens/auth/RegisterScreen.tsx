@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ScrollView, ActivityIndicator,
+  ScrollView, ActivityIndicator, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,7 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [focused, setFocused] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const clearErr = () => setError('');
 
@@ -32,6 +33,7 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
     if (!name.trim()) { setError('Skriv inn navn'); return; }
     if (!email.trim() || !email.includes('@')) { setError('Skriv inn gyldig e-postadresse'); return; }
     if (password.length < 6) { setError('Passordet må ha minst 6 tegn'); return; }
+    if (!termsAccepted) { setError('Du må godta vilkårene for å fortsette'); return; }
     setLoading(true);
     const result = await register(name.trim(), email.trim(), phone.trim(), password);
     setLoading(false);
@@ -131,20 +133,45 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
               </View>
             ) : null}
 
+            {/* Terms checkbox */}
             <TouchableOpacity
-              style={[styles.registerBtn, loading && { opacity: 0.7 }]}
+              style={styles.checkboxRow}
+              onPress={() => { setTermsAccepted((v) => !v); clearErr(); }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                {termsAccepted && (
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.checkboxText}>
+                Jeg godtar{' '}
+                <Text
+                  style={styles.checkboxLink}
+                  onPress={(e) => { e.stopPropagation(); Linking.openURL('https://efero.app/vilkar'); }}
+                >
+                  vilkår og betingelser
+                </Text>
+                {' '}og{' '}
+                <Text
+                  style={styles.checkboxLink}
+                  onPress={(e) => { e.stopPropagation(); Linking.openURL('https://efero.app/databehandleravtale'); }}
+                >
+                  databehandleravtalen
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.registerBtn, (!termsAccepted || loading) && { opacity: 0.5 }]}
               onPress={handleRegister}
-              disabled={loading}
+              disabled={loading || !termsAccepted}
             >
               {loading
                 ? <ActivityIndicator color="#FFFFFF" />
                 : <Text style={styles.registerBtnText}>Opprett konto</Text>
               }
             </TouchableOpacity>
-
-            <Text style={styles.terms}>
-              Ved å registrere deg godtar du våre vilkår for bruk og personvernreglene.
-            </Text>
 
             <TouchableOpacity style={styles.footer} onPress={onGoToLogin}>
               <Text style={styles.footerText}>
@@ -263,12 +290,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  terms: {
-    fontSize: 12,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 18,
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 20,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: '#2563FF',
+    borderColor: '#2563FF',
+  },
+  checkboxText: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 20,
+    flex: 1,
+  },
+  checkboxLink: {
+    color: '#2563FF',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 
   footer: {
