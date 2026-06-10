@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/appStore';
@@ -64,6 +64,8 @@ export function NotificationBell({
   const markNotificationRead = useAppStore((s) => s.markNotificationRead);
   const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const bellRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
 
   const unreadCount = notifications.filter((n) => !n.readAt).length;
 
@@ -73,9 +75,25 @@ export function NotificationBell({
     if (notif.invoiceId) onNavigateToInvoice(notif.invoiceId);
   };
 
+  const handleToggle = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    if (Platform.OS === 'web' && bellRef.current) {
+      // @ts-ignore — measureInWindow finnes på web via react-native-web
+      bellRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        setPos({ top: y + height + 6, left: x + width - 252 });
+        setOpen(true);
+      });
+    } else {
+      setOpen(true);
+    }
+  };
+
   return (
     <View style={{ position: 'relative', zIndex: 300 }}>
-      <TouchableOpacity onPress={() => setOpen((v) => !v)} activeOpacity={0.8} style={styles.bell}>
+      <TouchableOpacity ref={bellRef} onPress={handleToggle} activeOpacity={0.8} style={styles.bell}>
         <Ionicons name="notifications-outline" size={19} color="rgba(255,255,255,0.75)" />
         {unreadCount > 0 && (
           <View style={styles.badge}>
@@ -90,13 +108,21 @@ export function NotificationBell({
           <TouchableOpacity
             onPress={() => setOpen(false)}
             style={Platform.OS === 'web'
-              ? ({ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 299 } as any)
+              ? ({ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 } as any)
               : StyleSheet.absoluteFillObject
             }
           />
 
           {/* Dropdown */}
-          <View style={[styles.dropdown, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+          <View
+            style={[
+              styles.dropdown,
+              { backgroundColor: C.cardBg, borderColor: C.border },
+              Platform.OS === 'web' && pos
+                ? ({ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999 } as any)
+                : null,
+            ]}
+          >
             {/* Header */}
             <View style={[styles.dropHeader, { borderBottomColor: C.border }]}>
               <Text style={[styles.dropTitle, { color: C.textPrimary }]}>Varsler</Text>

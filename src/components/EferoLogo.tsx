@@ -17,15 +17,16 @@ export function EferoLogo({
 }: EferoLogoProps) {
   const lh = Math.max(3, Math.round(size * 0.18));   // line height
   const lw = Math.round(size * 1.0);                 // full line width
-  const mw = Math.round(lw * 0.62);                  // mid line (shorter)
-  const iconH = lh * 3 + 4 * 2;                      // total icon height
+  const mw = Math.round(lw * 0.72);                  // mid line (shorter)
+  const gap = Math.max(2, Math.round(lh * 0.7));     // gap between lines
+  const iconH = lh * 3 + gap * 2;                    // total icon height
 
   return (
     <View style={styles.row}>
       <View style={[styles.icon, { width: lw, height: iconH, justifyContent: 'space-between' }]}>
-        <View style={{ width: lw, height: lh, borderRadius: lh / 2, backgroundColor: lineColor }} />
-        <View style={{ width: mw, height: lh, borderRadius: lh / 2, backgroundColor: lineColor }} />
-        <View style={{ width: lw, height: lh, borderRadius: lh / 2, backgroundColor: lineColor }} />
+        <View style={{ width: lw, height: lh, backgroundColor: lineColor, transform: [{ skewX: '-20deg' }] }} />
+        <View style={{ width: mw, height: lh, backgroundColor: lineColor }} />
+        <View style={{ width: lw, height: lh, backgroundColor: lineColor, transform: [{ skewX: '20deg' }] }} />
       </View>
       <Text style={[styles.wordmark, { color: textColor, fontSize: size }]}>Efero</Text>
     </View>
