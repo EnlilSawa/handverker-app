@@ -125,21 +125,14 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
         </View>
 
         {/* Actions */}
-        <TouchableOpacity
-          style={styles.vippsBtn}
-          onPress={() => setFeedback(`Vipps-forespørsel på ${formatCurrency(invoice.total)} sendt til ${invoice.customerName}`)}
-        >
-          <Text style={styles.vippsBtnText}>Betal med Vipps</Text>
-        </TouchableOpacity>
-
         {isAdmin && (
           <>
             <TouchableOpacity
               style={styles.smsBtn}
-              onPress={() => setFeedback(`Faktura ${invoice.invoiceNumber} sendt på SMS`)}
+              onPress={() => setFeedback(`Faktura ${invoice.invoiceNumber} sendt på e-post`)}
             >
-              <Ionicons name="chatbubble-outline" size={17} color="#2563FF" />
-              <Text style={styles.smsBtnText}>Send på SMS</Text>
+              <Ionicons name="mail-outline" size={17} color="#2563FF" />
+              <Text style={styles.smsBtnText}>Send faktura på E-post</Text>
             </TouchableOpacity>
 
             {invoice.status !== 'paid' && (
@@ -209,13 +202,6 @@ const styles = StyleSheet.create({
   grandTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   grandTotalLabel: { fontSize: 15, fontWeight: '600' },
   grandTotalValue: { fontSize: 22, fontWeight: '700' },
-  vippsBtn: {
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: '#FF5B24',
-    alignItems: 'center',
-    justifyContent: 'center' },
-  vippsBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   smsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -230,8 +216,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 14 },
+    gap: 8,
+    height: 52,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#15803D' },
   paidBtnText: { color: '#15803D', fontSize: 15, fontWeight: '600' },
   paymentBox: {
     borderRadius: 10,

@@ -5,6 +5,7 @@ import { useAppStore } from '../store/appStore';
 import { useTheme } from '../theme/ThemeContext';
 import { AppNotification } from '../types';
 import { formatDateTime } from '../utils/formatters';
+import { DropdownPortal } from './DropdownPortal';
 
 const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   overdue_7days:    'alert-circle-outline',
@@ -15,6 +16,8 @@ const TYPE_COLOR: Record<string, string> = {
   overdue_7days:    '#DC2626',
   payment_received: '#15803D',
 };
+
+const DROPDOWN_WIDTH = 300;
 
 function NotifItem({
   notif,
@@ -64,7 +67,7 @@ export function NotificationBell({
   const markNotificationRead = useAppStore((s) => s.markNotificationRead);
   const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const bellRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
 
   const unreadCount = notifications.filter((n) => !n.readAt).length;
@@ -83,7 +86,12 @@ export function NotificationBell({
     if (Platform.OS === 'web' && bellRef.current) {
       // @ts-ignore — measureInWindow finnes på web via react-native-web
       bellRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
-        setPos({ top: y + height + 6, left: x + width - 252 });
+        const margin = 12;
+        const maxLeft = Math.max(window.innerWidth - DROPDOWN_WIDTH - margin, margin);
+        const left = Math.min(Math.max(x + width - DROPDOWN_WIDTH, margin), maxLeft);
+        const top = y + height + 6;
+        const maxHeight = Math.max(160, window.innerHeight - top - margin);
+        setPos({ top, left, maxHeight });
         setOpen(true);
       });
     } else {
@@ -103,7 +111,7 @@ export function NotificationBell({
       </TouchableOpacity>
 
       {open && (
-        <>
+        <DropdownPortal>
           {/* Backdrop */}
           <TouchableOpacity
             onPress={() => setOpen(false)}
@@ -119,7 +127,7 @@ export function NotificationBell({
               styles.dropdown,
               { backgroundColor: C.cardBg, borderColor: C.border },
               Platform.OS === 'web' && pos
-                ? ({ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999 } as any)
+                ? ({ position: 'fixed', top: pos.top, left: pos.left, maxHeight: pos.maxHeight, width: DROPDOWN_WIDTH, zIndex: 9999 } as any)
                 : null,
             ]}
           >
@@ -146,7 +154,7 @@ export function NotificationBell({
               </ScrollView>
             )}
           </View>
-        </>
+        </DropdownPortal>
       )}
     </View>
   );

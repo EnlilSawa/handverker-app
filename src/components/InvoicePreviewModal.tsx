@@ -67,8 +67,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
     setFeedback('Faktura er markert som betalt');
   };
 
-  const handleVipps = () => setFeedback(`Vipps-forespørsel på ${formatCurrency(invoice.total)} sendt`);
-  const handleSMS = () => setFeedback(`Faktura ${invoice.invoiceNumber} sendt på SMS`);
+  const handleSMS = () => setFeedback(`Faktura ${invoice.invoiceNumber} sendt på e-post`);
 
   return (
     <Modal visible={!!invoiceId} transparent animationType="slide" onRequestClose={onClose}>
@@ -207,13 +206,9 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
             {/* Actions */}
             {isAdmin && (
               <View style={styles.actions}>
-                <TouchableOpacity style={styles.vippsBtn} onPress={handleVipps}>
-                  <Text style={styles.vippsBtnText}>Betal med Vipps</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity style={styles.smsBtn} onPress={handleSMS}>
-                  <Ionicons name="chatbubble-outline" size={16} color="#2563FF" />
-                  <Text style={styles.smsBtnText}>Send faktura på SMS</Text>
+                  <Ionicons name="mail-outline" size={16} color="#2563FF" />
+                  <Text style={styles.smsBtnText}>Send faktura på E-post</Text>
                 </TouchableOpacity>
 
                 {invoice.status !== 'paid' && (
@@ -358,11 +353,6 @@ const styles = StyleSheet.create({
   },
   pdfBtnText: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
   actions: { paddingHorizontal: 20, gap: 10 },
-  vippsBtn: {
-    height: 52, borderRadius: 10, backgroundColor: '#FF5B24',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  vippsBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   smsBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, height: 52, borderRadius: 10,
