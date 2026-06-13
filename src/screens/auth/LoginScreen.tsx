@@ -11,9 +11,10 @@ import { useAppStore } from '../../store/appStore';
 
 interface Props {
   onGoToRegister?: () => void;
+  onGoToForgot?: () => void;
 }
 
-export function LoginScreen({ onGoToRegister }: Props) {
+export function LoginScreen({ onGoToRegister, onGoToForgot }: Props) {
   const login = useAppStore((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -88,6 +89,12 @@ export function LoginScreen({ onGoToRegister }: Props) {
                 />
               </TouchableOpacity>
             </View>
+
+            {onGoToForgot && (
+              <TouchableOpacity style={styles.forgotBtn} onPress={onGoToForgot}>
+                <Text style={styles.forgotText}>Glemt passord?</Text>
+              </TouchableOpacity>
+            )}
 
             {error ? (
               <View style={styles.errorBox}>
@@ -184,6 +191,9 @@ const styles = StyleSheet.create({
   passwordRow: { position: 'relative' },
   passwordInput: { paddingRight: 48 },
   eyeBtn: { position: 'absolute', right: 14, top: 16 },
+
+  forgotBtn: { alignSelf: 'flex-end', marginTop: 12 },
+  forgotText: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
 
   errorBox: {
     flexDirection: 'row',

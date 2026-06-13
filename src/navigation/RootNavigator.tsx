@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ConfirmEmailScreen } from '../screens/auth/ConfirmEmailScreen';
+import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
+import { UpdatePasswordScreen } from '../screens/auth/UpdatePasswordScreen';
 import { OnboardingWizard } from '../screens/onboarding/OnboardingWizard';
 import { PaywallScreen } from '../screens/paywall/PaywallScreen';
 import { AdminNavigator } from './AdminNavigator';
@@ -14,7 +16,7 @@ import { colors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
 
-type AuthView = 'login' | 'register' | 'confirm_email';
+type AuthView = 'login' | 'register' | 'confirm_email' | 'forgot_password';
 
 function isTrialExpired(trialEndsAt?: string): boolean {
   if (!trialEndsAt) return false;
@@ -31,12 +33,17 @@ export function RootNavigator() {
 
   const [authView, setAuthView] = useState<AuthView>('login');
   const [pendingEmail, setPendingEmail] = useState('');
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const logout = useAppStore((s) => s.logout);
 
   useEffect(() => {
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Bruker klikket «tilbakestill passord»-lenken i e-posten → vis ny-passord-skjerm
+        setRecoveryMode(true);
+      } else if (event === 'SIGNED_IN') {
         // Etter e-postbekreftelse: last data og gå til app
         loadData();
         setAuthView('login');
@@ -47,6 +54,19 @@ export function RootNavigator() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Tilbakestilling av passord — vises uavhengig av innloggingsstatus
+  if (initialized && recoveryMode) {
+    return (
+      <UpdatePasswordScreen
+        onDone={async () => {
+          await logout();
+          setRecoveryMode(false);
+          setAuthView('login');
+        }}
+      />
+    );
+  }
 
   if (!initialized) {
     return (
@@ -68,6 +88,10 @@ export function RootNavigator() {
       );
     }
 
+    if (authView === 'forgot_password') {
+      return <ForgotPasswordScreen onGoToLogin={() => setAuthView('login')} />;
+    }
+
     if (authView === 'register') {
       return (
         <RegisterScreen
@@ -83,7 +107,12 @@ export function RootNavigator() {
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login">
-          {() => <LoginScreen onGoToRegister={() => setAuthView('register')} />}
+          {() => (
+            <LoginScreen
+              onGoToRegister={() => setAuthView('register')}
+              onGoToForgot={() => setAuthView('forgot_password')}
+            />
+          )}
         </Stack.Screen>
       </Stack.Navigator>
     );

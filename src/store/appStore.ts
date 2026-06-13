@@ -187,6 +187,7 @@ interface AppState {
   addTechnician: (name: string, email: string, phone: string, password: string) => Promise<void>;
   resetTechnicianPassword: (userId: string, newPassword: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
   removeTechnician: (userId: string) => Promise<void>;
 
   updateJob: (jobId: string, updates: {
@@ -881,6 +882,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updatePassword: async (newPassword) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
+  },
+
+  requestPasswordReset: async (email) => {
+    // På web sender vi brukeren tilbake hit etter klikk i e-posten; Supabase fyrer
+    // da et PASSWORD_RECOVERY-event som RootNavigator fanger og viser ny-passord-skjerm.
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.toLowerCase().trim(),
+      redirectTo ? { redirectTo } : undefined,
+    );
     if (error) throw new Error(error.message);
   },
 
