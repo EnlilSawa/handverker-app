@@ -8,6 +8,15 @@ export async function viewInvoicePdf(invoice: Invoice, company: Company | null):
   await Print.printAsync({ html: generateInvoiceHtml(invoice, company) });
 }
 
+// Returns the invoice PDF as base64 (no data: prefix) for e-mail attachment.
+export async function generateInvoicePdfBase64(invoice: Invoice, company: Company | null): Promise<string> {
+  const { base64 } = await Print.printToFileAsync({
+    html: generateInvoiceHtml(invoice, company),
+    base64: true,
+  });
+  return base64 ?? '';
+}
+
 export async function downloadInvoicePdf(invoice: Invoice, company: Company | null): Promise<void> {
   const { uri } = await Print.printToFileAsync({
     html: generateInvoiceHtml(invoice, company),

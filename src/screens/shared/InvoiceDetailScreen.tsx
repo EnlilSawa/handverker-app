@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
@@ -20,7 +20,10 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
   const company = useAppStore((s) => s.company);
   const currentUser = useAppStore((s) => s.currentUser);
   const updateInvoiceStatus = useAppStore((s) => s.updateInvoiceStatus);
+  const sendInvoiceEmail = useAppStore((s) => s.sendInvoiceEmail);
   const [feedback, setFeedback] = useState('');
+  const [feedbackError, setFeedbackError] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const invoice = invoices.find((i) => i.id === invoiceId) ?? invoices[invoices.length - 1];
   if (!invoice) return null;
@@ -28,6 +31,26 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
   const cfg = STATUS_CFG[invoice.status];
   const isAdmin = currentUser?.role === 'admin';
   const isOverdue = invoice.status === 'overdue';
+
+  const handleSendEmail = async () => {
+    if (!invoice.customerEmail) {
+      setFeedbackError(true);
+      setFeedback('Kunden har ingen e-postadresse. Legg den til på kunden først.');
+      return;
+    }
+    setSending(true);
+    setFeedback('');
+    try {
+      await sendInvoiceEmail(invoice.id);
+      setFeedbackError(false);
+      setFeedback(`Faktura ${invoice.invoiceNumber} sendt til ${invoice.customerEmail}`);
+    } catch {
+      setFeedbackError(true);
+      setFeedback('E-post kunne ikke sendes — prøv å sende på nytt.');
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <ThemedScreen>
@@ -46,7 +69,11 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
       <ScrollView contentContainerStyle={styles.content}>
         {feedback ? (
           <View style={styles.feedbackBox}>
-            <Ionicons name="checkmark-circle" size={16} color="#15803D" />
+            <Ionicons
+              name={feedbackError ? 'alert-circle' : 'checkmark-circle'}
+              size={16}
+              color={feedbackError ? '#C2410C' : '#15803D'}
+            />
             <Text style={styles.feedbackText}>{feedback}</Text>
           </View>
         ) : null}
@@ -129,10 +156,15 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
           <>
             <TouchableOpacity
               style={styles.smsBtn}
-              onPress={() => setFeedback(`Faktura ${invoice.invoiceNumber} sendt på e-post`)}
+              onPress={handleSendEmail}
+              disabled={sending}
             >
-              <Ionicons name="mail-outline" size={17} color="#2563FF" />
-              <Text style={styles.smsBtnText}>Send faktura på E-post</Text>
+              {sending
+                ? <ActivityIndicator size="small" color="#2563FF" />
+                : <Ionicons name="mail-outline" size={17} color="#2563FF" />}
+              <Text style={styles.smsBtnText}>
+                {invoice.emailStatus === 'failed' ? 'Send på nytt' : 'Send faktura på E-post'}
+              </Text>
             </TouchableOpacity>
 
             {invoice.status !== 'paid' && (

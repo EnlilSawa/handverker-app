@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer, Quote, QuoteLine, QuoteStatus, AppNotification } from '../types';
 import { supabase } from '../lib/supabase';
 import { addDays } from '../utils/formatters';
+import { generateInvoicePdfBase64 } from '../utils/generatePdf';
 
 type RegisterResult = 'ok' | 'confirm_email' | 'error';
 
@@ -42,6 +43,7 @@ function mapInvoice(row: any): Invoice {
     dueDate: row.due_date,
     createdAt: row.created_at,
     note: row.note ?? null,
+    emailStatus: row.email_status ?? null,
   };
 }
 
@@ -54,6 +56,7 @@ function mapCompany(row: any): Company {
     hourlyRate: Number(row.hourly_rate),
     calloutFee: Number(row.callout_fee),
     paymentTermsDays: Number(row.payment_terms_days),
+    email: row.email ?? null,
     logoUrl: row.logo_url ?? null,
     accountNumber: row.account_number ?? null,
     trialEndsAt: row.trial_ends_at ?? undefined,
@@ -175,6 +178,8 @@ interface AppState {
 
   generateInvoice: (jobId: string, hours: number, materials: number, note?: string, extraLines?: { description: string; amount: number }[]) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
+  sendInvoiceEmail: (invoiceId: string) => Promise<void>;
+  sendWelcomeEmail: (to: string, name: string, companyName: string) => Promise<void>;
 
   updateCompany: (updates: Partial<Company>) => Promise<void>;
   uploadCompanyLogo: (uri: string, mimeType: string) => Promise<void>;
@@ -278,6 +283,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     if (error) throw new Error(error.message);
     await get().loadData();
+
+    // Velkomst-e-post (ikke-blokkerende — onboarding fullføres uansett om e-post feiler)
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser?.email) {
+        get().sendWelcomeEmail(
+          authUser.email,
+          (authUser.user_metadata?.name as string) ?? '',
+          data.name,
+        ).catch((e) => console.warn('Velkomst-e-post feilet:', e));
+      }
+    } catch (e) {
+      console.warn('Velkomst-e-post feilet:', e);
+    }
   },
 
   createStripeCheckout: async () => {
@@ -706,7 +725,51 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const invoice = mapInvoice(data);
     set((state) => ({ invoices: [invoice, ...state.invoices] }));
+
+    // Send faktura-e-post automatisk (ikke-blokkerende). Status lagres på fakturaen;
+    // feiler den, vises "Send på nytt" på fakturasiden.
+    if (customerEmail) {
+      get().sendInvoiceEmail(invoice.id).catch((e) => console.warn('Faktura-e-post feilet:', e));
+    }
+
     return invoice;
+  },
+
+  sendInvoiceEmail: async (invoiceId) => {
+    const { invoices, company } = get();
+    const invoice = invoices.find((i) => i.id === invoiceId);
+    if (!invoice) throw new Error('Faktura ikke funnet');
+    if (!invoice.customerEmail) throw new Error('Kunden har ingen e-postadresse');
+
+    try {
+      const pdfBase64 = await generateInvoicePdfBase64(invoice, company);
+      const { error } = await supabase.functions.invoke('send-invoice-email', {
+        body: { invoiceId, pdfBase64 },
+      });
+      if (error) throw new Error(error.message);
+
+      await supabase.from('invoices').update({ email_status: 'sent' }).eq('id', invoiceId);
+      set((state) => ({
+        invoices: state.invoices.map((inv) =>
+          inv.id === invoiceId ? { ...inv, emailStatus: 'sent' } : inv,
+        ),
+      }));
+    } catch (e) {
+      await supabase.from('invoices').update({ email_status: 'failed' }).eq('id', invoiceId);
+      set((state) => ({
+        invoices: state.invoices.map((inv) =>
+          inv.id === invoiceId ? { ...inv, emailStatus: 'failed' } : inv,
+        ),
+      }));
+      throw e;
+    }
+  },
+
+  sendWelcomeEmail: async (to, name, companyName) => {
+    const { error } = await supabase.functions.invoke('send-welcome-email', {
+      body: { to, name, companyName },
+    });
+    if (error) throw new Error(error.message);
   },
 
   updateInvoiceStatus: async (invoiceId, status) => {
@@ -751,6 +814,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...(updates.hourlyRate !== undefined && { hourly_rate: updates.hourlyRate }),
         ...(updates.calloutFee !== undefined && { callout_fee: updates.calloutFee }),
         ...(updates.paymentTermsDays !== undefined && { payment_terms_days: updates.paymentTermsDays }),
+        ...(updates.email !== undefined && { email: updates.email }),
         ...(updates.accountNumber !== undefined && { account_number: updates.accountNumber }),
       })
       .eq('id', companyId);

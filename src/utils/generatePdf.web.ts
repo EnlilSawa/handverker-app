@@ -243,3 +243,10 @@ export async function downloadInvoicePdf(invoice: Invoice, company: Company | nu
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 5_000);
 }
+
+// Returns the invoice PDF as base64 (no data: prefix) for e-mail attachment.
+export async function generateInvoicePdfBase64(invoice: Invoice, company: Company | null): Promise<string> {
+  const doc = await buildDoc(invoice, company);
+  const dataUri = doc.output('datauristring'); // data:application/pdf;...;base64,XXXX
+  return dataUri.substring(dataUri.indexOf('base64,') + 'base64,'.length);
+}

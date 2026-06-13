@@ -51,6 +51,7 @@ export interface Invoice {
   dueDate: string;
   createdAt: string;
   note?: string | null;
+  emailStatus?: 'sent' | 'failed' | null;
 }
 
 export interface QuoteLine {
@@ -138,6 +139,7 @@ export interface Company {
   hourlyRate: number;
   calloutFee: number;
   paymentTermsDays: number;
+  email?: string | null;
   logoUrl?: string | null;
   accountNumber?: string | null;
   trialEndsAt?: string;

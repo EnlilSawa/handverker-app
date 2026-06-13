@@ -18,7 +18,7 @@ function FieldInput({ label, value, onChangeText, keyboardType = 'default', plac
   label: string;
   value: string;
   onChangeText: (v: string) => void;
-  keyboardType?: 'default' | 'numeric' | 'phone-pad';
+  keyboardType?: 'default' | 'numeric' | 'phone-pad' | 'email-address';
   placeholder?: string;
 }) {
   const { colors: C } = useTheme();
@@ -33,6 +33,8 @@ function FieldInput({ label, value, onChangeText, keyboardType = 'default', plac
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         keyboardType={keyboardType}
+        autoCapitalize={keyboardType === 'email-address' ? 'none' : 'sentences'}
+        autoCorrect={keyboardType !== 'email-address'}
         placeholder={placeholder}
         placeholderTextColor="#94A3B8"
       />
@@ -74,6 +76,7 @@ export function SettingsScreen() {
   const [name, setName] = useState(company?.name ?? '');
   const [orgNumber, setOrgNumber] = useState(company?.orgNumber ?? '');
   const [address, setAddress] = useState(company?.address ?? '');
+  const [email, setEmail] = useState(company?.email ?? '');
   const [hourlyRate, setHourlyRate] = useState(String(company?.hourlyRate ?? 895));
   const [calloutFee, setCalloutFee] = useState(String(company?.calloutFee ?? 350));
   const [paymentTerms, setPaymentTerms] = useState(String(company?.paymentTermsDays ?? 14));
@@ -94,6 +97,7 @@ export function SettingsScreen() {
     setName(company.name ?? '');
     setOrgNumber(company.orgNumber ?? '');
     setAddress(company.address ?? '');
+    setEmail(company.email ?? '');
     setHourlyRate(String(company.hourlyRate ?? 895));
     setCalloutFee(String(company.calloutFee ?? 350));
     setPaymentTerms(String(company.paymentTermsDays ?? 14));
@@ -155,6 +159,7 @@ export function SettingsScreen() {
         name: name.trim(),
         orgNumber: orgNumber.trim(),
         address: address.trim(),
+        email: email.trim() || null,
         hourlyRate: rate,
         calloutFee: callout,
         paymentTermsDays: terms,
@@ -216,6 +221,7 @@ export function SettingsScreen() {
           <FieldInput label="Bedriftsnavn" value={name} onChangeText={setName} placeholder="VVS Service AS" />
           <FieldInput label="Organisasjonsnummer" value={orgNumber} onChangeText={setOrgNumber} placeholder="123 456 789" />
           <FieldInput label="Adresse" value={address} onChangeText={setAddress} placeholder="Gateveien 1, 0150 Oslo" />
+          <FieldInput label="E-post (svar på faktura går hit)" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="post@dittfirma.no" />
         </View>
 
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>

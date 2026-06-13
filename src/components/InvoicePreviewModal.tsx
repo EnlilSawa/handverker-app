@@ -25,9 +25,11 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
   const company = useAppStore((s) => s.company);
   const currentUser = useAppStore((s) => s.currentUser);
   const updateInvoiceStatus = useAppStore((s) => s.updateInvoiceStatus);
+  const sendInvoiceEmail = useAppStore((s) => s.sendInvoiceEmail);
 
   const [marking, setMarking] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState('');
 
   const handleViewPdf = async () => {
@@ -67,7 +69,22 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
     setFeedback('Faktura er markert som betalt');
   };
 
-  const handleSMS = () => setFeedback(`Faktura ${invoice.invoiceNumber} sendt på e-post`);
+  const handleSendEmail = async () => {
+    if (!invoice.customerEmail) {
+      setFeedback('Kunden har ingen e-postadresse. Legg den til på kunden først.');
+      return;
+    }
+    setSending(true);
+    setFeedback('');
+    try {
+      await sendInvoiceEmail(invoice.id);
+      setFeedback(`Faktura ${invoice.invoiceNumber} sendt til ${invoice.customerEmail}`);
+    } catch {
+      setFeedback('E-post kunne ikke sendes — prøv å sende på nytt.');
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <Modal visible={!!invoiceId} transparent animationType="slide" onRequestClose={onClose}>
@@ -206,9 +223,13 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
             {/* Actions */}
             {isAdmin && (
               <View style={styles.actions}>
-                <TouchableOpacity style={styles.smsBtn} onPress={handleSMS}>
-                  <Ionicons name="mail-outline" size={16} color="#2563FF" />
-                  <Text style={styles.smsBtnText}>Send faktura på E-post</Text>
+                <TouchableOpacity style={styles.smsBtn} onPress={handleSendEmail} disabled={sending}>
+                  {sending
+                    ? <ActivityIndicator size="small" color="#2563FF" />
+                    : <Ionicons name="mail-outline" size={16} color="#2563FF" />}
+                  <Text style={styles.smsBtnText}>
+                    {invoice.emailStatus === 'failed' ? 'Send på nytt' : 'Send faktura på E-post'}
+                  </Text>
                 </TouchableOpacity>
 
                 {invoice.status !== 'paid' && (
