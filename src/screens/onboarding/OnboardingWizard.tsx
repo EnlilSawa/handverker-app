@@ -65,7 +65,10 @@ export function OnboardingWizard() {
 
       if (!skipTech && techEmail.trim()) {
         try {
-          await addTechnician(techName.trim(), techEmail.trim(), techPhone.trim());
+          // Onboarding samler ikke inn passord — generer et midlertidig.
+          // Admin kan tilbakestille det fra Team-skjermen før det deles med teknikeren.
+          const tempPassword = `Efero${Math.random().toString(36).slice(2, 10)}!`;
+          await addTechnician(techName.trim(), techEmail.trim(), techPhone.trim(), tempPassword);
         } catch {
           // Invitasjon feilet — ikke kritisk, admin kan legge til tekniker fra teamskjermen
         }

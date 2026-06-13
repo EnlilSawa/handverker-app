@@ -326,7 +326,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
 
               <View style={[styles.infoBox, { backgroundColor: C.cardAlt }]}>
                 <Ionicons name="document-text-outline" size={15} color="#2563FF" />
-                <Text style={styles.infoText}>Faktura genereres automatisk og sendes til kunden</Text>
+                <Text style={styles.modalInfoText}>Faktura genereres automatisk og sendes til kunden</Text>
               </View>
 
               <TouchableOpacity
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 },
   errorText: { fontSize: 13, color: '#DC2626' },
   infoBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, padding: 12 },
-  infoText: { fontSize: 13, color: '#2563FF', flex: 1 },
+  modalInfoText: { fontSize: 13, color: '#2563FF', flex: 1 },
   confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, backgroundColor: '#2563FF', borderRadius: 10 },
   confirmBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });
