@@ -118,11 +118,18 @@ export function RootNavigator() {
     );
   }
 
-  // ── Ny bruker uten firma → onboarding-wizard ──────────────────────────────
-  // Nye brukere får role='technician' fra triggeren som standard — vi sjekker
-  // companyId (fra profilen) i tillegg til company (lastet objekt) for å unngå
-  // at teknikere med firma havner her ved midlertidig lastingsfeil.
-  if (!company && !companyId) {
+  // ── Onboarding-veiviser ────────────────────────────────────────────────────
+  // Vises i to tilfeller:
+  //   (a) fersk påmelding uten firma ennå (ny bruker får role='technician' fra
+  //       triggeren som standard — vi sjekker companyId i tillegg til company for
+  //       å unngå at teknikere med firma havner her ved midlertidig lastingsfeil), og
+  //   (b) admin som har opprettet firma, men ikke fullført veiviseren
+  //       (onboarding_completed = false) — f.eks. lukket appen før suksess-steget.
+  // Teknikere får ALDRI veiviseren, selv om admins firma er midt i onboarding.
+  const isFreshSignup = !company && !companyId;
+  const isAdminMidOnboarding =
+    !!company && company.onboardingCompleted === false && currentUser.role === 'admin';
+  if (isFreshSignup || isAdminMidOnboarding) {
     return <OnboardingWizard />;
   }
 

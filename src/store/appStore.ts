@@ -170,6 +170,7 @@ interface AppState {
     name: string; orgNumber: string; address: string;
     hourlyRate: number; calloutFee: number; paymentTermsDays: number;
   }) => Promise<void>;
+  completeOnboarding: () => Promise<void>;
   createStripeCheckout: () => Promise<string>;
 
   addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -298,6 +299,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (e) {
       console.warn('Velkomst-e-post feilet:', e);
     }
+  },
+
+  completeOnboarding: async () => {
+    const { error } = await supabase.rpc('complete_onboarding');
+    if (error) throw new Error(error.message);
+    set((state) => ({
+      company: state.company ? { ...state.company, onboardingCompleted: true } : state.company,
+    }));
   },
 
   createStripeCheckout: async () => {
