@@ -377,9 +377,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       role: profileData.role,
     };
 
-    set({ currentUser, companyId: profileData.company_id });
-
-    // Company
+    // Company hentes FØR vi setter state, slik at currentUser/companyId/company
+    // settes atomisk i ett set(). Ellers finnes et mellomrender der companyId er
+    // satt men company=null — som får RootNavigator-gaten til å bytte til
+    // AdminNavigator et øyeblikk og unmounte onboarding-veiviseren (som da mister
+    // suksess-steget og resettes til steg 1).
+    let company = null;
     if (profileData.company_id) {
       const { data: companyData } = await supabase
         .from('companies')
@@ -387,8 +390,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         .eq('id', profileData.company_id)
         .single();
 
-      if (companyData) set({ company: mapCompany(companyData) });
+      if (companyData) company = mapCompany(companyData);
     }
+
+    set({ currentUser, companyId: profileData.company_id, company });
 
     // Jobs (RLS filters automatically: admin sees all, technician sees own)
     const { data: jobsData } = await supabase
