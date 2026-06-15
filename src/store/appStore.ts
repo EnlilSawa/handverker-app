@@ -204,6 +204,7 @@ interface AppState {
 
   loadCustomers: () => Promise<void>;
   createCustomer: (name: string, phone?: string, address?: string, email?: string) => Promise<Customer>;
+  updateCustomer: (id: string, updates: { name?: string; phone?: string; email?: string; address?: string }) => Promise<void>;
   getOrCreateCustomer: (name: string, phone?: string, address?: string) => Promise<string | null>;
 
   loadNotifications: () => Promise<void>;
@@ -568,6 +569,33 @@ export const useAppStore = create<AppState>((set, get) => ({
     const customer = mapCustomer(data);
     set((state) => ({ customers: [...state.customers, customer].sort((a, b) => a.name.localeCompare(b.name)) }));
     return customer;
+  },
+
+  updateCustomer: async (id, updates) => {
+    const patch: Record<string, string | null> = {};
+    if (updates.name !== undefined) patch.name = updates.name.trim();
+    if (updates.phone !== undefined) patch.phone = updates.phone.trim() || null;
+    if (updates.email !== undefined) patch.email = updates.email.trim() || null;
+    if (updates.address !== undefined) patch.address = updates.address.trim() || null;
+
+    const { error } = await supabase.from('customers').update(patch).eq('id', id);
+    if (error) throw new Error(error.message);
+
+    set((state) => ({
+      customers: state.customers
+        .map((c) =>
+          c.id === id
+            ? {
+                ...c,
+                ...(updates.name !== undefined && { name: updates.name.trim() }),
+                ...(updates.phone !== undefined && { phone: updates.phone.trim() || null }),
+                ...(updates.email !== undefined && { email: updates.email.trim() || null }),
+                ...(updates.address !== undefined && { address: updates.address.trim() || null }),
+              }
+            : c
+        )
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }));
   },
 
   getOrCreateCustomer: async (name, phone, address) => {
