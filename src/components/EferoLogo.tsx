@@ -1,12 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
+
+// Samme logobilder som efero-web (public/images) — sikrer identisk logo i app og nettside.
+const ICON = require('../../assets/logo-icon.png'); // 53×48
+const TEXT = require('../../assets/logo-text.png'); // 140×44
+const ICON_RATIO = 53 / 48;
+const TEXT_RATIO = 140 / 44;
 
 interface EferoLogoProps {
   /** Color of the "Efero" wordmark. Default: navy #0A1B33 */
   textColor?: string;
-  /** Color of the 3-line E icon. Default: #2563FF */
+  /** Color of the 3-line E icon. Default: Electric Blue #2563FF */
   lineColor?: string;
-  /** Font size of "Efero". Determines icon scale. Default: 20 */
+  /** Visual height-scale of the logo. Default: 20 */
   size?: number;
 }
 
@@ -15,26 +21,29 @@ export function EferoLogo({
   lineColor = '#2563FF',
   size = 20,
 }: EferoLogoProps) {
-  const lh = Math.max(3, Math.round(size * 0.18));   // line height
-  const lw = Math.round(size * 1.0);                 // full line width
-  const mw = Math.round(lw * 0.72);                  // mid line (shorter)
-  const gap = Math.max(2, Math.round(lh * 0.7));     // gap between lines
-  const iconH = lh * 3 + gap * 2;                    // total icon height
+  const h = Math.round(size * 1.05); // felles bildehøyde
+  const gap = Math.round(size * 0.42);
 
   return (
-    <View style={styles.row}>
-      <View style={[styles.icon, { width: lw, height: iconH, justifyContent: 'space-between' }]}>
-        <View style={{ width: lw, height: lh, backgroundColor: lineColor, transform: [{ skewX: '-20deg' }] }} />
-        <View style={{ width: mw, height: lh, backgroundColor: lineColor }} />
-        <View style={{ width: lw, height: lh, backgroundColor: lineColor, transform: [{ skewX: '20deg' }] }} />
-      </View>
-      <Text style={[styles.wordmark, { color: textColor, fontSize: size }]}>Efero</Text>
+    <View
+      style={[styles.row, { gap }]}
+      accessibilityRole="image"
+      accessibilityLabel="Efero logo"
+    >
+      <Image
+        source={ICON}
+        resizeMode="contain"
+        style={{ height: h, width: Math.round(h * ICON_RATIO), tintColor: lineColor }}
+      />
+      <Image
+        source={TEXT}
+        resizeMode="contain"
+        style={{ height: h, width: Math.round(h * TEXT_RATIO), tintColor: textColor }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  icon: {},
-  wordmark: { fontWeight: '600', letterSpacing: -0.3 },
+  row: { flexDirection: 'row', alignItems: 'center' },
 });
