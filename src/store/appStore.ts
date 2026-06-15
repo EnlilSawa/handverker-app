@@ -179,7 +179,7 @@ interface AppState {
 
   generateInvoice: (jobId: string, hours: number, materials: number, note?: string, extraLines?: { description: string; amount: number }[]) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
-  sendInvoiceEmail: (invoiceId: string) => Promise<void>;
+  sendInvoiceEmail: (invoiceId: string) => Promise<string>;
   sendWelcomeEmail: (to: string, name: string, companyName: string) => Promise<void>;
 
   updateCompany: (updates: Partial<Company>) => Promise<void>;
@@ -779,13 +779,35 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   sendInvoiceEmail: async (invoiceId) => {
-    const { invoices, company } = get();
+    const { invoices, company, jobs, customers } = get();
     const invoice = invoices.find((i) => i.id === invoiceId);
     if (!invoice) throw new Error('Faktura ikke funnet');
-    if (!invoice.customerEmail) throw new Error('Kunden har ingen e-postadresse');
+
+    // Mottaker = kundens NÅVÆRENDE e-post (kunden kan ha fått e-post lagt til etter
+    // at fakturaen ble generert). Jobb → customer_id (eller telefon-match) → customers.email.
+    const job = jobs.find((j) => j.id === invoice.jobId);
+    const cust = job
+      ? customers.find(
+          (c) =>
+            (job.customerId && c.id === job.customerId) ||
+            (job.customerPhone && c.phone === job.customerPhone),
+        )
+      : undefined;
+    const to = cust?.email || invoice.customerEmail || null;
+    if (!to) throw new Error('Kunden har ingen e-postadresse. Legg den til på kunden først.');
+
+    // Synk fakturaens mottaker i DB — edge-funksjonen sender til invoice.customer_email.
+    if (to !== invoice.customerEmail) {
+      await supabase.from('invoices').update({ customer_email: to }).eq('id', invoiceId);
+      set((state) => ({
+        invoices: state.invoices.map((inv) =>
+          inv.id === invoiceId ? { ...inv, customerEmail: to } : inv,
+        ),
+      }));
+    }
 
     try {
-      const pdfBase64 = await generateInvoicePdfBase64(invoice, company);
+      const pdfBase64 = await generateInvoicePdfBase64({ ...invoice, customerEmail: to }, company);
       const { error } = await supabase.functions.invoke('send-invoice-email', {
         body: { invoiceId, pdfBase64 },
       });
@@ -797,6 +819,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           inv.id === invoiceId ? { ...inv, emailStatus: 'sent' } : inv,
         ),
       }));
+      return to;
     } catch (e) {
       await supabase.from('invoices').update({ email_status: 'failed' }).eq('id', invoiceId);
       set((state) => ({

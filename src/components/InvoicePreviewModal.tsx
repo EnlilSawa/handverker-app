@@ -70,17 +70,13 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
   };
 
   const handleSendEmail = async () => {
-    if (!invoice.customerEmail) {
-      setFeedback('Kunden har ingen e-postadresse. Legg den til på kunden først.');
-      return;
-    }
     setSending(true);
     setFeedback('');
     try {
-      await sendInvoiceEmail(invoice.id);
-      setFeedback(`Faktura ${invoice.invoiceNumber} sendt til ${invoice.customerEmail}`);
-    } catch {
-      setFeedback('E-post kunne ikke sendes — prøv å sende på nytt.');
+      const to = await sendInvoiceEmail(invoice.id);
+      setFeedback(`Faktura ${invoice.invoiceNumber} sendt til ${to}`);
+    } catch (e: any) {
+      setFeedback(e?.message ?? 'E-post kunne ikke sendes — prøv å sende på nytt.');
     } finally {
       setSending(false);
     }

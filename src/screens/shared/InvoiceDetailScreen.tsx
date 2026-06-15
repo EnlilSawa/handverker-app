@@ -33,20 +33,15 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
   const isOverdue = invoice.status === 'overdue';
 
   const handleSendEmail = async () => {
-    if (!invoice.customerEmail) {
-      setFeedbackError(true);
-      setFeedback('Kunden har ingen e-postadresse. Legg den til på kunden først.');
-      return;
-    }
     setSending(true);
     setFeedback('');
     try {
-      await sendInvoiceEmail(invoice.id);
+      const to = await sendInvoiceEmail(invoice.id);
       setFeedbackError(false);
-      setFeedback(`Faktura ${invoice.invoiceNumber} sendt til ${invoice.customerEmail}`);
-    } catch {
+      setFeedback(`Faktura ${invoice.invoiceNumber} sendt til ${to}`);
+    } catch (e: any) {
       setFeedbackError(true);
-      setFeedback('E-post kunne ikke sendes — prøv å sende på nytt.');
+      setFeedback(e?.message ?? 'E-post kunne ikke sendes — prøv å sende på nytt.');
     } finally {
       setSending(false);
     }
