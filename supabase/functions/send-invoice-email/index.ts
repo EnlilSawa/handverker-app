@@ -27,6 +27,35 @@ const fmtDate = (s: string) =>
 
 interface LineItem { description: string; amount: number }
 
+// Ren tekst-versjon. Multipart (tekst + HTML) gir lavere spam-score hos Outlook/Gmail.
+function invoiceText(invoice: any, company: any): string {
+  const lines = ((invoice.line_items as LineItem[]) ?? [])
+    .map((li) => `- ${li.description}: ${fmt(li.amount)}`)
+    .join('\n');
+  return [
+    `Faktura ${invoice.invoice_number} fra ${company.name}`,
+    '',
+    `Hei ${invoice.customer_name},`,
+    `Her er faktura ${invoice.invoice_number} fra ${company.name}.`,
+    '',
+    'Spesifikasjon:',
+    lines,
+    '',
+    `Sum eks. MVA: ${fmt(invoice.subtotal_ex_vat)}`,
+    `MVA 25%: ${fmt(invoice.vat)}`,
+    `Totalt inkl. MVA: ${fmt(invoice.total)}`,
+    '',
+    `Forfallsdato: ${fmtDate(invoice.due_date)}`,
+    company.account_number ? `Kontonummer: ${company.account_number}` : '',
+    '',
+    'Fakturaen er også vedlagt som PDF.',
+    '',
+    'Med vennlig hilsen',
+    company.name,
+    company.email || 'kontakt@efero.no',
+  ].join('\n');
+}
+
 function invoiceHtml(invoice: any, company: any): string {
   const lineRows = (invoice.line_items as LineItem[])
     .map(
@@ -123,6 +152,7 @@ Deno.serve(async (req) => {
       to: [invoice.customer_email],
       subject: `Faktura ${invoice.invoice_number} fra ${company.name}`,
       html: invoiceHtml(invoice, company),
+      text: invoiceText(invoice, company),
     };
 
     if (pdfBase64) {
