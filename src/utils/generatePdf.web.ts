@@ -51,6 +51,7 @@ async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPD
   doc.setFontSize(15);
   doc.setTextColor(navy);
   doc.text(invoice.invoiceNumber, rm, y, { align: 'right' });
+  const numberY = y; // posisjon for fakturanummeret — status legges alltid UNDER dette
 
   // Left side: logo (if any) then company name
   if (company?.logoUrl) {
@@ -67,11 +68,11 @@ async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPD
   doc.setTextColor(navy);
   doc.text(company?.name ?? 'Efero', lm, y);
 
-  // Status badge — right side
+  // Status badge — right side, ALLTID under fakturanummeret (unngår overlapp når firma mangler logo)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(gray);
-  doc.text(STATUS_LABEL[invoice.status] ?? invoice.status, rm, y, { align: 'right' });
+  doc.text(STATUS_LABEL[invoice.status] ?? invoice.status, rm, numberY + 6, { align: 'right' });
 
   // Org.nr and address — same spacing as between other lines
   y += 6;
