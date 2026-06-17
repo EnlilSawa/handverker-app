@@ -135,14 +135,41 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
+    // ── Autorisasjon ──────────────────────────────────────────────────────────
+    // Funksjonen bruker service-role-nøkkelen og handler på en klient-oppgitt
+    // invoiceId. Uten denne sjekken kunne hvem som helst med anon-nøkkelen sende
+    // en hvilken som helst bedrifts faktura. Krev derfor gyldig JWT, og at
+    // kalleren er ADMIN i SAMME firma som fakturaen tilhører.
+    const jwt = req.headers.get('Authorization')?.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt!);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Ikke autentisert' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { data: invoice } = await supabase
       .from('invoices').select('*').eq('id', invoiceId).single();
     if (!invoice) throw new Error('Faktura ikke funnet');
+
+    const { data: profile } = await supabase
+      .from('profiles').select('role, company_id').eq('id', user.id).single();
+    if (!profile || profile.role !== 'admin' || profile.company_id !== invoice.company_id) {
+      return new Response(JSON.stringify({ error: 'Ikke autorisert for denne fakturaen' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!invoice.customer_email) throw new Error('Kunden har ingen e-postadresse');
 
     const { data: company } = await supabase
       .from('companies').select('*').eq('id', invoice.company_id).single();
     if (!company) throw new Error('Firma ikke funnet');
+
+    // TODO (sikkerhet/integritet): generer fakturaens PDF server-side fra raden
+    // (invoice + company) i stedet for å stole på klient-oppgitt pdfBase64, slik at
+    // vedlegget garantert matcher den lagrede fakturaen. Inntil da: vedlegget brukes
+    // kun hvis det er oppgitt, og autz-sjekken over hindrer uvedkommende utsendelse.
 
     const replyTo = company.email || 'kontakt@efero.no';
 

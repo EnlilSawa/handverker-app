@@ -180,7 +180,7 @@ interface AppState {
   generateInvoice: (jobId: string, hours: number, materials: number, note?: string, extraLines?: { description: string; amount: number }[]) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
   sendInvoiceEmail: (invoiceId: string) => Promise<string>;
-  sendWelcomeEmail: (to: string, name: string, companyName: string) => Promise<void>;
+  sendWelcomeEmail: () => Promise<void>;
 
   updateCompany: (updates: Partial<Company>) => Promise<void>;
   uploadCompanyLogo: (uri: string, mimeType: string) => Promise<void>;
@@ -287,19 +287,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (error) throw new Error(error.message);
     await get().loadData();
 
-    // Velkomst-e-post (ikke-blokkerende — onboarding fullføres uansett om e-post feiler)
-    try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser?.email) {
-        get().sendWelcomeEmail(
-          authUser.email,
-          (authUser.user_metadata?.name as string) ?? '',
-          data.name,
-        ).catch((e) => console.warn('Velkomst-e-post feilet:', e));
-      }
-    } catch (e) {
-      console.warn('Velkomst-e-post feilet:', e);
-    }
+    // Velkomst-e-post (ikke-blokkerende — onboarding fullføres uansett om e-post feiler).
+    // Mottaker/bedrift utledes server-side fra JWT-en; ingen klient-oppgitte felter.
+    get().sendWelcomeEmail().catch((e) => console.warn('Velkomst-e-post feilet:', e));
   },
 
   completeOnboarding: async () => {
@@ -831,10 +821,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  sendWelcomeEmail: async (to, name, companyName) => {
-    const { error } = await supabase.functions.invoke('send-welcome-email', {
-      body: { to, name, companyName },
-    });
+  sendWelcomeEmail: async () => {
+    // Ingen body — edge-funksjonen utleder mottaker/bedrift fra JWT-en (sendes
+    // automatisk av supabase.functions.invoke) server-side.
+    const { error } = await supabase.functions.invoke('send-welcome-email', { body: {} });
     if (error) throw new Error(error.message);
   },
 

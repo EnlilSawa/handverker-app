@@ -2,13 +2,20 @@
 // Sendes når en ny bedrift har fullført onboarding (setup_company).
 // Deploy: supabase functions deploy send-welcome-email
 // Secrets: supabase secrets set RESEND_API_KEY=re_xxxxxx
+//          supabase secrets set SUPABASE_URL=https://xxx.supabase.co
+//          supabase secrets set SUPABASE_SERVICE_ROLE_KEY=eyJxxx
 //
-// Input (JSON): { to: string, name: string, companyName: string }
-//   to          = den nye brukerens e-postadresse
-//   name        = brukerens navn
-//   companyName = bedriftsnavn
+// Input (JSON): {} — INGEN klient-oppgitt mottaker/bedrift lenger.
+//   Krever Authorization: Bearer <JWT>. Mottaker og bedriftsnavn utledes
+//   SERVER-SIDE fra den innloggede brukerens egen profil + firma.
+//
+// SIKKERHET: Tidligere tok funksjonen { to, name, companyName } fra body uten
+// autentisering — en åpen relé som kunne sende fra efero.no til hvilken som helst
+// adresse. Nå sendes det kun til kallerens egen e-post / eget bedriftsnavn.
 //
 // Avsenderdomenet efero.no MÅ være verifisert i Resend.
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,8 +69,48 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { to, name, companyName } = await req.json();
-    if (!to || !companyName) throw new Error('Mangler to eller companyName');
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    // 1. Krev gyldig innlogget bruker (samme mønster som invite-technician).
+    const jwt = req.headers.get('Authorization')?.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt!);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Ikke autentisert' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 2. Hent kallerens egen profil + firma server-side. Vi stoler ALDRI på body.
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('name, company_id')
+      .eq('id', user.id)
+      .single();
+    if (profileError || !profile) {
+      return new Response(JSON.stringify({ error: 'Profil ikke funnet' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { data: company } = profile.company_id
+      ? await supabaseAdmin.from('companies').select('name').eq('id', profile.company_id).single()
+      : { data: null };
+    if (!company) {
+      return new Response(JSON.stringify({ error: 'Bedrift ikke funnet' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 3. Send KUN til kallerens egen e-post / eget bedriftsnavn.
+    const to = user.email!;
+    const name = profile.name ?? '';
+    const companyName = company.name;
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -75,7 +122,7 @@ Deno.serve(async (req) => {
         from: 'Efero <kontakt@efero.no>',
         to: [to],
         subject: 'Velkommen til Efero!',
-        html: welcomeHtml(name ?? '', companyName),
+        html: welcomeHtml(name, companyName),
       }),
     });
 

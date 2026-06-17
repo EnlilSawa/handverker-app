@@ -16,15 +16,37 @@ Deno.serve(async (req) => {
 
   try {
     const { quoteId } = await req.json();
+    if (!quoteId) throw new Error('Mangler quoteId');
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Fetch quote + company
+    // ── Autorisasjon ──────────────────────────────────────────────────────────
+    // Krev gyldig JWT, og at kalleren er ADMIN i SAMME firma som tilbudet.
+    const jwt = req.headers.get('Authorization')?.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt!);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Ikke autentisert' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Fetch quote (sjekk eksistens FØR vi bruker quote.company_id)
     const { data: quote } = await supabase.from('quotes').select('*').eq('id', quoteId).single();
+    if (!quote) throw new Error('Tilbud ikke funnet');
+
+    const { data: profile } = await supabase
+      .from('profiles').select('role, company_id').eq('id', user.id).single();
+    if (!profile || profile.role !== 'admin' || profile.company_id !== quote.company_id) {
+      return new Response(JSON.stringify({ error: 'Ikke autorisert for dette tilbudet' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { data: company } = await supabase.from('companies').select('*').eq('id', quote.company_id).single();
-    if (!quote || !company) throw new Error('Tilbud eller firma ikke funnet');
+    if (!company) throw new Error('Firma ikke funnet');
 
     const approvalUrl = `${Deno.env.get('APP_URL') ?? 'https://efero.app'}/tilbud/${quoteId}`;
     const validDate = new Date(quote.valid_until).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' });
