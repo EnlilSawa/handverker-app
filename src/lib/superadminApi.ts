@@ -1,0 +1,202 @@
+import { supabase } from './supabase';
+
+// ── Superadmin-gate (klient) ─────────────────────────────────────────────────
+// Styrer KUN om "Admin"-lenken/siden vises. Reell tilgang håndheves server-side
+// av is_superadmin() inni hver RPC (se supabase/migration_v17.sql).
+export const SUPERADMIN_EMAIL = (process.env.EXPO_PUBLIC_SUPERADMIN_EMAIL ?? '')
+  .toLowerCase()
+  .trim();
+
+export function isSuperadminEmail(email?: string | null): boolean {
+  if (!SUPERADMIN_EMAIL || !email) return false;
+  return email.toLowerCase().trim() === SUPERADMIN_EMAIL;
+}
+
+// ── Typer ────────────────────────────────────────────────────────────────────
+export type BillingStatus = 'ikke_fakturert' | 'fakturert' | 'betalt';
+export type Plan = 'liten' | 'middels' | 'stor';
+export type SubStatus = 'trial' | 'active' | 'expired' | 'canceled';
+
+export interface SuperadminMetrics {
+  activeCount: number;
+  trialCount: number;
+  canceledCount: number;
+  mrr: number;
+}
+
+export interface SuperadminCompany {
+  id: string;
+  name: string;
+  orgNumber: string | null;
+  contactPerson: string | null;
+  contactEmail: string | null;
+  plan: Plan | null;
+  monthlyAmount: number;
+  subscriptionStatus: SubStatus;
+  billingStatus: BillingStatus;
+  createdAt: string;
+  trialEndsAt: string | null;
+  nextInvoiceDate: string | null;
+  lastInvoicedDate: string | null;
+  lastPaidDate: string | null;
+  technicianCount: number;
+  adminCount: number;
+  jobCount: number;
+  invoiceCount: number;
+}
+
+// ── Etiketter / standardpriser (samsvarer med efero.app/priser) ──────────────
+export const PLAN_LABELS: Record<Plan, string> = {
+  liten: 'Liten',
+  middels: 'Middels',
+  stor: 'Stor',
+};
+
+export const PLAN_PRICES: Record<Plan, number> = {
+  liten: 399,
+  middels: 899,
+  stor: 1499,
+};
+
+export const SUB_STATUS_LABELS: Record<SubStatus, string> = {
+  trial: 'Prøveperiode',
+  active: 'Aktiv',
+  expired: 'Utløpt',
+  canceled: 'Sagt opp',
+};
+
+export const BILLING_LABELS: Record<BillingStatus, string> = {
+  ikke_fakturert: 'Ikke fakturert',
+  fakturert: 'Fakturert',
+  betalt: 'Betalt',
+};
+
+// ── Mappere ──────────────────────────────────────────────────────────────────
+function mapCompany(row: any): SuperadminCompany {
+  return {
+    id: row.id,
+    name: row.name,
+    orgNumber: row.org_number ?? null,
+    contactPerson: row.contact_person ?? null,
+    contactEmail: row.contact_email ?? null,
+    plan: (row.subscription_plan ?? null) as Plan | null,
+    monthlyAmount: Number(row.monthly_amount ?? 0),
+    subscriptionStatus: (row.subscription_status ?? 'trial') as SubStatus,
+    billingStatus: (row.billing_status ?? 'ikke_fakturert') as BillingStatus,
+    createdAt: row.created_at,
+    trialEndsAt: row.trial_ends_at ?? null,
+    nextInvoiceDate: row.next_invoice_date ?? null,
+    lastInvoicedDate: row.last_invoiced_date ?? null,
+    lastPaidDate: row.last_paid_date ?? null,
+    technicianCount: Number(row.technician_count ?? 0),
+    adminCount: Number(row.admin_count ?? 0),
+    jobCount: Number(row.job_count ?? 0),
+    invoiceCount: Number(row.invoice_count ?? 0),
+  };
+}
+
+// ── RPC-innpakkere ───────────────────────────────────────────────────────────
+export async function fetchMetrics(): Promise<SuperadminMetrics> {
+  const { data, error } = await supabase.rpc('superadmin_metrics');
+  if (error) throw new Error(error.message);
+  return {
+    activeCount: Number(data?.active_count ?? 0),
+    trialCount: Number(data?.trial_count ?? 0),
+    canceledCount: Number(data?.canceled_count ?? 0),
+    mrr: Number(data?.mrr ?? 0),
+  };
+}
+
+export async function fetchCompanies(): Promise<SuperadminCompany[]> {
+  const { data, error } = await supabase.rpc('superadmin_companies');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as any[]).map(mapCompany);
+}
+
+export async function setBillingStatus(
+  companyId: string,
+  status: BillingStatus,
+): Promise<void> {
+  const { error } = await supabase.rpc('superadmin_set_billing_status', {
+    p_company_id: companyId,
+    p_status: status,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export interface UpdateCompanyPatch {
+  plan?: Plan;
+  monthlyAmount?: number;
+  subscriptionStatus?: SubStatus;
+  extendTrialDays?: number;
+  nextInvoiceDate?: string;
+}
+
+export async function updateCompany(
+  companyId: string,
+  patch: UpdateCompanyPatch,
+): Promise<void> {
+  const { error } = await supabase.rpc('superadmin_update_company', {
+    p_company_id: companyId,
+    p_plan: patch.plan ?? null,
+    p_monthly_amount: patch.monthlyAmount ?? null,
+    p_subscription_status: patch.subscriptionStatus ?? null,
+    p_extend_trial_days: patch.extendTrialDays ?? null,
+    p_next_invoice_date: patch.nextInvoiceDate ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+// ── CSV-eksport (web) ────────────────────────────────────────────────────────
+export function companiesToCsv(rows: SuperadminCompany[]): string {
+  const header = [
+    'Bedriftsnavn',
+    'Org.nr',
+    'Kontaktperson',
+    'E-post',
+    'Pakke',
+    'Beløp (kr/mnd)',
+    'Abonnement',
+    'Faktureringsstatus',
+    'Faktureringsdato',
+    'Sist fakturert',
+    'Sist betalt',
+  ];
+  const esc = (val: string | number | null | undefined): string => {
+    const s = val == null ? '' : String(val);
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = rows.map((c) =>
+    [
+      c.name,
+      c.orgNumber,
+      c.contactPerson,
+      c.contactEmail,
+      c.plan ? PLAN_LABELS[c.plan] : '',
+      c.monthlyAmount,
+      SUB_STATUS_LABELS[c.subscriptionStatus],
+      BILLING_LABELS[c.billingStatus],
+      c.nextInvoiceDate ?? '',
+      c.lastInvoicedDate ?? '',
+      c.lastPaidDate ?? '',
+    ]
+      .map(esc)
+      .join(';'),
+  );
+  // Semikolon-separert + BOM → åpner rett i norsk Excel.
+  return '﻿' + [header.join(';'), ...lines].join('\r\n');
+}
+
+export function downloadCsv(filename: string, csv: string): boolean {
+  if (typeof document === 'undefined') return false; // ikke web
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+}

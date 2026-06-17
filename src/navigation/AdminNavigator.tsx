@@ -22,6 +22,8 @@ import { CustomersScreen } from '../screens/admin/CustomersScreen';
 import { CustomerDetailScreen } from '../screens/admin/CustomerDetailScreen';
 import { useAppStore } from '../store/appStore';
 import { NotificationBell } from '../components/NotificationBell';
+import { SuperadminNavigator } from './SuperadminNavigator';
+import { isSuperadminEmail } from '../lib/superadminApi';
 
 const Tab = createBottomTabNavigator();
 const JobsStack = createNativeStackNavigator();
@@ -92,10 +94,16 @@ const NAV_ITEMS = [
   { name: 'Innstillinger', label: 'Innstillinger', icon: 'settings-outline' as const },
 ];
 
-function AdminSidebar({ activeTab, onNavigate }: { activeTab: string; onNavigate: (tab: string) => void }) {
+const SUPERADMIN_ITEM = { name: 'Superadmin', label: 'Admin', icon: 'shield-checkmark-outline' as const };
+
+function AdminSidebar({ activeTab, onNavigate, showSuperadmin }: { activeTab: string; onNavigate: (tab: string) => void; showSuperadmin: boolean }) {
   const logout = useAppStore((s) => s.logout);
   const setPendingInvoicePreview = useAppStore((s) => s.setPendingInvoicePreview);
   const { isDark, toggleTheme } = useTheme();
+
+  // Kun Efero-eieren ser "Admin"-lenken. (Reell tilgang håndheves uansett av
+  // is_superadmin() server-side i hver superadmin-RPC.)
+  const navItems = showSuperadmin ? [...NAV_ITEMS, SUPERADMIN_ITEM] : NAV_ITEMS;
 
   const handleBellNavigate = (invoiceId: string) => {
     setPendingInvoicePreview(invoiceId);
@@ -112,7 +120,7 @@ function AdminSidebar({ activeTab, onNavigate }: { activeTab: string; onNavigate
 
       {/* Nav items */}
       <View style={sidebar.nav}>
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive = activeTab === item.name;
           return (
             <TouchableOpacity
@@ -206,10 +214,17 @@ const sidebar = StyleSheet.create({
 function AdminWebLayout() {
   const [activeTab, setActiveTab] = useState('Jobber');
   const { pageBg } = useTheme();
+  const currentUser = useAppStore((s) => s.currentUser);
+  const isSuper = isSuperadminEmail(currentUser?.email);
+
+  // Guard: ikke-superadmin som havner på Superadmin-fanen sendes til Jobbtavlen.
+  React.useEffect(() => {
+    if (activeTab === 'Superadmin' && !isSuper) setActiveTab('Jobber');
+  }, [activeTab, isSuper]);
 
   return (
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#0A1B33' }}>
-      <AdminSidebar activeTab={activeTab} onNavigate={setActiveTab} />
+      <AdminSidebar activeTab={activeTab} onNavigate={setActiveTab} showSuperadmin={isSuper} />
       <View style={{ flex: 1, backgroundColor: pageBg, overflow: 'hidden' }}>
         {activeTab === 'Jobber' && <JobsStackNavigator />}
         {activeTab === 'Tilbud' && <QuotesStackNavigator />}
@@ -219,6 +234,7 @@ function AdminWebLayout() {
         {activeTab === 'Arkiv' && <ArchiveStackNavigator />}
         {activeTab === 'Statistikk' && <StatisticsScreen />}
         {activeTab === 'Innstillinger' && <SettingsScreen />}
+        {activeTab === 'Superadmin' && isSuper && <SuperadminNavigator />}
       </View>
     </View>
   );
@@ -227,6 +243,9 @@ function AdminWebLayout() {
 // ─── Mobile layout (bottom tabs) ─────────────────────────────────────────────
 
 function AdminMobileLayout() {
+  const currentUser = useAppStore((s) => s.currentUser);
+  const isSuper = isSuperadminEmail(currentUser?.email);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -251,6 +270,7 @@ function AdminMobileLayout() {
             Arkiv: 'archive-outline',
             Statistikk: 'bar-chart-outline',
             Innstillinger: 'settings-outline',
+            Superadmin: 'shield-checkmark-outline',
           };
           return <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={22} color={color} />;
         },
@@ -264,6 +284,9 @@ function AdminMobileLayout() {
       <Tab.Screen name="Arkiv" component={ArchiveStackNavigator} />
       <Tab.Screen name="Statistikk" component={StatisticsScreen} />
       <Tab.Screen name="Innstillinger" component={SettingsScreen} />
+      {isSuper && (
+        <Tab.Screen name="Superadmin" component={SuperadminNavigator} options={{ title: 'Admin' }} />
+      )}
     </Tab.Navigator>
   );
 }
