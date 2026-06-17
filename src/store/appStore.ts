@@ -309,27 +309,36 @@ export const useAppStore = create<AppState>((set, get) => ({
   login: async (emailOrPhone, password) => {
     set({ loading: true });
     try {
-      let email = emailOrPhone.trim();
+      const input = emailOrPhone.trim();
+      let candidates: string[];
 
-      // Phone number → look up email via DB function
-      if (/^\+?[\d\s]+$/.test(email) && !email.includes('@')) {
-        const { data: foundEmail } = await supabase.rpc('get_email_by_phone', {
-          p_phone: email.replace(/\s/g, ''),
+      // Telefon-innlogging: ett nummer kan tilhøre flere kontoer (f.eks. admin +
+      // tekniker med samme nummer). Hent ALLE matchende e-poster (teknikere først)
+      // og prøv hver med passordet — passordet avgjør riktig konto.
+      if (/^\+?[\d\s]+$/.test(input) && !input.includes('@')) {
+        const { data } = await supabase.rpc('get_emails_by_phone', {
+          p_phone: input.replace(/\s/g, ''),
         });
-        if (!foundEmail) { set({ loading: false }); return false; }
-        email = foundEmail;
+        candidates = (Array.isArray(data) ? data : data ? [data] : []).filter(Boolean) as string[];
+        if (!candidates.length) { set({ loading: false }); return false; }
+      } else {
+        candidates = [input];
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase(),
-        password,
-      });
+      for (const candidate of candidates) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: candidate.toLowerCase(),
+          password,
+        });
+        if (!error) {
+          await get().loadData();
+          set({ loading: false });
+          return true;
+        }
+      }
 
-      if (error) { set({ loading: false }); return false; }
-
-      await get().loadData();
       set({ loading: false });
-      return true;
+      return false;
     } catch {
       set({ loading: false });
       return false;
