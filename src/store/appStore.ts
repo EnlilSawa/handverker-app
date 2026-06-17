@@ -173,7 +173,7 @@ interface AppState {
   completeOnboarding: () => Promise<void>;
   createStripeCheckout: () => Promise<string>;
 
-  addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>, customerEmail?: string) => Promise<void>;
   updateJobStatus: (jobId: string, status: JobStatus, hours?: number, materials?: number) => Promise<void>;
   assignTechnician: (jobId: string, technicianId: string | null, technicianName: string | null) => Promise<void>;
 
@@ -205,7 +205,7 @@ interface AppState {
   loadCustomers: () => Promise<void>;
   createCustomer: (name: string, phone?: string, address?: string, email?: string) => Promise<Customer>;
   updateCustomer: (id: string, updates: { name?: string; phone?: string; email?: string; address?: string }) => Promise<void>;
-  getOrCreateCustomer: (name: string, phone?: string, address?: string) => Promise<string | null>;
+  getOrCreateCustomer: (name: string, phone?: string, address?: string, email?: string) => Promise<string | null>;
 
   loadNotifications: () => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
@@ -523,7 +523,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       assignedTechnicianName: null,
       scheduledAt: new Date().toISOString(),
       status: 'new',
-    });
+    }, quote.customerEmail ?? undefined);
     // Find the newly created job (last in list)
     const { jobs } = get();
     const newJob = jobs[jobs.length - 1];
@@ -597,12 +597,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  getOrCreateCustomer: async (name, phone, address) => {
+  getOrCreateCustomer: async (name, phone, address, email) => {
     const { companyId, customers } = get();
     if (!companyId) return null;
     // Match by phone first, then by name
     const normalPhone = phone?.trim();
     const normalName = name?.trim();
+    const normalEmail = email?.trim() || undefined;
     let existing = normalPhone
       ? customers.find((c) => c.phone === normalPhone)
       : customers.find((c) => c.name.toLowerCase() === normalName?.toLowerCase());
@@ -616,21 +617,29 @@ export const useAppStore = create<AppState>((set, get) => ({
         .maybeSingle();
       if (data) existing = mapCustomer(data);
     }
-    if (existing) return existing.id;
+    if (existing) {
+      // Fyll inn e-post på en eksisterende kunde som mangler den (brukes til
+      // faktura-utsending). Overskriver ALDRI en e-post som allerede finnes.
+      if (normalEmail && !existing.email) {
+        try { await get().updateCustomer(existing.id, { email: normalEmail }); } catch {}
+      }
+      return existing.id;
+    }
     // Create new
     try {
-      const customer = await get().createCustomer(normalName ?? '', normalPhone, address);
+      const customer = await get().createCustomer(normalName ?? '', normalPhone, address, normalEmail);
       return customer.id;
     } catch { return null; }
   },
 
-  addJob: async (jobData) => {
+  addJob: async (jobData, customerEmail) => {
     const { companyId } = get();
-    // Auto-create or link customer
+    // Auto-create or link customer (med e-post hvis oppgitt — brukes til faktura)
     const customerId = await get().getOrCreateCustomer(
       jobData.customerName,
       jobData.customerPhone,
-      jobData.address
+      jobData.address,
+      customerEmail,
     );
     const { data, error } = await supabase
       .from('jobs')

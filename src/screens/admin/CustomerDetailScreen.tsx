@@ -126,6 +126,7 @@ export function CustomerDetailScreen({ route, navigation }: any) {
             onPress={() => navigation.navigate('NewJob', {
               prefillName: customer.name,
               prefillPhone: customer.phone ?? '',
+              prefillEmail: customer.email ?? '',
               prefillAddress: customer.address ?? '',
             })}
           >

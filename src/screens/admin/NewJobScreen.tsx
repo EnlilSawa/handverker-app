@@ -22,6 +22,7 @@ export function NewJobScreen({ navigation, route }: any) {
 
   const [customerName, setCustomerName] = useState(prefill.prefillName ?? '');
   const [customerPhone, setCustomerPhone] = useState(prefill.prefillPhone ?? '');
+  const [customerEmail, setCustomerEmail] = useState(prefill.prefillEmail ?? '');
   const [address, setAddress] = useState(prefill.prefillAddress ?? '');
   const [description, setDescription] = useState('');
   const [selectedTech, setSelectedTech] = useState<{ id: string; name: string } | null>(null);
@@ -36,6 +37,10 @@ export function NewJobScreen({ navigation, route }: any) {
     if (!customerName.trim()) { setError('Fyll inn kundenavn'); return; }
     if (!address.trim()) { setError('Fyll inn adresse'); return; }
     if (!description.trim()) { setError('Beskriv jobben'); return; }
+    const trimmedEmail = customerEmail.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Ugyldig e-postadresse'); return;
+    }
     setSaving(true);
     try {
       await addJob({
@@ -46,7 +51,7 @@ export function NewJobScreen({ navigation, route }: any) {
         assignedTechnicianId: selectedTech?.id ?? null,
         assignedTechnicianName: selectedTech?.name ?? null,
         scheduledAt: `${date}T${time}:00`,
-        status: 'new' });
+        status: 'new' }, trimmedEmail || undefined);
       navigation.goBack();
     } catch {
       setError('Kunne ikke lagre jobben. Prøv igjen.');
@@ -75,6 +80,11 @@ export function NewJobScreen({ navigation, route }: any) {
           <View style={styles.field}>
             <FieldLabel>Telefonnummer</FieldLabel>
             <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="92345678" placeholderTextColor="#94A3B8" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" />
+          </View>
+          <View style={styles.field}>
+            <FieldLabel>E-post</FieldLabel>
+            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="per@epost.no" placeholderTextColor="#94A3B8" value={customerEmail} onChangeText={setCustomerEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+            <Text style={[styles.hint, { color: C.textTertiary }]}>Brukes til å sende faktura på e-post</Text>
           </View>
           <View style={styles.field}>
             <FieldLabel>Adresse *</FieldLabel>
@@ -187,6 +197,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
   field: { gap: 6 },
   fieldLabel: { fontSize: 13, fontWeight: '500' },
+  hint: { fontSize: 12, marginTop: 2 },
   input: {
     height: 48,
     borderWidth: 1,
