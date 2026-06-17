@@ -139,7 +139,13 @@ Deno.serve(async (req) => {
     // Funksjonen bruker service-role-nøkkelen og handler på en klient-oppgitt
     // invoiceId. Uten denne sjekken kunne hvem som helst med anon-nøkkelen sende
     // en hvilken som helst bedrifts faktura. Krev derfor gyldig JWT, og at
-    // kalleren er ADMIN i SAMME firma som fakturaen tilhører.
+    // kalleren tilhører SAMME firma som fakturaen.
+    //
+    // Merk: HVILKEN SOM HELST rolle i firmaet (ikke kun admin). Teknikere utløser
+    // denne e-posten automatisk: når en tekniker markerer en jobb som ferdig,
+    // kaller generateInvoice() → sendInvoiceEmail(). Admin-only ga 403 og kundens
+    // faktura-e-post ble stille hoppet over. (send-quote-email er fortsatt
+    // admin-only — kun admins lager tilbud.)
     const jwt = req.headers.get('Authorization')?.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(jwt!);
     if (authError || !user) {
@@ -153,8 +159,8 @@ Deno.serve(async (req) => {
     if (!invoice) throw new Error('Faktura ikke funnet');
 
     const { data: profile } = await supabase
-      .from('profiles').select('role, company_id').eq('id', user.id).single();
-    if (!profile || profile.role !== 'admin' || profile.company_id !== invoice.company_id) {
+      .from('profiles').select('company_id').eq('id', user.id).single();
+    if (!profile || profile.company_id !== invoice.company_id) {
       return new Response(JSON.stringify({ error: 'Ikke autorisert for denne fakturaen' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
