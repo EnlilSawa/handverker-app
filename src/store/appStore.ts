@@ -952,8 +952,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   removeTechnician: async (userId) => {
-    await supabase.from('profiles').delete().eq('id', userId);
-    set((state) => ({ users: state.users.filter((u) => u.id !== userId) }));
+    // Bruker SECURITY DEFINER-RPC: løsner teknikeren fra jobber (FK-trygt), sletter
+    // profil OG auth-bruker atomisk. Tidligere ble feilen fra en direkte
+    // profiles-delete svelget (FK-brudd hvis teknikeren hadde jobber) → raden ble
+    // fjernet lokalt men ikke i DB, og teknikeren kom tilbake ved neste innlogging.
+    const { error } = await supabase.rpc('remove_technician', { p_user_id: userId });
+    if (error) throw new Error(error.message);
+    // Frigjorte jobber speiles lokalt (ellers viser jobbtavlen fortsatt teknikeren).
+    set((state) => ({
+      users: state.users.filter((u) => u.id !== userId),
+      jobs: state.jobs.map((j) =>
+        j.assignedTechnicianId === userId
+          ? { ...j, assignedTechnicianId: null, assignedTechnicianName: null }
+          : j,
+      ),
+    }));
   },
 
   loadNotifications: async () => {

@@ -77,6 +77,11 @@ export function TeamScreen() {
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
 
+  // Remove technician state
+  const [removeTarget, setRemoveTarget] = useState<User | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState('');
+
   const resetForm = () => { setName(''); setEmail(''); setPhone(''); setPassword(''); setAddError(''); };
 
   const handleAdd = async () => {
@@ -92,6 +97,20 @@ export function TeamScreen() {
       setAddError(err.message ?? 'Kunne ikke legge til tekniker');
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!removeTarget) return;
+    setRemoveError('');
+    setRemoving(true);
+    try {
+      await removeTechnician(removeTarget.id);
+      setRemoveTarget(null);
+    } catch (err: any) {
+      setRemoveError(err.message ?? 'Kunne ikke fjerne teknikeren');
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -129,7 +148,7 @@ export function TeamScreen() {
           <TechCard
             user={item}
             index={index}
-            onRemove={() => removeTechnician(item.id)}
+            onRemove={() => { setRemoveTarget(item); setRemoveError(''); }}
             onResetPassword={() => { setResetTarget(item); setResetPw(''); setResetError(''); setResetSuccess(false); setShowResetPw(false); }}
           />
         )}
@@ -280,6 +299,50 @@ export function TeamScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Bekreft fjerning av tekniker */}
+      <Modal visible={!!removeTarget} transparent animationType="fade">
+        <View style={styles.confirmOverlay}>
+          <View style={[styles.confirmCard, { backgroundColor: C.cardBg }]}>
+            <View style={[styles.confirmIcon, { backgroundColor: '#FEF2F2' }]}>
+              <Ionicons name="trash-outline" size={22} color="#DC2626" />
+            </View>
+            <Text style={[styles.confirmTitle, { color: C.textPrimary }]}>
+              Fjerne {removeTarget?.name}?
+            </Text>
+            <Text style={[styles.confirmText, { color: C.textSecondary }]}>
+              Teknikeren mister tilgangen og fjernes permanent. Eventuelle tildelte
+              jobber blir stående, men som «ikke tildelt».
+            </Text>
+
+            {removeError ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{removeError}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.confirmBtnRow}>
+              <TouchableOpacity
+                style={[styles.confirmCancel, { borderColor: C.border }]}
+                onPress={() => setRemoveTarget(null)}
+                disabled={removing}
+              >
+                <Text style={[styles.confirmCancelText, { color: C.textPrimary }]}>Avbryt</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmDelete, removing && { opacity: 0.7 }]}
+                onPress={handleRemove}
+                disabled={removing}
+              >
+                {removing
+                  ? <ActivityIndicator color="#FFFFFF" />
+                  : <Text style={styles.confirmDeleteText}>Fjern</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedScreen>
   );
 }
@@ -379,4 +442,14 @@ const styles = StyleSheet.create({
   eyeBtn: { position: 'absolute', right: 14, top: 16 },
   passwordHint: { fontSize: 12, marginTop: 4 },
   errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 },
-  errorText: { fontSize: 13, color: '#DC2626' } });
+  errorText: { fontSize: 13, color: '#DC2626' },
+  confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  confirmCard: { width: '100%', maxWidth: 380, borderRadius: 16, padding: 24, gap: 12, alignItems: 'center' },
+  confirmIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
+  confirmTitle: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  confirmText: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  confirmBtnRow: { flexDirection: 'row', gap: 12, marginTop: 8, alignSelf: 'stretch' },
+  confirmCancel: { flex: 1, height: 48, borderWidth: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  confirmCancelText: { fontSize: 15, fontWeight: '600' },
+  confirmDelete: { flex: 1, height: 48, backgroundColor: '#DC2626', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  confirmDeleteText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' } });
