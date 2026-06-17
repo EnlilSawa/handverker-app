@@ -50,11 +50,17 @@ BEGIN
     RAISE EXCEPTION 'Teammedlemmet finnes ikke i ditt firma';
   END IF;
 
-  -- 4. Løsne fra jobber (unngår FK-brudd; jobbene beholdes som «ikke tildelt»)
+  -- 4. Løsne fra ALLE jobber som refererer teknikeren (unngår FK-brudd; jobbene
+  --    beholdes som «ikke tildelt»). VIKTIG: ikke filtrer på company_id her —
+  --    historiske data kan ha jobber i et ANNET firma som fortsatt peker på denne
+  --    teknikeren (kryss-firma-tildelinger fra før RLS-fiksen i v16). Filtreres de
+  --    bort, blir referansen stående og DELETE under feiler på FK
+  --    (jobs_assigned_technician_id_fkey). Teknikeren er allerede entydig
+  --    identifisert av p_user_id, og vi har verifisert at de tilhører kallerens
+  --    firma, så det er trygt å nulle ut enhver dinglende referanse.
   UPDATE jobs
     SET assigned_technician_id = NULL
-    WHERE assigned_technician_id = p_user_id
-      AND company_id = v_company_id;
+    WHERE assigned_technician_id = p_user_id;
 
   -- 5. Slett profilen
   DELETE FROM profiles WHERE id = p_user_id;
