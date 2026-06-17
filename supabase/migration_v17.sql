@@ -16,7 +16,7 @@ ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
 
 -- ⚠️ ENDRE denne til DIN e-post (Efero-eierens konto).
 INSERT INTO app_config (key, value)
-VALUES ('superadmin_email', 'enlil.sawa00@gmail.com')
+VALUES ('superadmin_email', 'enlil.sawa@hotmail.com')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- ── 2. Fakturerings-/abonnementskolonner på companies ────────────────────────
