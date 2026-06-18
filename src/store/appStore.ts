@@ -1056,17 +1056,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   loadJobImages: async (jobId) => {
-    const { data, error } = await supabase
-      .from('job_images')
-      .select('*')
-      .eq('job_id', jobId)
-      .order('uploaded_at', { ascending: true });
-    if (!error && data) {
+    // job-images-bucketen er privat (audit #6). Bildene hentes med korttidssignerte
+    // URL-er fra edge-funksjonen `sign-job-images`, som autoriserer på firma og
+    // signerer med service role. (`image_url` i svaret er allerede en signert URL.)
+    const { data, error } = await supabase.functions.invoke('sign-job-images', {
+      body: { jobId },
+    });
+    if (!error && data?.images) {
       set((state) => ({
-        jobImages: { ...state.jobImages, [jobId]: data.map(mapJobImage) },
+        jobImages: { ...state.jobImages, [jobId]: data.images.map(mapJobImage) },
       }));
     }
-    // Silently ignore — table may not exist yet if migration hasn't run
+    // Silently ignore — funksjon/tabell finnes kanskje ikke ennå
   },
 
   uploadJobImage: async (jobId, uri, mimeType, label, note) => {
