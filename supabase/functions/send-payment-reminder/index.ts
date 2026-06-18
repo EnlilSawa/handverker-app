@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
       },
       body: JSON.stringify({
-        from: `${company.name} via Efero <faktura@efero.app>`,
+        from: `${company.name} via Efero <faktura@efero.no>`,
         reply_to: company.email || 'kontakt@efero.no',
         to: [invoice.customer_email],
         subject: `Betalingspåminnelse: Faktura ${invoice.invoice_number} fra ${company.name}`,
