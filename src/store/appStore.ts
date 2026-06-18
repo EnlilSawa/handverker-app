@@ -196,6 +196,8 @@ interface AppState {
     address?: string; description?: string; scheduledAt?: string;
   }) => Promise<void>;
 
+  setJobCustomerEmail: (jobId: string, email: string) => Promise<void>;
+
   loadQuotes: () => Promise<void>;
   createQuote: (data: Omit<Quote, 'id'|'companyId'|'quoteNumber'|'status'|'acceptedByName'|'acceptedAt'|'declinedReason'|'jobId'|'createdAt'>) => Promise<Quote>;
   updateQuoteStatus: (id: string, status: QuoteStatus, extra?: { acceptedByName?: string; declinedReason?: string }) => Promise<void>;
@@ -1114,6 +1116,37 @@ export const useAppStore = create<AppState>((set, get) => ({
       set((state) => ({
         jobs: state.jobs.map((j) => (j.id === jobId ? mapJob(data) : j)),
       }));
+    }
+  },
+
+  setJobCustomerEmail: async (jobId, email) => {
+    const { jobs } = get();
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) return;
+    const trimmed = email.trim();
+
+    // Sørg for at jobben har en koblet kunde å henge e-posten på. Eldre jobber
+    // (opprettet før auto-kobling) kan ha customer_id = null — da oppretter vi
+    // kunden fra jobbens egne felter og kobler jobben til den.
+    let customerId = job.customerId ?? null;
+    if (!customerId) {
+      customerId = await get().getOrCreateCustomer(
+        job.customerName,
+        job.customerPhone,
+        job.address,
+        trimmed || undefined,
+      );
+      if (customerId) {
+        await supabase.from('jobs').update({ customer_id: customerId }).eq('id', jobId);
+        set((state) => ({
+          jobs: state.jobs.map((j) => (j.id === jobId ? { ...j, customerId } : j)),
+        }));
+      }
+    }
+
+    // Admin redigerer eksplisitt → sett e-posten (overskriver evt. eksisterende).
+    if (customerId) {
+      await get().updateCustomer(customerId, { email: trimmed });
     }
   },
 

@@ -552,6 +552,8 @@ export function JobDetailScreen({ route, navigation }: any) {
   const job = useAppStore((s) => s.jobs.find((j) => j.id === jobId));
   const invoice = useAppStore((s) => s.invoices.find((i) => i.jobId === jobId));
   const technicians = useAppStore((s) => s.users.filter((u) => u.role === 'technician'));
+  const customers = useAppStore((s) => s.customers);
+  const setJobCustomerEmail = useAppStore((s) => s.setJobCustomerEmail);
   const images = useAppStore((s) => s.jobImages[jobId] ?? []);
   const notes = useAppStore((s) => s.jobNotes[jobId] ?? []);
 
@@ -578,10 +580,12 @@ export function JobDetailScreen({ route, navigation }: any) {
   // Edit fields
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editTime, setEditTime] = useState('');
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
     loadJobImages(jobId);
@@ -603,23 +607,32 @@ export function JobDetailScreen({ route, navigation }: any) {
 
   const currentStatus = STATUS_OPTIONS.find((s) => s.status === job.status)!;
   const invoiceCfg = invoice ? INVOICE_CFG[invoice.status as keyof typeof INVOICE_CFG] : null;
+  const linkedCustomer = job.customerId ? customers.find((c) => c.id === job.customerId) : undefined;
+  const customerEmail = linkedCustomer?.email ?? null;
   const thumbSize = Math.floor((Math.min(width, 800) - 48 - 16) / 3);
 
   const startEditing = () => {
     const [datePart, timePart] = job.scheduledAt.split('T');
     setEditName(job.customerName);
     setEditPhone(job.customerPhone);
+    setEditEmail(customerEmail ?? '');
     setEditAddress(job.address);
     setEditDescription(job.description);
     setEditDate(datePart ?? '');
     setEditTime((timePart ?? '').slice(0, 5));
+    setEditError('');
     setIsEditing(true);
   };
 
-  const cancelEditing = () => setIsEditing(false);
+  const cancelEditing = () => { setEditError(''); setIsEditing(false); };
 
   const handleSaveEdits = async () => {
     if (!editName.trim() || !editAddress.trim()) return;
+    const trimmedEmail = editEmail.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setEditError('Ugyldig e-postadresse'); return;
+    }
+    setEditError('');
     setSaving(true);
     try {
       await updateJob(job.id, {
@@ -629,7 +642,12 @@ export function JobDetailScreen({ route, navigation }: any) {
         description: editDescription.trim(),
         scheduledAt: editDate && editTime ? `${editDate}T${editTime}:00` : undefined,
       });
+      // E-posten lagres på kunden (brukes til faktura), ikke på jobben. Oppretter
+      // og kobler kunde hvis jobben mangler en.
+      await setJobCustomerEmail(job.id, trimmedEmail);
       setIsEditing(false);
+    } catch (e: any) {
+      setEditError(e?.message ?? 'Kunne ikke lagre endringene');
     } finally {
       setSaving(false);
     }
@@ -734,9 +752,15 @@ export function JobDetailScreen({ route, navigation }: any) {
                 <TextInput style={[styles.editInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]} value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" placeholder="92345678" placeholderTextColor={C.textTertiary} />
               </View>
               <View style={styles.editField}>
+                <Text style={[styles.editLabel, { color: C.textSecondary }]}>E-POST</Text>
+                <TextInput style={[styles.editInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]} value={editEmail} onChangeText={setEditEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder="kunde@epost.no" placeholderTextColor={C.textTertiary} />
+                <Text style={[styles.editHint, { color: C.textTertiary }]}>Brukes til å sende faktura på e-post</Text>
+              </View>
+              <View style={styles.editField}>
                 <Text style={[styles.editLabel, { color: C.textSecondary }]}>ADRESSE</Text>
                 <TextInput style={[styles.editInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]} value={editAddress} onChangeText={setEditAddress} placeholder="Gateveien 1, Oslo" placeholderTextColor={C.textTertiary} />
               </View>
+              {editError ? <Text style={styles.editErrorText}>{editError}</Text> : null}
             </>
           ) : (
             <>
@@ -750,6 +774,19 @@ export function JobDetailScreen({ route, navigation }: any) {
                   <Text style={[styles.infoValue, styles.infoLink, { color: '#2563FF' }]}>{job.customerPhone}</Text>
                 </TouchableOpacity>
               ) : null}
+              {customerEmail ? (
+                <TouchableOpacity style={styles.infoRow} onPress={() => Linking.openURL(`mailto:${customerEmail}`)}>
+                  <Ionicons name="mail-outline" size={16} color="#2563FF" />
+                  <Text style={[styles.infoValue, styles.infoLink, { color: '#2563FF' }]}>{customerEmail}</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.infoRow} onPress={startEditing}>
+                  <Ionicons name="mail-outline" size={16} color={C.textTertiary} />
+                  <Text style={[styles.infoValue, { color: C.textTertiary, fontStyle: 'italic' }]}>
+                    Ingen e-post — trykk Rediger for å legge til
+                  </Text>
+                </TouchableOpacity>
+              )}
               {job.address ? (
                 <TouchableOpacity
                   style={styles.infoRow}
@@ -1125,6 +1162,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, fontSize: 15, color: '#1F2937', backgroundColor: '#F8FAFC',
   },
   editTextArea: { height: 80, textAlignVertical: 'top', paddingTop: 12 },
+  editHint: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
+  editErrorText: { fontSize: 13, color: '#DC2626' },
   dateRow: { flexDirection: 'row', alignItems: 'flex-end' },
 
   saveEditsBtn: {
