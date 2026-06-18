@@ -6,6 +6,14 @@ import { generateInvoicePdfBase64 } from '../utils/generatePdf';
 
 type RegisterResult = 'ok' | 'confirm_email' | 'error';
 
+// Tilfeldig, ugjettbart filsti-token. Brukes for opplastinger så company_id/job_id
+// IKKE bygges inn i offentlige storage-URL-er (audit #6 — ID-lekkasje).
+function randomToken(): string {
+  const c: any = (globalThis as any).crypto;
+  if (c?.randomUUID) return c.randomUUID().replace(/-/g, '');
+  return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+}
+
 // ── DB row → TypeScript type mappers ──────────────────────────────────────
 
 function mapJob(row: any): Job {
@@ -173,7 +181,7 @@ interface AppState {
   completeOnboarding: () => Promise<void>;
   createStripeCheckout: () => Promise<string>;
 
-  addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>, customerEmail?: string) => Promise<void>;
+  addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>, customerEmail?: string) => Promise<Job | null>;
   updateJobStatus: (jobId: string, status: JobStatus, hours?: number, materials?: number) => Promise<void>;
   assignTechnician: (jobId: string, technicianId: string | null, technicianName: string | null) => Promise<void>;
 
@@ -312,35 +320,35 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ loading: true });
     try {
       const input = emailOrPhone.trim();
-      let candidates: string[];
+      const isPhone = /^\+?[\d\s]+$/.test(input) && !input.includes('@');
 
-      // Telefon-innlogging: ett nummer kan tilhøre flere kontoer (f.eks. admin +
-      // tekniker med samme nummer). Hent ALLE matchende e-poster (teknikere først)
-      // og prøv hver med passordet — passordet avgjør riktig konto.
-      if (/^\+?[\d\s]+$/.test(input) && !input.includes('@')) {
-        const { data } = await supabase.rpc('get_emails_by_phone', {
-          p_phone: input.replace(/\s/g, ''),
+      if (isPhone) {
+        // Telefon-innlogging går via server-side edge function (audit #5): den slår
+        // opp e-post + verifiserer passordet server-side og returnerer KUN en
+        // session. Telefon→e-post eksponeres aldri som anonymt orakel.
+        const { data, error } = await supabase.functions.invoke('phone-login', {
+          body: { phone: input.replace(/\s/g, ''), password },
         });
-        candidates = (Array.isArray(data) ? data : data ? [data] : []).filter(Boolean) as string[];
-        if (!candidates.length) { set({ loading: false }); return false; }
-      } else {
-        candidates = [input];
+        if (error || !data?.access_token) { set({ loading: false }); return false; }
+        const { error: sessErr } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (sessErr) { set({ loading: false }); return false; }
+        await get().loadData();
+        set({ loading: false });
+        return true;
       }
 
-      for (const candidate of candidates) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: candidate.toLowerCase(),
-          password,
-        });
-        if (!error) {
-          await get().loadData();
-          set({ loading: false });
-          return true;
-        }
-      }
-
+      // E-post + passord (uendret)
+      const { error } = await supabase.auth.signInWithPassword({
+        email: input.toLowerCase(),
+        password,
+      });
+      if (error) { set({ loading: false }); return false; }
+      await get().loadData();
       set({ loading: false });
-      return false;
+      return true;
     } catch {
       set({ loading: false });
       return false;
@@ -516,7 +524,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { quotes } = get();
     const quote = quotes.find((q) => q.id === quoteId);
     if (!quote) throw new Error('Tilbud ikke funnet');
-    await get().addJob({
+    // Bruk jobben addJob returnerer direkte — IKKE jobs[length-1] (skjørt mot
+    // samtidig lasting/omsortering).
+    const newJob = await get().addJob({
       customerName: quote.customerName,
       customerPhone: quote.customerPhone ?? '',
       address: quote.customerAddress ?? '',
@@ -526,9 +536,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       scheduledAt: new Date().toISOString(),
       status: 'new',
     }, quote.customerEmail ?? undefined);
-    // Find the newly created job (last in list)
-    const { jobs } = get();
-    const newJob = jobs[jobs.length - 1];
     if (newJob) {
       await supabase.from('quotes').update({ job_id: newJob.id }).eq('id', quoteId);
       set((state) => ({
@@ -660,8 +667,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       .single();
 
     if (!error && data) {
-      set((state) => ({ jobs: [...state.jobs, mapJob(data)] }));
+      const job = mapJob(data);
+      set((state) => ({ jobs: [...state.jobs, job] }));
+      return job;
     }
+    return null;
   },
 
   updateJobStatus: async (jobId, status, hours, materials) => {
@@ -909,8 +919,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const blob = await response.blob();
     const contentType = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : mimeType;
     const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
-    // Timestamp i filnavn sikrer unik URL — unngår browser-cache av gammel logo
-    const filePath = `${companyId}/logo_${Date.now()}.${ext}`;
+    // Tilfeldig sti (ingen company_id i URL-en, audit #6). Token sikrer også unik
+    // URL → unngår browser-cache av gammel logo.
+    const filePath = `logos/${randomToken()}.${ext}`;
 
     const { error: storageError } = await supabase.storage
       .from('company-logos')
@@ -1071,7 +1082,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       ? blob.type : (mimeType || 'image/jpeg');
 
     const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
-    const filePath = `${jobId}/${Date.now()}.${ext}`;
+    // Tilfeldig, ugjettbar sti — ingen job_id i den offentlige URL-en (audit #6).
+    const filePath = `${randomToken()}.${ext}`;
 
     const { error: storageError } = await supabase.storage
       .from('job-images')
