@@ -86,35 +86,11 @@ function dueTodayEmail(inv: any, company: any): string {
   return wrapEmail('#0A1B33', company.name, body, inv.invoice_number);
 }
 
-function overdue1DayEmail(inv: any, company: any): string {
-  const body = `
-    <p class="p">Hei ${inv.customer_name},</p>
-    <p class="p">Vi kan se at faktura <strong>${inv.invoice_number}</strong> på
-    <strong>${fmtAmount(Number(inv.total))}</strong> ikke er betalt.
-    Forfallsdato var <strong>${fmtDate(inv.due_date)}</strong>.</p>
-    <p class="p">Vennligst betal så snart som mulig for å unngå ytterligere purringer.</p>
-    <div class="box" style="background:#FEF2F2">
-      <div class="box-lbl" style="color:#991B1B">Ubetalt beløp inkl. MVA</div>
-      <div class="box-val" style="color:#DC2626">${fmtAmount(Number(inv.total))}</div>
-    </div>
-    <a href="${inv._appUrl}" class="btn" style="background:#DC2626">Betal nå →</a>`;
-  return wrapEmail('#C2410C', company.name, body, inv.invoice_number);
-}
-
-function overdue7DaysEmail(inv: any, company: any): string {
-  const body = `
-    <p class="p">Hei ${inv.customer_name},</p>
-    <p class="p">Vi har tidligere sendt påminnelse om faktura <strong>${inv.invoice_number}</strong>
-    med forfallsdato <strong>${fmtDate(inv.due_date)}</strong>.</p>
-    <p class="p">Beløpet på <strong>${fmtAmount(Number(inv.total))}</strong> er fortsatt ubetalt.
-    Ta kontakt umiddelbart eller betal via lenken under.</p>
-    <div class="box" style="background:#FEF2F2">
-      <div class="box-lbl" style="color:#991B1B">Andre purring — ubetalt beløp inkl. MVA</div>
-      <div class="box-val" style="color:#DC2626">${fmtAmount(Number(inv.total))}</div>
-    </div>
-    <a href="${inv._appUrl}" class="btn" style="background:#DC2626">Betal nå →</a>`;
-  return wrapEmail('#7F1D1D', company.name, body, inv.invoice_number);
-}
+// MERK: De automatiske kunde-e-postene ved FORFALT (overdue_1day/overdue_7days) er
+// fjernet — purringer er nå manuelle (se send-payment-reminder). Når en faktura blir
+// forfalt varsler vi i stedet håndverkeren in-app ('purring_needed'), som selv
+// sender betalingspåminnelse. De før-forfall-automatiske (reminder_3days/due_today)
+// beholdes uendret.
 
 // ── Hoved-handler ────────────────────────────────────────────────────────────
 
@@ -151,92 +127,86 @@ Deno.serve(async (req) => {
 
       const days = daysDiff(invoice.due_date);
 
-      type NotifType = 'reminder_3days' | 'due_today' | 'overdue_1day' | 'overdue_7days';
-      const notifMap: Record<number, NotifType> = { 3: 'reminder_3days', 0: 'due_today', [-1]: 'overdue_1day', [-7]: 'overdue_7days' };
-      const notifType = notifMap[days];
-      if (!notifType) { results.skipped++; continue; }
+      // ── FØR forfall: automatiske kunde-påminnelser (uendret) ────────────────
+      if (days === 3 || days === 0) {
+        const notifType: 'reminder_3days' | 'due_today' = days === 3 ? 'reminder_3days' : 'due_today';
+        const settingCol = days === 3 ? 'notify_reminder_3days' : 'notify_due_today';
+        if (company[settingCol] === false) { results.skipped++; continue; }
 
-      // Sjekk bedriftens innstilling for denne varseltypen
-      const settingCol = {
-        reminder_3days: 'notify_reminder_3days',
-        due_today:      'notify_due_today',
-        overdue_1day:   'notify_overdue_1day',
-        overdue_7days:  'notify_overdue_7days',
-      }[notifType];
-      if (company[settingCol] === false) { results.skipped++; continue; }
+        const { data: existing } = await supabase
+          .from('invoice_notifications')
+          .select('id').eq('invoice_id', invoice.id).eq('type', notifType).maybeSingle();
+        if (existing) { results.skipped++; continue; }
 
-      // Sjekk om allerede sendt
-      const { data: existing } = await supabase
-        .from('invoice_notifications')
-        .select('id')
-        .eq('invoice_id', invoice.id)
-        .eq('type', notifType)
-        .maybeSingle();
-      if (existing) { results.skipped++; continue; }
+        const customerEmail: string | null = invoice.customer_email ?? null;
+        if (!customerEmail) { results.skipped++; continue; }
 
-      // Finn kunde-e-post
-      const customerEmail: string | null = invoice.customer_email ?? null;
-      if (!customerEmail) { results.skipped++; continue; }
+        invoice._appUrl = `${appUrl}/faktura/${invoice.id}`;
+        const html = days === 3 ? reminderEmail(invoice, company) : dueTodayEmail(invoice, company);
+        const subject = days === 3
+          ? `Påminnelse: Faktura ${invoice.invoice_number} forfaller om 3 dager`
+          : `Faktura ${invoice.invoice_number} forfaller i dag`;
 
-      invoice._appUrl = `${appUrl}/faktura/${invoice.id}`;
-
-      const builders = {
-        reminder_3days: reminderEmail,
-        due_today:      dueTodayEmail,
-        overdue_1day:   overdue1DayEmail,
-        overdue_7days:  overdue7DaysEmail,
-      };
-      const subjects = {
-        reminder_3days: `Påminnelse: Faktura ${invoice.invoice_number} forfaller om 3 dager`,
-        due_today:      `Faktura ${invoice.invoice_number} forfaller i dag`,
-        overdue_1day:   `Purring: Faktura ${invoice.invoice_number} er forfalt`,
-        overdue_7days:  `Andre purring: Faktura ${invoice.invoice_number} — ${fmtAmount(Number(invoice.total))} ubetalt`,
-      };
-
-      const emailRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${resendKey}`,
-        },
-        body: JSON.stringify({
-          from: `${company.name} via Efero <faktura@efero.app>`,
-          to: [customerEmail],
-          subject: subjects[notifType],
-          html: builders[notifType](invoice, company),
-        }),
-      });
-
-      if (!emailRes.ok) {
-        const err = await emailRes.text();
-        results.errors.push(`${invoice.invoice_number}: ${err}`);
+        const emailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resendKey}` },
+          body: JSON.stringify({
+            from: `${company.name} via Efero <faktura@efero.app>`,
+            to: [customerEmail],
+            subject,
+            html,
+          }),
+        });
+        if (!emailRes.ok) {
+          results.errors.push(`${invoice.invoice_number}: ${await emailRes.text()}`);
+          continue;
+        }
+        await supabase.from('invoice_notifications').insert({
+          invoice_id: invoice.id, company_id: invoice.company_id,
+          type: notifType, email_sent_to: customerEmail,
+        });
+        results.sent++;
         continue;
       }
 
-      // Logg sendt varsel
-      await supabase.from('invoice_notifications').insert({
-        invoice_id:    invoice.id,
-        company_id:    invoice.company_id,
-        type:          notifType,
-        email_sent_to: customerEmail,
-      });
+      // ── FORFALT: ingen automatisk kunde-e-post. Varsle håndverkeren i appen ──
+      //    om at en MANUELL purring kan sendes (send-payment-reminder).
+      if (days === -1 || days === -7) {
+        if (invoice.status === 'paid') { results.skipped++; continue; }
 
-      // 1 dag forfalt → oppdater status til 'overdue'
-      if (notifType === 'overdue_1day') {
-        await supabase.from('invoices').update({ status: 'overdue' }).eq('id', invoice.id);
-      }
+        // 1 dag forfalt → marker status som 'overdue' (beholdt fra før)
+        if (days === -1 && invoice.status !== 'overdue') {
+          await supabase.from('invoices').update({ status: 'overdue' }).eq('id', invoice.id);
+        }
 
-      // 7 dager forfalt → opprett inn-app-varsel til admin
-      if (notifType === 'overdue_7days') {
+        // 7-dagers oppfølging kun hvis ingen manuell purring er sendt ennå
+        if (days === -7 && (invoice.reminder_count ?? 0) > 0) { results.skipped++; continue; }
+
+        const dedupeType = days === -1 ? 'purring_needed_1day' : 'purring_needed_7days';
+        const { data: existing } = await supabase
+          .from('invoice_notifications')
+          .select('id').eq('invoice_id', invoice.id).eq('type', dedupeType).maybeSingle();
+        if (existing) { results.skipped++; continue; }
+
+        const message = days === -1
+          ? `Faktura ${invoice.invoice_number} til ${invoice.customer_name} er forfalt — send purring?`
+          : `Faktura ${invoice.invoice_number} til ${invoice.customer_name} er 7 dager forfalt — send purring?`;
+
         await supabase.from('app_notifications').insert({
           company_id: invoice.company_id,
           invoice_id: invoice.id,
-          type:       'overdue_7days',
-          message:    `Faktura ${invoice.invoice_number} til ${invoice.customer_name} er 7 dager forfalt`,
+          type:       'purring_needed',
+          message,
         });
+        // Dedupe-logg så admin-varselet kun opprettes én gang
+        await supabase.from('invoice_notifications').insert({
+          invoice_id: invoice.id, company_id: invoice.company_id, type: dedupeType,
+        });
+        results.sent++;
+        continue;
       }
 
-      results.sent++;
+      results.skipped++;
     }
 
     return new Response(JSON.stringify({ ok: true, ...results }), {

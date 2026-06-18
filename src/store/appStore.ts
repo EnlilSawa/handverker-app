@@ -52,6 +52,8 @@ function mapInvoice(row: any): Invoice {
     createdAt: row.created_at,
     note: row.note ?? null,
     emailStatus: row.email_status ?? null,
+    reminderCount: row.reminder_count ?? 0,
+    lastReminderSentAt: row.last_reminder_sent_at ?? null,
   };
 }
 
@@ -188,6 +190,7 @@ interface AppState {
   generateInvoice: (jobId: string, hours: number, materials: number, note?: string, extraLines?: { description: string; amount: number }[]) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
   sendInvoiceEmail: (invoiceId: string) => Promise<string>;
+  sendPaymentReminder: (invoiceId: string) => Promise<void>;
   sendWelcomeEmail: () => Promise<void>;
 
   updateCompany: (updates: Partial<Company>) => Promise<void>;
@@ -849,6 +852,24 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
       throw e;
     }
+  },
+
+  sendPaymentReminder: async (invoiceId) => {
+    const { data, error } = await supabase.functions.invoke('send-payment-reminder', {
+      body: { invoiceId },
+    });
+    if (error) throw new Error(error.message);
+    set((state) => ({
+      invoices: state.invoices.map((inv) =>
+        inv.id === invoiceId
+          ? {
+              ...inv,
+              reminderCount: data?.reminderCount ?? (inv.reminderCount ?? 0) + 1,
+              lastReminderSentAt: data?.lastReminderSentAt ?? new Date().toISOString(),
+            }
+          : inv,
+      ),
+    }));
   },
 
   sendWelcomeEmail: async () => {

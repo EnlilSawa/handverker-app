@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
@@ -21,9 +21,12 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
   const currentUser = useAppStore((s) => s.currentUser);
   const updateInvoiceStatus = useAppStore((s) => s.updateInvoiceStatus);
   const sendInvoiceEmail = useAppStore((s) => s.sendInvoiceEmail);
+  const sendPaymentReminder = useAppStore((s) => s.sendPaymentReminder);
   const [feedback, setFeedback] = useState('');
   const [feedbackError, setFeedbackError] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reminding, setReminding] = useState(false);
+  const [confirmRemind, setConfirmRemind] = useState(false);
 
   const invoice = invoices.find((i) => i.id === invoiceId) ?? invoices[invoices.length - 1];
   if (!invoice) return null;
@@ -31,6 +34,11 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
   const cfg = STATUS_CFG[invoice.status];
   const isAdmin = currentUser?.role === 'admin';
   const isOverdue = invoice.status === 'overdue';
+  // Forfalt og ubetalt → manuell purring kan sendes.
+  const isPastDue =
+    invoice.status !== 'paid' &&
+    (invoice.status === 'overdue' || new Date(invoice.dueDate + 'T23:59:59') < new Date());
+  const reminderCount = invoice.reminderCount ?? 0;
 
   const handleSendEmail = async () => {
     setSending(true);
@@ -44,6 +52,22 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
       setFeedback(e?.message ?? 'E-post kunne ikke sendes — prøv å sende på nytt.');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleSendReminder = async () => {
+    setConfirmRemind(false);
+    setReminding(true);
+    setFeedback('');
+    try {
+      await sendPaymentReminder(invoice.id);
+      setFeedbackError(false);
+      setFeedback('Betalingspåminnelse sendt til kunden');
+    } catch (e: any) {
+      setFeedbackError(true);
+      setFeedback(e?.message ?? 'Purring kunne ikke sendes — prøv igjen.');
+    } finally {
+      setReminding(false);
     }
   };
 
@@ -162,6 +186,28 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
               </Text>
             </TouchableOpacity>
 
+            {/* Send purring — kun ved forfalt/ubetalt */}
+            {isPastDue && (
+              <TouchableOpacity
+                style={styles.reminderBtn}
+                onPress={() => setConfirmRemind(true)}
+                disabled={reminding}
+              >
+                {reminding
+                  ? <ActivityIndicator size="small" color="#C2410C" />
+                  : <Ionicons name="mail-unread-outline" size={17} color="#C2410C" />}
+                <Text style={styles.reminderBtnText}>
+                  {reminderCount > 0 ? 'Send purring på nytt' : 'Send purring'}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {reminderCount > 0 && (
+              <Text style={styles.reminderSentText}>
+                Purring sendt{invoice.lastReminderSentAt ? ` ${formatShortDate(invoice.lastReminderSentAt)}` : ''} (x{reminderCount})
+              </Text>
+            )}
+
             {invoice.status !== 'paid' && (
               <TouchableOpacity
                 style={styles.paidBtn}
@@ -175,6 +221,30 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
         )}
 
       </ScrollView>
+
+      {/* Bekreft purring */}
+      <Modal visible={confirmRemind} transparent animationType="fade" onRequestClose={() => setConfirmRemind(false)}>
+        <View style={styles.confirmOverlay}>
+          <View style={[styles.confirmCard, { backgroundColor: C.cardBg }]}>
+            <View style={styles.confirmIcon}>
+              <Ionicons name="mail-unread-outline" size={22} color="#C2410C" />
+            </View>
+            <Text style={[styles.confirmTitle, { color: C.textPrimary }]}>Send betalingspåminnelse?</Text>
+            <Text style={[styles.confirmText, { color: C.textSecondary }]}>
+              En vennlig påminnelse sendes til {invoice.customerName} på samme beløp
+              ({formatCurrency(invoice.total)}). Ingen purregebyr.
+            </Text>
+            <View style={styles.confirmBtnRow}>
+              <TouchableOpacity style={[styles.confirmCancel, { borderColor: C.border }]} onPress={() => setConfirmRemind(false)}>
+                <Text style={[styles.confirmCancelText, { color: C.textPrimary }]}>Avbryt</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmSend} onPress={handleSendReminder}>
+                <Text style={styles.confirmSendText}>Send purring</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedScreen>
   );
 }
@@ -249,6 +319,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#15803D' },
   paidBtnText: { color: '#15803D', fontSize: 15, fontWeight: '600' },
+  reminderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#C2410C' },
+  reminderBtnText: { color: '#C2410C', fontSize: 15, fontWeight: '600' },
+  reminderSentText: { fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: -4 },
+  confirmOverlay: { flex: 1, backgroundColor: 'rgba(10,27,51,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  confirmCard: { width: '100%', maxWidth: 380, borderRadius: 16, padding: 24, gap: 12, alignItems: 'center' },
+  confirmIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF7ED' },
+  confirmTitle: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  confirmText: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  confirmBtnRow: { flexDirection: 'row', gap: 12, marginTop: 8, alignSelf: 'stretch' },
+  confirmCancel: { flex: 1, height: 48, borderWidth: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  confirmCancelText: { fontSize: 15, fontWeight: '600' },
+  confirmSend: { flex: 1, height: 48, backgroundColor: '#C2410C', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  confirmSendText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   paymentBox: {
     borderRadius: 10,
     borderWidth: 1,

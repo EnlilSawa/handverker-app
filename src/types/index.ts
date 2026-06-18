@@ -52,6 +52,8 @@ export interface Invoice {
   createdAt: string;
   note?: string | null;
   emailStatus?: 'sent' | 'failed' | null;
+  reminderCount?: number;
+  lastReminderSentAt?: string | null;
 }
 
 export interface QuoteLine {
@@ -97,7 +99,7 @@ export interface Customer {
   createdAt: string;
 }
 
-export type AppNotificationType = 'overdue_7days' | 'payment_received';
+export type AppNotificationType = 'overdue_7days' | 'payment_received' | 'purring_needed';
 
 export interface AppNotification {
   id: string;

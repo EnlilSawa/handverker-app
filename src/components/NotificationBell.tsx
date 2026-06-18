@@ -10,11 +10,13 @@ import { DropdownPortal } from './DropdownPortal';
 const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   overdue_7days:    'alert-circle-outline',
   payment_received: 'checkmark-circle-outline',
+  purring_needed:   'mail-unread-outline',
 };
 
 const TYPE_COLOR: Record<string, string> = {
   overdue_7days:    '#DC2626',
   payment_received: '#15803D',
+  purring_needed:   '#C2410C',
 };
 
 const DROPDOWN_WIDTH = 300;
