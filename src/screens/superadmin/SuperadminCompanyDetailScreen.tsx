@@ -20,6 +20,8 @@ import {
   PLAN_PRICES,
   SUB_STATUS_LABELS,
   BILLING_LABELS,
+  exportCompanyData,
+  downloadJson,
 } from '../../lib/superadminApi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
@@ -99,6 +101,24 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
 
   const isActive = company.subscriptionStatus === 'active';
   const isArchived = !!company.archivedAt;
+
+  const handleExport = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const data = await exportCompanyData(company.id);
+      const safeName = company.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      const ok = downloadJson(
+        `efero-eksport-${safeName}-${new Date().toISOString().slice(0, 10)}.json`,
+        data,
+      );
+      setMsg(ok ? 'Kundens data er eksportert (JSON lastet ned)' : 'Eksport er kun tilgjengelig på web');
+    } catch (e: any) {
+      setMsg(e?.message ?? 'Eksport feilet');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleDelete = async () => {
     setBusy(true);
@@ -276,6 +296,19 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
         {/* Faresone — permanent sletting */}
         <Text style={[styles.section, { color: RED }]}>Faresone</Text>
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: '#FCA5A5' }]}>
+          {/* Anbefalt steg 1: eksporter kundens data før sletting */}
+          <TouchableOpacity
+            disabled={busy}
+            style={[styles.outlineBtn, { borderColor: C.border, alignSelf: 'flex-start', marginBottom: 16 }]}
+            onPress={handleExport}
+          >
+            <Ionicons name="download-outline" size={15} color={C.textPrimary} />
+            <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>Eksporter kundens data (JSON)</Text>
+          </TouchableOpacity>
+          <Text style={[styles.hint, { color: C.textTertiary, marginTop: 0, marginBottom: 16 }]}>
+            Anbefalt før sletting: last ned firmaets fulle datasett (jobber, fakturaer, kunder m.m.) så kunden kan oppfylle sin egen 5-års oppbevaringsplikt.
+          </Text>
+
           {!confirmDelete ? (
             <>
               <Text style={[styles.dangerText, { color: C.textSecondary }]}>

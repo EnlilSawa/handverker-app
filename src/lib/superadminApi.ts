@@ -164,6 +164,14 @@ export async function deleteCompany(companyId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function exportCompanyData(companyId: string): Promise<any> {
+  const { data, error } = await supabase.rpc('superadmin_export_company', {
+    p_company_id: companyId,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 // ── CSV-eksport (web) ────────────────────────────────────────────────────────
 export function companiesToCsv(rows: SuperadminCompany[]): string {
   const header = [
@@ -205,8 +213,16 @@ export function companiesToCsv(rows: SuperadminCompany[]): string {
 }
 
 export function downloadCsv(filename: string, csv: string): boolean {
+  return downloadBlob(filename, csv, 'text/csv;charset=utf-8;');
+}
+
+export function downloadJson(filename: string, obj: unknown): boolean {
+  return downloadBlob(filename, JSON.stringify(obj, null, 2), 'application/json;charset=utf-8;');
+}
+
+function downloadBlob(filename: string, content: string, mime: string): boolean {
   if (typeof document === 'undefined') return false; // ikke web
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
