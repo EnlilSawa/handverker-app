@@ -18,11 +18,6 @@ const Stack = createNativeStackNavigator();
 
 type AuthView = 'login' | 'register' | 'confirm_email' | 'forgot_password';
 
-function isTrialExpired(trialEndsAt?: string): boolean {
-  if (!trialEndsAt) return false;
-  return new Date(trialEndsAt) < new Date();
-}
-
 export function RootNavigator() {
   const currentUser = useAppStore((s) => s.currentUser);
   const company     = useAppStore((s) => s.company);
@@ -133,11 +128,13 @@ export function RootNavigator() {
     return <OnboardingWizard />;
   }
 
-  // ── Prøveperiode utløpt og ikke aktivt abonnement → betalingsvegg ──────────
+  // ── Kontoen deaktivert av Efero (f.eks. manglende betaling) → tilgang stengt ─
+  // Fakturamodell: alle kunder er 'active' som standard og får full tilgang.
+  // Efero-eieren setter et firma til 'canceled'/'expired' i superadmin-dashbordet
+  // for å stenge tilgangen; da (og bare da) vises "kontoen er satt på pause"-skjermen.
   if (
     company &&
-    company.subscriptionStatus !== 'active' &&
-    isTrialExpired(company.trialEndsAt)
+    (company.subscriptionStatus === 'canceled' || company.subscriptionStatus === 'expired')
   ) {
     return <PaywallScreen />;
   }

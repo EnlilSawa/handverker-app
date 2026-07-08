@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Linking,
-  Alert,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,39 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
 
-const FEATURES = [
-  'Ubegrenset antall jobber og fakturaer',
-  'Ubegrenset antall teknikere',
-  'Automatisk fakturering ved jobbutførelse',
-  'Kalendervisning og jobbplanlegging',
-  'Statistikk og inntektsoversikt',
-  'Norsk kundeservice',
-];
+const SUPPORT_EMAIL = 'kontakt@efero.no';
 
+// Vises kun når Efero-eieren har satt firmaet til 'canceled'/'expired' i
+// superadmin-dashbordet (fakturamodell — ingen selvbetjent kortbetaling).
 export function PaywallScreen() {
-  const createStripeCheckout = useAppStore((s) => s.createStripeCheckout);
   const logout = useAppStore((s) => s.logout);
   const company = useAppStore((s) => s.company);
-  const [loading, setLoading] = useState(false);
-
-  const daysLeft = company?.trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / 86_400_000))
-    : 0;
-
-  const handleSubscribe = async () => {
-    setLoading(true);
-    try {
-      const url = await createStripeCheckout();
-      await Linking.openURL(url);
-    } catch (e: any) {
-      Alert.alert(
-        'Kunne ikke åpne betaling',
-        'Kontakt oss på support@handverker.no for å aktivere abonnementet.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -56,61 +28,34 @@ export function PaywallScreen() {
           <View style={styles.logoCircle}>
             <Ionicons name="construct" size={28} color={colors.white} />
           </View>
-          <Text style={styles.logoText}>Håndverker</Text>
+          <Text style={styles.logoText}>Efero</Text>
         </View>
 
-        {daysLeft > 0 ? (
-          <View style={styles.trialBadge}>
-            <Ionicons name="time-outline" size={16} color={colors.warning} />
-            <Text style={styles.trialBadgeText}>{daysLeft} dager igjen av prøveperioden</Text>
-          </View>
-        ) : (
-          <View style={[styles.trialBadge, styles.expiredBadge]}>
-            <Ionicons name="alert-circle-outline" size={16} color={colors.danger} />
-            <Text style={[styles.trialBadgeText, { color: colors.danger }]}>Prøveperioden er utløpt</Text>
-          </View>
-        )}
+        <View style={[styles.badge, styles.pausedBadge]}>
+          <Ionicons name="pause-circle-outline" size={16} color={colors.danger} />
+          <Text style={[styles.badgeText, { color: colors.danger }]}>Kontoen er satt på pause</Text>
+        </View>
 
-        <Text style={styles.headline}>
-          {daysLeft > 0 ? 'Fortsett uten avbrudd' : 'Aktiver abonnement for å fortsette'}
-        </Text>
+        <Text style={styles.headline}>Tilgangen din er midlertidig stengt</Text>
         <Text style={styles.sub}>
-          {daysLeft > 0
-            ? 'Aktiver abonnementet nå og få tilgang til alle funksjoner uten avbrudd.'
-            : 'Du må ha et aktivt abonnement for å bruke Håndverker.'}
+          {company?.name ? `${company.name} har ` : 'Kontoen din har '}
+          for øyeblikket ikke aktiv tilgang til Efero. Dette skyldes vanligvis en
+          ubetalt faktura. Ta kontakt med oss, så åpner vi kontoen igjen.
         </Text>
 
-        <View style={styles.priceCard}>
-          <Text style={styles.priceLine}>
-            <Text style={styles.priceAmount}>399 kr</Text>
-            <Text style={styles.pricePerMonth}> /mnd</Text>
-          </Text>
-          <Text style={styles.priceNote}>eks. mva · ingen bindingstid · si opp når som helst</Text>
+        <View style={styles.contactCard}>
+          <Ionicons name="mail-outline" size={20} color={colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.contactLabel}>Kontakt oss</Text>
+            <TouchableOpacity onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>
+              <Text style={styles.contactValue}>{SUPPORT_EMAIL}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View style={styles.featureList}>
-          {FEATURES.map((f) => (
-            <View key={f} style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-              <Text style={styles.featureText}>{f}</Text>
-            </View>
-          ))}
-        </View>
-
-        <TouchableOpacity
-          style={[styles.subscribeBtn, loading && styles.btnDisabled]}
-          onPress={handleSubscribe}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <>
-              <Ionicons name="card-outline" size={20} color={colors.white} />
-              <Text style={styles.subscribeBtnText}>Start abonnement</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        <Text style={styles.note}>
+          Har du allerede betalt? Gi oss beskjed, så gjenåpner vi tilgangen med én gang.
+        </Text>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
           <Text style={styles.logoutText}>Logg ut</Text>
@@ -123,7 +68,7 @@ export function PaywallScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  container: { paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' },
+  container: { paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center', flexGrow: 1, justifyContent: 'center' },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 },
   logoCircle: {
     width: 46,
@@ -134,18 +79,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoText: { fontSize: 20, fontWeight: '700', color: colors.textDark },
-  trialBadge: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#fff8ec',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 7,
     marginBottom: 20,
   },
-  expiredBadge: { backgroundColor: '#fef0f0' },
-  trialBadgeText: { fontSize: 13, fontWeight: '600', color: colors.warning },
+  pausedBadge: { backgroundColor: '#fef0f0' },
+  badgeText: { fontSize: 13, fontWeight: '600' },
   headline: {
     fontSize: 22,
     fontWeight: '700',
@@ -159,37 +103,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 28,
+    maxWidth: 420,
   },
-  priceCard: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    marginBottom: 24,
-    width: '100%',
-  },
-  priceLine: { flexDirection: 'row', alignItems: 'baseline' },
-  priceAmount: { fontSize: 40, fontWeight: '800', color: colors.textDark },
-  pricePerMonth: { fontSize: 18, color: colors.textGray },
-  priceNote: { fontSize: 12, color: colors.textLight, marginTop: 4 },
-  featureList: { width: '100%', gap: 10, marginBottom: 32 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  featureText: { fontSize: 14, color: colors.textDark, flex: 1 },
-  subscribeBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+  contactCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 14,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     width: '100%',
-    justifyContent: 'center',
-    marginBottom: 16,
+    maxWidth: 420,
+    marginBottom: 20,
   },
-  btnDisabled: { opacity: 0.7 },
-  subscribeBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  contactLabel: { fontSize: 12, color: colors.textLight, marginBottom: 2 },
+  contactValue: { fontSize: 15, fontWeight: '600', color: colors.primary },
+  note: {
+    fontSize: 13,
+    color: colors.textLight,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 32,
+    maxWidth: 420,
+  },
   logoutBtn: { paddingVertical: 12 },
   logoutText: { fontSize: 14, color: colors.textGray },
 });

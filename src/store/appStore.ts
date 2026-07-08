@@ -181,7 +181,6 @@ interface AppState {
     hourlyRate: number; calloutFee: number; paymentTermsDays: number;
   }) => Promise<void>;
   completeOnboarding: () => Promise<void>;
-  createStripeCheckout: () => Promise<string>;
 
   addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>, customerEmail?: string) => Promise<Job | null>;
   updateJobStatus: (jobId: string, status: JobStatus, hours?: number, materials?: number) => Promise<void>;
@@ -311,12 +310,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       company: state.company ? { ...state.company, onboardingCompleted: true } : state.company,
     }));
-  },
-
-  createStripeCheckout: async () => {
-    const { data, error } = await supabase.functions.invoke('create-stripe-checkout', { body: {} });
-    if (error) throw new Error(error.message);
-    return data.url as string;
   },
 
   login: async (emailOrPhone, password) => {
