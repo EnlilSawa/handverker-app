@@ -121,7 +121,7 @@ const table = StyleSheet.create({
 
 // ── KUNDER-fane ──────────────────────────────────────────────────────────────
 type SortKey = 'created' | 'name';
-type FilterKey = 'all' | SubStatus;
+type FilterKey = 'all' | 'arkivert' | SubStatus;
 
 const STATUS_FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'Alle' },
@@ -129,6 +129,7 @@ const STATUS_FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'trial', label: 'Prøveperiode' },
   { key: 'canceled', label: 'Sagt opp' },
   { key: 'expired', label: 'Forfalt' },
+  { key: 'arkivert', label: 'Arkiverte' },
 ];
 
 function CompaniesTab({ onOpen }: { onOpen: (id: string) => void }) {
@@ -140,7 +141,13 @@ function CompaniesTab({ onOpen }: { onOpen: (id: string) => void }) {
 
   const rows = useMemo(() => {
     let r = companies;
-    if (filter !== 'all') r = r.filter((c) => c.subscriptionStatus === filter);
+    if (filter === 'arkivert') {
+      r = r.filter((c) => c.archivedAt);
+    } else {
+      // Arkiverte kunder skjules fra alle vanlige filtre.
+      r = r.filter((c) => !c.archivedAt);
+      if (filter !== 'all') r = r.filter((c) => c.subscriptionStatus === filter);
+    }
     const q = search.trim().toLowerCase();
     if (q) {
       r = r.filter(

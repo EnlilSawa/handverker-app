@@ -8,6 +8,8 @@ import {
   fetchMetrics,
   setBillingStatus as apiSetBillingStatus,
   updateCompany as apiUpdateCompany,
+  setArchived as apiSetArchived,
+  deleteCompany as apiDeleteCompany,
 } from '../../lib/superadminApi';
 
 interface SuperadminValue {
@@ -18,6 +20,8 @@ interface SuperadminValue {
   refresh: () => Promise<void>;
   setBillingStatus: (companyId: string, status: BillingStatus) => Promise<void>;
   updateCompany: (companyId: string, patch: UpdateCompanyPatch) => Promise<void>;
+  archiveCompany: (companyId: string, archived: boolean) => Promise<void>;
+  deleteCompany: (companyId: string) => Promise<void>;
   getCompany: (companyId: string) => SuperadminCompany | undefined;
 }
 
@@ -63,6 +67,22 @@ export function SuperadminProvider({ children }: { children: React.ReactNode }) 
     [refresh],
   );
 
+  const archiveCompany = useCallback(
+    async (companyId: string, archived: boolean) => {
+      await apiSetArchived(companyId, archived);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteCompany = useCallback(
+    async (companyId: string) => {
+      await apiDeleteCompany(companyId);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const getCompany = useCallback(
     (companyId: string) => companies.find((c) => c.id === companyId),
     [companies],
@@ -78,6 +98,8 @@ export function SuperadminProvider({ children }: { children: React.ReactNode }) 
         refresh,
         setBillingStatus,
         updateCompany,
+        archiveCompany,
+        deleteCompany,
         getCompany,
       }}
     >

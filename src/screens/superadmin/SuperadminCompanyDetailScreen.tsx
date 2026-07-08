@@ -4,9 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  TextInput,
   ScrollView,
   Linking,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedScreen } from '../../components/ThemedScreen';
@@ -62,10 +64,12 @@ function TimelineItem({ label, date, color }: { label: string; date: string | nu
 export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
   const { colors: C } = useTheme();
   const { companyId } = route.params ?? {};
-  const { getCompany, updateCompany } = useSuperadmin();
+  const { getCompany, updateCompany, archiveCompany, deleteCompany } = useSuperadmin();
   const company = getCompany(companyId);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteText, setDeleteText] = useState('');
 
   if (!company) {
     return (
@@ -94,6 +98,19 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
   };
 
   const isActive = company.subscriptionStatus === 'active';
+  const isArchived = !!company.archivedAt;
+
+  const handleDelete = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await deleteCompany(company.id);
+      navigation.goBack();
+    } catch (e: any) {
+      setMsg(e?.message ?? 'Sletting feilet');
+      setBusy(false);
+    }
+  };
 
   return (
     <ThemedScreen>
@@ -112,6 +129,11 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
               {SUB_STATUS_LABELS[company.subscriptionStatus]}
             </Text>
           </View>
+          {isArchived && (
+            <View style={[styles.subBadge, { backgroundColor: '#F1F5F9' }]}>
+              <Text style={[styles.subBadgeText, { color: GRAY }]}>Arkivert</Text>
+            </View>
+          )}
         </View>
 
         {msg && (
@@ -189,20 +211,48 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
             </View>
           </View>
 
-          {/* Aktiv/inaktiv */}
+          {/* Pause / gjenåpne tilgang */}
           <View>
-            <Text style={[styles.actionLabel, { color: C.textSecondary }]}>Abonnementsstatus</Text>
+            <Text style={[styles.actionLabel, { color: C.textSecondary }]}>Tilgang</Text>
             <View style={styles.btnRow}>
               <TouchableOpacity
                 disabled={busy}
-                style={[styles.solidBtn, { backgroundColor: isActive ? '#F1F5F9' : GREEN }]}
-                onPress={() => run(() => updateCompany(company.id, { subscriptionStatus: isActive ? 'canceled' : 'active' }), isActive ? 'Markert som inaktiv (sagt opp)' : 'Markert som aktiv')}
+                style={[styles.solidBtn, { backgroundColor: isActive ? '#FEF3C7' : GREEN }]}
+                onPress={() => run(() => updateCompany(company.id, { subscriptionStatus: isActive ? 'canceled' : 'active' }), isActive ? 'Kontoen er satt på pause' : 'Tilgang gjenåpnet')}
               >
-                <Text style={[styles.solidBtnText, { color: isActive ? GRAY : '#FFFFFF' }]}>
-                  {isActive ? 'Marker som inaktiv' : 'Marker som aktiv'}
+                <Ionicons name={isActive ? 'pause-circle-outline' : 'play-circle-outline'} size={15} color={isActive ? '#B45309' : '#FFFFFF'} />
+                <Text style={[styles.solidBtnText, { color: isActive ? '#B45309' : '#FFFFFF' }]}>
+                  {isActive ? 'Sett på pause' : 'Gjenåpne tilgang'}
                 </Text>
               </TouchableOpacity>
             </View>
+            <Text style={[styles.hint, { color: C.textTertiary }]}>
+              {isActive
+                ? 'Pause sperrer innlogging for kunden, men beholder all data. Kan gjenåpnes når som helst.'
+                : 'Kunden har ikke tilgang nå. Trykk for å gi full tilgang igjen.'}
+            </Text>
+          </View>
+
+          {/* Arkiver / gjenopprett */}
+          <View>
+            <Text style={[styles.actionLabel, { color: C.textSecondary }]}>Arkiv</Text>
+            <View style={styles.btnRow}>
+              <TouchableOpacity
+                disabled={busy}
+                style={[styles.outlineBtn, { borderColor: C.border }]}
+                onPress={() => run(() => archiveCompany(company.id, !isArchived), isArchived ? 'Kunde gjenopprettet' : 'Kunde arkivert')}
+              >
+                <Ionicons name={isArchived ? 'refresh-outline' : 'archive-outline'} size={15} color={C.textPrimary} />
+                <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>
+                  {isArchived ? 'Gjenopprett kunde' : 'Arkiver kunde'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.hint, { color: C.textTertiary }]}>
+              {isArchived
+                ? 'Kunden er arkivert (skjult fra lista, tilgang sperret). All data er beholdt.'
+                : 'Skjuler kunden fra kundelista og sperrer tilgang, men beholder all data. Reversibelt.'}
+            </Text>
           </View>
 
           {/* Send melding */}
@@ -221,6 +271,57 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
           </View>
 
           {busy && <ActivityIndicator color={EBLUE} />}
+        </View>
+
+        {/* Faresone — permanent sletting */}
+        <Text style={[styles.section, { color: RED }]}>Faresone</Text>
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: '#FCA5A5' }]}>
+          {!confirmDelete ? (
+            <>
+              <Text style={[styles.dangerText, { color: C.textSecondary }]}>
+                Sletter firmaet, alle jobber, fakturaer, kunder, teknikere og innlogginger permanent. Dette kan ikke angres. Vurder «Arkiver» i stedet hvis du kan trenge dataene igjen.
+              </Text>
+              <TouchableOpacity
+                disabled={busy}
+                style={styles.dangerBtnOutline}
+                onPress={() => { setConfirmDelete(true); setDeleteText(''); setMsg(null); }}
+              >
+                <Ionicons name="trash-outline" size={15} color={RED} />
+                <Text style={styles.dangerBtnOutlineText}>Slett kunde permanent</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.dangerText, { color: C.textPrimary }]}>
+                Skriv <Text style={{ fontWeight: '700' }}>{company.name}</Text> for å bekrefte permanent sletting:
+              </Text>
+              <TextInput
+                value={deleteText}
+                onChangeText={setDeleteText}
+                placeholder={company.name}
+                placeholderTextColor={C.textTertiary}
+                autoCapitalize="none"
+                style={[styles.dangerInput, { borderColor: C.border, color: C.textPrimary, backgroundColor: C.cardAlt }]}
+              />
+              <View style={styles.btnRow}>
+                <TouchableOpacity
+                  disabled={busy}
+                  style={[styles.outlineBtn, { borderColor: C.border }]}
+                  onPress={() => { setConfirmDelete(false); setDeleteText(''); }}
+                >
+                  <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>Avbryt</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  disabled={busy || deleteText.trim() !== company.name}
+                  style={[styles.dangerBtnSolid, (busy || deleteText.trim() !== company.name) && { opacity: 0.4 }]}
+                  onPress={handleDelete}
+                >
+                  <Text style={styles.dangerBtnSolidText}>Slett for godt</Text>
+                </TouchableOpacity>
+              </View>
+              {busy && <ActivityIndicator color={RED} style={{ marginTop: 10 }} />}
+            </>
+          )}
         </View>
 
         <View style={{ height: 40 }} />
@@ -252,8 +353,15 @@ const styles = StyleSheet.create({
   timelineDate: { fontSize: 13 },
   actionLabel: { fontSize: 13, fontWeight: '600', marginBottom: 10 },
   btnRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  outlineBtn: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11 },
+  outlineBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11 },
   outlineBtnText: { fontSize: 13, fontWeight: '600' },
   solidBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 12 },
   solidBtnText: { fontSize: 13, fontWeight: '600' },
+  hint: { fontSize: 12, marginTop: 8, lineHeight: 17 },
+  dangerText: { fontSize: 13, lineHeight: 19, marginBottom: 14 },
+  dangerBtnOutline: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11, alignSelf: 'flex-start' },
+  dangerBtnOutlineText: { fontSize: 13, fontWeight: '600', color: RED },
+  dangerInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, marginBottom: 14, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
+  dangerBtnSolid: { backgroundColor: RED, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 12 },
+  dangerBtnSolidText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
 });

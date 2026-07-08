@@ -39,6 +39,7 @@ export interface SuperadminCompany {
   nextInvoiceDate: string | null;
   lastInvoicedDate: string | null;
   lastPaidDate: string | null;
+  archivedAt: string | null;
   technicianCount: number;
   adminCount: number;
   jobCount: number;
@@ -88,6 +89,7 @@ function mapCompany(row: any): SuperadminCompany {
     nextInvoiceDate: row.next_invoice_date ?? null,
     lastInvoicedDate: row.last_invoiced_date ?? null,
     lastPaidDate: row.last_paid_date ?? null,
+    archivedAt: row.archived_at ?? null,
     technicianCount: Number(row.technician_count ?? 0),
     adminCount: Number(row.admin_count ?? 0),
     jobCount: Number(row.job_count ?? 0),
@@ -143,6 +145,21 @@ export async function updateCompany(
     p_subscription_status: patch.subscriptionStatus ?? null,
     p_extend_trial_days: patch.extendTrialDays ?? null,
     p_next_invoice_date: patch.nextInvoiceDate ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function setArchived(companyId: string, archived: boolean): Promise<void> {
+  const { error } = await supabase.rpc('superadmin_set_archived', {
+    p_company_id: companyId,
+    p_archived: archived,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteCompany(companyId: string): Promise<void> {
+  const { error } = await supabase.rpc('superadmin_delete_company', {
+    p_company_id: companyId,
   });
   if (error) throw new Error(error.message);
 }
