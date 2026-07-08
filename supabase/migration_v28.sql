@@ -46,3 +46,21 @@ EXCEPTION WHEN OTHERS THEN
   RETURN NEW;
 END;
 $function$;
+
+-- Samme search_path-bug i den andre auth-triggeren (fyrer ved e-postbekreftelse).
+-- Lav-impact (rører kun leads/markedsføringssporing), men samme rot-årsak.
+CREATE OR REPLACE FUNCTION public.handle_email_confirmed()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path = public
+AS $function$
+BEGIN
+  IF NEW.email_confirmed_at IS NOT NULL AND OLD.email_confirmed_at IS NULL THEN
+    UPDATE public.leads SET confirmed_at = NEW.email_confirmed_at WHERE email = NEW.email;
+  END IF;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RETURN NEW;
+END;
+$function$;
