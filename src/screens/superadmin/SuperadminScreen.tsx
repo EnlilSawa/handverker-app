@@ -150,10 +150,13 @@ function CompaniesTab({ onOpen }: { onOpen: (id: string) => void }) {
     }
     const q = search.trim().toLowerCase();
     if (q) {
+      // Org.nr matches ignorerer mellomrom (både i søket og i lagret verdi).
+      const qDigits = q.replace(/\s/g, '');
       r = r.filter(
         (c) =>
           c.name.toLowerCase().includes(q) ||
-          (c.contactEmail ?? '').toLowerCase().includes(q),
+          (c.contactEmail ?? '').toLowerCase().includes(q) ||
+          (c.orgNumber ?? '').replace(/\s/g, '').toLowerCase().includes(qDigits),
       );
     }
     const sorted = [...r];
@@ -171,7 +174,7 @@ function CompaniesTab({ onOpen }: { onOpen: (id: string) => void }) {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Søk bedrift eller e-post…"
+            placeholder="Søk bedrift, e-post eller org.nr…"
             placeholderTextColor={C.textTertiary}
             style={[tools.searchInput, { color: C.textPrimary }]}
           />
