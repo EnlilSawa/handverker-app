@@ -25,6 +25,7 @@ import {
   BillingStatus,
   companiesToCsv,
   downloadCsv,
+  sendCustomerInvite,
 } from '../../lib/superadminApi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
@@ -451,11 +452,30 @@ function CreateCompanyModal({ visible, onClose }: { visible: boolean; onClose: (
   const [plan, setPlan] = useState<Plan | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [done, setDone] = useState<{ email: string; password: string; companyName: string } | null>(null);
+  const [done, setDone] = useState<{ email: string; password: string; companyName: string; contactName: string } | null>(null);
+  const [emailState, setEmailState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [emailErr, setEmailErr] = useState<string | null>(null);
 
   const reset = () => {
     setCompanyName(''); setContactName(''); setEmail(''); setPassword('');
     setOrgNumber(''); setHourlyRate(''); setPlan(null); setErr(null); setDone(null); setBusy(false);
+    setEmailState('idle'); setEmailErr(null);
+  };
+
+  const sendInvite = async () => {
+    if (!done) return;
+    setEmailState('sending');
+    setEmailErr(null);
+    try {
+      await sendCustomerInvite({
+        email: done.email, password: done.password,
+        companyName: done.companyName, contactName: done.contactName,
+      });
+      setEmailState('sent');
+    } catch (e: any) {
+      setEmailState('error');
+      setEmailErr(e?.message ?? 'Kunne ikke sende e-post');
+    }
   };
   const close = () => { reset(); onClose(); };
 
@@ -477,7 +497,7 @@ function CreateCompanyModal({ visible, onClose }: { visible: boolean; onClose: (
         plan: plan ?? undefined,
         monthlyAmount: plan ? PLAN_PRICES[plan] : 0,
       });
-      setDone({ email: res.email, password, companyName: res.companyName });
+      setDone({ email: res.email, password, companyName: res.companyName, contactName: contactName.trim() });
     } catch (e: any) {
       setErr(e?.message ?? 'Kunne ikke opprette kunde');
     } finally {
@@ -502,6 +522,28 @@ function CreateCompanyModal({ visible, onClose }: { visible: boolean; onClose: (
                   <Text style={[create.credLabel, { color: C.textTertiary, marginTop: 10 }]}>Midlertidig passord</Text>
                   <Text style={[create.credValue, { color: C.textPrimary }]} selectable>{done.password}</Text>
                 </View>
+                {/* Send innloggingen på e-post til kunden */}
+                <TouchableOpacity
+                  style={[create.inviteBtn, { borderColor: C.border }, emailState === 'sent' && { borderColor: GREEN, backgroundColor: '#F0FDF4' }]}
+                  onPress={sendInvite}
+                  disabled={emailState === 'sending' || emailState === 'sent'}
+                >
+                  {emailState === 'sending' ? (
+                    <ActivityIndicator color={EBLUE} />
+                  ) : emailState === 'sent' ? (
+                    <>
+                      <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+                      <Text style={[create.inviteText, { color: GREEN }]}>Innlogging sendt til {done.email}</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="mail-outline" size={16} color={EBLUE} />
+                      <Text style={[create.inviteText, { color: EBLUE }]}>Send innlogging på e-post</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                {emailErr && <Text style={[create.err, { marginTop: 0, marginBottom: 8 }]}>{emailErr}</Text>}
+
                 <Text style={[create.hint, { color: C.textTertiary }]}>
                   Kunden bør bytte passord i Innstillinger, og fyller inn timepris/teknikere selv.
                 </Text>
@@ -578,6 +620,8 @@ const create = StyleSheet.create({
   credBox: { borderWidth: 1, borderRadius: 12, padding: 16, marginBottom: 14 },
   credLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
   credValue: { fontSize: 15, fontWeight: '600', marginTop: 2 },
+  inviteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingVertical: 12, marginBottom: 10 },
+  inviteText: { fontSize: 13, fontWeight: '600' },
   hint: { fontSize: 12, lineHeight: 17, marginBottom: 18 },
 });
 

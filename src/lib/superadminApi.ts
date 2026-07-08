@@ -192,6 +192,23 @@ export async function createCompany(
   return { companyId: data.company_id, email: data.email, companyName: data.company_name };
 }
 
+export async function sendCustomerInvite(input: {
+  email: string;
+  password: string;
+  companyName: string;
+  contactName?: string;
+}): Promise<void> {
+  const { error } = await supabase.functions.invoke('send-customer-invite', {
+    body: {
+      email: input.email,
+      password: input.password,
+      companyName: input.companyName,
+      contactName: input.contactName ?? '',
+    },
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function exportCompanyData(companyId: string): Promise<any> {
   const { data, error } = await supabase.rpc('superadmin_export_company', {
     p_company_id: companyId,
