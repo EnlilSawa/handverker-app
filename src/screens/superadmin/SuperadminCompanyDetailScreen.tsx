@@ -22,6 +22,8 @@ import {
   BILLING_LABELS,
   exportCompanyData,
   downloadJson,
+  downloadCsv,
+  invoicesToCsv,
 } from '../../lib/superadminApi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
@@ -113,6 +115,29 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
         data,
       );
       setMsg(ok ? 'Kundens data er eksportert (JSON lastet ned)' : 'Eksport er kun tilgjengelig på web');
+    } catch (e: any) {
+      setMsg(e?.message ?? 'Eksport feilet');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleExportInvoicesCsv = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const data = await exportCompanyData(company.id);
+      const invoices = (data?.invoices ?? []) as any[];
+      if (invoices.length === 0) {
+        setMsg('Ingen fakturaer å eksportere for denne kunden');
+        return;
+      }
+      const safeName = company.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      const ok = downloadCsv(
+        `efero-fakturaer-${safeName}-${new Date().toISOString().slice(0, 10)}.csv`,
+        invoicesToCsv(invoices),
+      );
+      setMsg(ok ? `Fakturaer eksportert (${invoices.length} stk, CSV)` : 'Eksport er kun tilgjengelig på web');
     } catch (e: any) {
       setMsg(e?.message ?? 'Eksport feilet');
     } finally {
@@ -297,16 +322,26 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
         <Text style={[styles.section, { color: RED }]}>Faresone</Text>
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: '#FCA5A5' }]}>
           {/* Anbefalt steg 1: eksporter kundens data før sletting */}
-          <TouchableOpacity
-            disabled={busy}
-            style={[styles.outlineBtn, { borderColor: C.border, alignSelf: 'flex-start', marginBottom: 16 }]}
-            onPress={handleExport}
-          >
-            <Ionicons name="download-outline" size={15} color={C.textPrimary} />
-            <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>Eksporter kundens data (JSON)</Text>
-          </TouchableOpacity>
+          <View style={[styles.btnRow, { marginBottom: 16 }]}>
+            <TouchableOpacity
+              disabled={busy}
+              style={[styles.outlineBtn, { borderColor: C.border }]}
+              onPress={handleExport}
+            >
+              <Ionicons name="download-outline" size={15} color={C.textPrimary} />
+              <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>Alle data (JSON)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              disabled={busy}
+              style={[styles.outlineBtn, { borderColor: C.border }]}
+              onPress={handleExportInvoicesCsv}
+            >
+              <Ionicons name="document-text-outline" size={15} color={C.textPrimary} />
+              <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>Fakturaer (CSV)</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={[styles.hint, { color: C.textTertiary, marginTop: 0, marginBottom: 16 }]}>
-            Anbefalt før sletting: last ned firmaets fulle datasett (jobber, fakturaer, kunder m.m.) så kunden kan oppfylle sin egen 5-års oppbevaringsplikt.
+            Anbefalt før sletting: last ned kundens data så de kan oppfylle sin egen 5-års oppbevaringsplikt. JSON = fullt datasett (jobber, fakturaer, kunder m.m.); CSV = fakturaliste for Excel/regnskap.
           </Text>
 
           {!confirmDelete ? (

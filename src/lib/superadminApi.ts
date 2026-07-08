@@ -212,6 +212,26 @@ export function companiesToCsv(rows: SuperadminCompany[]): string {
   return '﻿' + [header.join(';'), ...lines].join('\r\n');
 }
 
+// Faktura-CSV fra rå eksport-rader (snake_case fra superadmin_export_company).
+// Semikolon + BOM → åpner rett i norsk Excel for kundens regnskap.
+export function invoicesToCsv(rows: any[]): string {
+  const header = [
+    'Fakturanr', 'Dato', 'Kunde', 'E-post', 'Beløp eks. mva', 'MVA', 'Total', 'Status', 'Forfall', 'Notat',
+  ];
+  const esc = (val: unknown): string => {
+    const s = val == null ? '' : String(val);
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const day = (d: unknown) => (d ? String(d).slice(0, 10) : '');
+  const lines = rows.map((r) =>
+    [
+      r.invoice_number, day(r.created_at), r.customer_name, r.customer_email,
+      r.subtotal_ex_vat, r.vat, r.total, r.status, day(r.due_date), r.note,
+    ].map(esc).join(';'),
+  );
+  return '﻿' + [header.join(';'), ...lines].join('\r\n');
+}
+
 export function downloadCsv(filename: string, csv: string): boolean {
   return downloadBlob(filename, csv, 'text/csv;charset=utf-8;');
 }
