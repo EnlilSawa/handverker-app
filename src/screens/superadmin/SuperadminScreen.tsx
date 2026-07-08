@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedScreen } from '../../components/ThemedScreen';
@@ -16,7 +17,9 @@ import { useSuperadmin } from './SuperadminContext';
 import {
   SuperadminCompany,
   SubStatus,
+  Plan,
   PLAN_LABELS,
+  PLAN_PRICES,
   SUB_STATUS_LABELS,
   BILLING_LABELS,
   BillingStatus,
@@ -416,11 +419,174 @@ const tools = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48 },
 });
 
+// ── Opprett ny kunde (Efero lager kontoen) ───────────────────────────────────
+function Field({ label, value, onChange, placeholder, secure, keyboardType }: any) {
+  const { colors: C } = useTheme();
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={[create.label, { color: C.textSecondary }]}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={C.textTertiary}
+        secureTextEntry={secure}
+        autoCapitalize={secure || keyboardType === 'email-address' ? 'none' : 'sentences'}
+        keyboardType={keyboardType}
+        style={[create.input, { color: C.textPrimary, borderColor: C.border, backgroundColor: C.cardAlt }]}
+      />
+    </View>
+  );
+}
+
+function CreateCompanyModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { colors: C } = useTheme();
+  const { createCompany } = useSuperadmin();
+  const [companyName, setCompanyName] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [orgNumber, setOrgNumber] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState<{ email: string; password: string; companyName: string } | null>(null);
+
+  const reset = () => {
+    setCompanyName(''); setContactName(''); setEmail(''); setPassword('');
+    setOrgNumber(''); setHourlyRate(''); setPlan(null); setErr(null); setDone(null); setBusy(false);
+  };
+  const close = () => { reset(); onClose(); };
+
+  const submit = async () => {
+    setErr(null);
+    if (!companyName.trim()) return setErr('Firmanavn mangler');
+    if (!contactName.trim()) return setErr('Kontaktperson mangler');
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setErr('Ugyldig e-post');
+    if (password.length < 8) return setErr('Passordet må ha minst 8 tegn');
+    setBusy(true);
+    try {
+      const res = await createCompany({
+        companyName: companyName.trim(),
+        contactName: contactName.trim(),
+        adminEmail: email.trim(),
+        password,
+        orgNumber: orgNumber.trim() || undefined,
+        hourlyRate: hourlyRate ? Number(hourlyRate) : 0,
+        plan: plan ?? undefined,
+        monthlyAmount: plan ? PLAN_PRICES[plan] : 0,
+      });
+      setDone({ email: res.email, password, companyName: res.companyName });
+    } catch (e: any) {
+      setErr(e?.message ?? 'Kunne ikke opprette kunde');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
+      <View style={create.backdrop}>
+        <View style={[create.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+          <ScrollView>
+            {done ? (
+              <>
+                <Text style={[create.title, { color: C.textPrimary }]}>✓ Kunde opprettet</Text>
+                <Text style={[create.sub, { color: C.textSecondary }]}>
+                  {done.companyName} er klar. Del denne innloggingen med kunden — de kan logge inn på portal.efero.no med én gang:
+                </Text>
+                <View style={[create.credBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+                  <Text style={[create.credLabel, { color: C.textTertiary }]}>E-post</Text>
+                  <Text style={[create.credValue, { color: C.textPrimary }]} selectable>{done.email}</Text>
+                  <Text style={[create.credLabel, { color: C.textTertiary, marginTop: 10 }]}>Midlertidig passord</Text>
+                  <Text style={[create.credValue, { color: C.textPrimary }]} selectable>{done.password}</Text>
+                </View>
+                <Text style={[create.hint, { color: C.textTertiary }]}>
+                  Kunden bør bytte passord i Innstillinger, og fyller inn timepris/teknikere selv.
+                </Text>
+                <TouchableOpacity style={create.primaryBtn} onPress={close}>
+                  <Text style={create.primaryBtnText}>Ferdig</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={[create.title, { color: C.textPrimary }]}>Opprett ny kunde</Text>
+                <Text style={[create.sub, { color: C.textSecondary }]}>
+                  Efero lager kontoen. Kunden logger inn med e-post + passordet du setter her.
+                </Text>
+                <Field label="Firmanavn *" value={companyName} onChange={setCompanyName} placeholder="VVS Service AS" />
+                <Field label="Kontaktperson *" value={contactName} onChange={setContactName} placeholder="Ola Nordmann" />
+                <Field label="E-post *" value={email} onChange={setEmail} placeholder="ola@vvsservice.no" keyboardType="email-address" />
+                <Field label="Midlertidig passord *" value={password} onChange={setPassword} placeholder="Minst 8 tegn" secure />
+                <Field label="Org.nr (valgfritt)" value={orgNumber} onChange={setOrgNumber} placeholder="123456789" keyboardType="number-pad" />
+                <Field label="Timepris (valgfritt — kunden kan sette selv)" value={hourlyRate} onChange={setHourlyRate} placeholder="0" keyboardType="number-pad" />
+
+                <Text style={[create.label, { color: C.textSecondary }]}>Pakke (valgfritt)</Text>
+                <View style={create.planRow}>
+                  {(['liten', 'middels', 'stor'] as Plan[]).map((p) => {
+                    const sel = plan === p;
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        onPress={() => setPlan(sel ? null : p)}
+                        style={[create.planBtn, { borderColor: sel ? EBLUE : C.border }, sel && { backgroundColor: '#EEF4FF' }]}
+                      >
+                        <Text style={[create.planText, { color: sel ? EBLUE : C.textPrimary }]}>
+                          {PLAN_LABELS[p]} ({PLAN_PRICES[p]})
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {err && <Text style={create.err}>{err}</Text>}
+
+                <View style={create.btnRow}>
+                  <TouchableOpacity style={[create.cancelBtn, { borderColor: C.border }]} onPress={close} disabled={busy}>
+                    <Text style={[create.cancelText, { color: C.textPrimary }]}>Avbryt</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[create.primaryBtn, { flex: 1 }, busy && { opacity: 0.6 }]} onPress={submit} disabled={busy}>
+                    {busy ? <ActivityIndicator color="#FFF" /> : <Text style={create.primaryBtnText}>Opprett kunde</Text>}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const create = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  card: { width: '100%', maxWidth: 460, maxHeight: '90%', borderRadius: 16, borderWidth: 1, padding: 24 },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 6 },
+  sub: { fontSize: 13, lineHeight: 19, marginBottom: 18 },
+  label: { fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
+  planRow: { flexDirection: 'row', gap: 8, marginBottom: 8, marginTop: 2 },
+  planBtn: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  planText: { fontSize: 12, fontWeight: '600' },
+  err: { color: RED, fontSize: 13, marginTop: 8 },
+  btnRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  cancelBtn: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontSize: 14, fontWeight: '600' },
+  primaryBtn: { backgroundColor: EBLUE, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
+  primaryBtnText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  credBox: { borderWidth: 1, borderRadius: 12, padding: 16, marginBottom: 14 },
+  credLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  credValue: { fontSize: 15, fontWeight: '600', marginTop: 2 },
+  hint: { fontSize: 12, lineHeight: 17, marginBottom: 18 },
+});
+
 // ── Hovedskjerm ──────────────────────────────────────────────────────────────
 export function SuperadminScreen({ navigation }: any) {
   const { colors: C } = useTheme();
   const { metrics, loading, error, refresh } = useSuperadmin();
   const [tab, setTab] = useState<'kunder' | 'fakturering'>('kunder');
+  const [showCreate, setShowCreate] = useState(false);
 
   return (
     <ThemedScreen>
@@ -431,11 +597,19 @@ export function SuperadminScreen({ navigation }: any) {
             <Text style={[head.title, { color: C.textPrimary }]}>Superadmin</Text>
             <Text style={[head.subtitle, { color: C.textSecondary }]}>Efero — kunde- og faktureringsoversikt</Text>
           </View>
-          <TouchableOpacity style={[head.refresh, { borderColor: C.border }]} onPress={refresh}>
-            <Ionicons name="refresh-outline" size={16} color={C.textSecondary} />
-            <Text style={[head.refreshText, { color: C.textSecondary }]}>Oppdater</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <TouchableOpacity style={head.createBtn} onPress={() => setShowCreate(true)}>
+              <Ionicons name="add" size={18} color="#FFFFFF" />
+              <Text style={head.createText}>Opprett kunde</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[head.refresh, { borderColor: C.border }]} onPress={refresh}>
+              <Ionicons name="refresh-outline" size={16} color={C.textSecondary} />
+              <Text style={[head.refreshText, { color: C.textSecondary }]}>Oppdater</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        <CreateCompanyModal visible={showCreate} onClose={() => setShowCreate(false)} />
 
         {error && (
           <View style={[head.error]}>
@@ -487,6 +661,8 @@ const head = StyleSheet.create({
   subtitle: { fontSize: 14, marginTop: 4 },
   refresh: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, height: 40 },
   refreshText: { fontSize: 13, fontWeight: '500' },
+  createBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: EBLUE, borderRadius: 10, paddingHorizontal: 16, height: 40 },
+  createText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
   error: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12, marginBottom: 16 },
   errorText: { color: RED, fontSize: 13 },
   metrics: { flexDirection: 'row', gap: 14, marginBottom: 28, flexWrap: 'wrap' },

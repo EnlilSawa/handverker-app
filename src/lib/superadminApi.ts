@@ -164,6 +164,34 @@ export async function deleteCompany(companyId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export interface CreateCompanyInput {
+  companyName: string;
+  contactName: string;
+  adminEmail: string;
+  password: string;
+  orgNumber?: string;
+  hourlyRate?: number;
+  plan?: Plan;
+  monthlyAmount?: number;
+}
+
+export async function createCompany(
+  input: CreateCompanyInput,
+): Promise<{ companyId: string; email: string; companyName: string }> {
+  const { data, error } = await supabase.rpc('superadmin_create_company', {
+    p_company_name: input.companyName,
+    p_contact_name: input.contactName,
+    p_admin_email: input.adminEmail,
+    p_password: input.password,
+    p_org_number: input.orgNumber?.trim() || null,
+    p_hourly_rate: input.hourlyRate ?? 0,
+    p_subscription_plan: input.plan ?? null,
+    p_monthly_amount: input.monthlyAmount ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  return { companyId: data.company_id, email: data.email, companyName: data.company_name };
+}
+
 export async function exportCompanyData(companyId: string): Promise<any> {
   const { data, error } = await supabase.rpc('superadmin_export_company', {
     p_company_id: companyId,

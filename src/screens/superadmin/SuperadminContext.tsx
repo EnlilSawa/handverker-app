@@ -10,6 +10,8 @@ import {
   updateCompany as apiUpdateCompany,
   setArchived as apiSetArchived,
   deleteCompany as apiDeleteCompany,
+  createCompany as apiCreateCompany,
+  CreateCompanyInput,
 } from '../../lib/superadminApi';
 
 interface SuperadminValue {
@@ -22,6 +24,7 @@ interface SuperadminValue {
   updateCompany: (companyId: string, patch: UpdateCompanyPatch) => Promise<void>;
   archiveCompany: (companyId: string, archived: boolean) => Promise<void>;
   deleteCompany: (companyId: string) => Promise<void>;
+  createCompany: (input: CreateCompanyInput) => Promise<{ companyId: string; email: string; companyName: string }>;
   getCompany: (companyId: string) => SuperadminCompany | undefined;
 }
 
@@ -83,6 +86,15 @@ export function SuperadminProvider({ children }: { children: React.ReactNode }) 
     [refresh],
   );
 
+  const createCompany = useCallback(
+    async (input: CreateCompanyInput) => {
+      const res = await apiCreateCompany(input);
+      await refresh();
+      return res;
+    },
+    [refresh],
+  );
+
   const getCompany = useCallback(
     (companyId: string) => companies.find((c) => c.id === companyId),
     [companies],
@@ -100,6 +112,7 @@ export function SuperadminProvider({ children }: { children: React.ReactNode }) 
         updateCompany,
         archiveCompany,
         deleteCompany,
+        createCompany,
         getCompany,
       }}
     >

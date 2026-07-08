@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppStore } from '../store/appStore';
 import { supabase } from '../lib/supabase';
 import { LoginScreen } from '../screens/auth/LoginScreen';
-import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ConfirmEmailScreen } from '../screens/auth/ConfirmEmailScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import { UpdatePasswordScreen } from '../screens/auth/UpdatePasswordScreen';
@@ -87,27 +86,12 @@ export function RootNavigator() {
       return <ForgotPasswordScreen onGoToLogin={() => setAuthView('login')} />;
     }
 
-    if (authView === 'register') {
-      return (
-        <RegisterScreen
-          onGoToLogin={() => setAuthView('login')}
-          onEmailSent={(email) => {
-            setPendingEmail(email);
-            setAuthView('confirm_email');
-          }}
-        />
-      );
-    }
-
+    // Selv-registrering er fjernet — Efero oppretter kundekontoer selv i superadmin
+    // («Opprett kunde»). Kunden logger inn med innloggingen de får av Efero.
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login">
-          {() => (
-            <LoginScreen
-              onGoToRegister={() => setAuthView('register')}
-              onGoToForgot={() => setAuthView('forgot_password')}
-            />
-          )}
+          {() => <LoginScreen onGoToForgot={() => setAuthView('forgot_password')} />}
         </Stack.Screen>
       </Stack.Navigator>
     );
