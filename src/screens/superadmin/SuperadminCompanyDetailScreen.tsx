@@ -103,6 +103,9 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
 
   const isActive = company.subscriptionStatus === 'active';
   const isArchived = !!company.archivedAt;
+  // Bekreftelse er ufølsom for store/små bokstaver + mellomrom (autoCapitalize="none"
+  // gjorde det lett å skrive navnet med feil kasus → knappen forble grå).
+  const nameConfirmed = deleteText.trim().toLowerCase() === company.name.trim().toLowerCase();
 
   const handleExport = async () => {
     setBusy(true);
@@ -380,8 +383,8 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
                   <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>Avbryt</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  disabled={busy || deleteText.trim() !== company.name}
-                  style={[styles.dangerBtnSolid, (busy || deleteText.trim() !== company.name) && { opacity: 0.4 }]}
+                  disabled={busy || !nameConfirmed}
+                  style={[styles.dangerBtnSolid, (busy || !nameConfirmed) && { opacity: 0.4 }]}
                   onPress={handleDelete}
                 >
                   <Text style={styles.dangerBtnSolidText}>Slett for godt</Text>
