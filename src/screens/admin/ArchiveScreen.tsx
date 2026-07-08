@@ -232,10 +232,11 @@ export function ArchiveScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Transparent backdrop — closes dropdown on outside tap */}
+      {/* Transparent backdrop — closes dropdown on outside tap. zIndex under headeren
+          (30) men over innholdet, så dropdownen er klikkbar og fanger utsideklikk. */}
       {showMonthPicker && (
         <TouchableOpacity
-          style={StyleSheet.absoluteFillObject}
+          style={[StyleSheet.absoluteFillObject, { zIndex: 20 }]}
           onPress={() => setShowMonthPicker(false)}
           activeOpacity={1}
         />
@@ -312,6 +313,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexWrap: 'wrap',
     gap: 12,
+    // Løft hele headeren (og dens absolutt-posisjonerte dropdown) over innholdet
+    // under — ellers males månedsdropdownen bak tabellen på web (RN Web stacking).
+    position: 'relative',
+    zIndex: 30,
   },
   headerLeft: { gap: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
