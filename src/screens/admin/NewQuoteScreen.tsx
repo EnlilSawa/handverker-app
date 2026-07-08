@@ -128,7 +128,9 @@ export function NewQuoteScreen({ navigation }: any) {
 
         {/* Customer */}
         <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>KUNDEINFORMASJON</Text>
-        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+        {/* zIndex løfter kortet (og en overflytende kundeforslag-liste) over seksjonene
+            under — ellers males lang autocomplete bak neste kort (RN Web stacking). */}
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border, position: 'relative', zIndex: 20 }]}>
           <Text style={[styles.fieldLabel, { color: C.textSecondary }]}>KUNDENAVN *</Text>
           <View style={{ position: 'relative', zIndex: 10 }}>
             <TextInput
