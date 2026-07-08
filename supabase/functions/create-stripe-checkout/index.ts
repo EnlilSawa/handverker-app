@@ -1,6 +1,7 @@
 // Nødvendige Supabase-hemmeligheter (sett via: supabase secrets set KEY=value):
 //   STRIPE_SECRET_KEY   — fra Stripe Dashboard → Developers → API keys
 //   STRIPE_PRICE_ID     — Stripe Price ID for 399 kr/mnd abonnementet (price_xxx)
+//   STRIPE_TAX_RATE_ID  — (valgfri) Stripe Tax Rate ID for 25% MVA (txr_xxx). Utelates → ingen mva legges på
 //   APP_URL             — din frontend-URL, f.eks. https://app.handverker.no
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -61,6 +62,7 @@ serve(async (req) => {
     }
 
     const appUrl = Deno.env.get('APP_URL') ?? 'http://localhost:19006';
+    const taxRateId = Deno.env.get('STRIPE_TAX_RATE_ID');
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -69,6 +71,7 @@ serve(async (req) => {
       line_items: [{
         price: Deno.env.get('STRIPE_PRICE_ID')!,
         quantity: 1,
+        ...(taxRateId ? { tax_rates: [taxRateId] } : {}),
       }],
       success_url: `${appUrl}?payment=success`,
       cancel_url: `${appUrl}?payment=canceled`,
