@@ -10,10 +10,12 @@ import {
   Platform,
   ActivityIndicator,
   Animated,
+  Image,
   TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../../theme/colors';
 import { EferoLogo } from '../../components/EferoLogo';
 import { useAppStore } from '../../store/appStore';
@@ -31,9 +33,16 @@ function emptyTech(): Tech {
 export function OnboardingWizard() {
   const setupCompany = useAppStore((s) => s.setupCompany);
   const updateCompany = useAppStore((s) => s.updateCompany);
+  const uploadCompanyLogo = useAppStore((s) => s.uploadCompanyLogo);
   const addTechnician = useAppStore((s) => s.addTechnician);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
   const currentUser = useAppStore((s) => s.currentUser);
+  const company = useAppStore((s) => s.company);
+
+  // Efero oppretter kundekontoer med firma allerede på plass → kunden skal bare
+  // FULLFØRE oppsettet (timepris → teknikere → logo), ikke opprette firma på nytt.
+  // Fallback (firma mangler helt) = den gamle firma-oppretting-flyten.
+  const setupMode = !!company;
 
   const firstName = currentUser?.name?.trim().split(' ')[0] ?? '';
 
@@ -42,20 +51,34 @@ export function OnboardingWizard() {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Steg 1 — bedriftsinformasjon
+  // Steg 1 (create mode) — bedriftsinformasjon
   const [companyName, setCompanyName] = useState('');
   const [orgNumber, setOrgNumber] = useState('');
   const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
 
-  // Steg 2 — prissetting
-  const [hourlyRate, setHourlyRate] = useState('895');
-  const [calloutFee, setCalloutFee] = useState('0');
-  const [paymentTerms, setPaymentTerms] = useState('14');
+  // Prissetting — forhåndsutfylt fra firmaet i setup mode
+  const [hourlyRate, setHourlyRate] = useState(() =>
+    setupMode ? (company && company.hourlyRate > 0 ? String(company.hourlyRate) : '') : '895',
+  );
+  const [calloutFee, setCalloutFee] = useState(() =>
+    setupMode ? String(company?.calloutFee ?? 0) : '0',
+  );
+  const [paymentTerms, setPaymentTerms] = useState(() =>
+    setupMode ? String(company?.paymentTermsDays ?? 14) : '14',
+  );
+  const [accountNumber, setAccountNumber] = useState(() =>
+    setupMode ? (company?.accountNumber ?? '') : '',
+  );
 
-  // Steg 3 — teknikere
+  // Teknikere
   const [technicians, setTechnicians] = useState<Tech[]>([emptyTech()]);
   const [techTouched, setTechTouched] = useState(false);
+  const [skipTech, setSkipTech] = useState(false);
+
+  // Logo (setup mode)
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState('');
 
   // Hvilke felt brukeren har forlatt (for å vise feil først etter interaksjon)
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -69,7 +92,7 @@ export function OnboardingWizard() {
     companyName.trim() !== '' && address.trim() !== '' && emailValid && orgValid;
 
   const rate = parseFloat(hourlyRate.replace(',', '.'));
-  const step2Valid = !isNaN(rate) && rate > 0;
+  const rateValid = !isNaN(rate) && rate > 0;
 
   const nameError = touched.companyName && !companyName.trim() ? 'Bedriftsnavn er påkrevd' : '';
   const orgError = touched.orgNumber && !orgValid ? 'Organisasjonsnummer må være 9 siffer' : '';
@@ -80,7 +103,7 @@ export function OnboardingWizard() {
         ? 'Skriv inn en gyldig e-postadresse'
         : 'E-post er påkrevd'
       : '';
-  const rateError = touched.hourlyRate && !step2Valid ? 'Timepris må være et tall større enn 0' : '';
+  const rateError = touched.hourlyRate && !rateValid ? 'Timepris må være et tall større enn 0' : '';
 
   const techFilled = (t: Tech) => !!(t.name.trim() || t.phone.trim() || t.password);
   const techRowError = (t: Tech) => ({
@@ -88,6 +111,13 @@ export function OnboardingWizard() {
     phone: !t.phone.trim() ? 'Telefon er påkrevd' : '',
     password: t.password.length < 8 ? 'Minst 8 tegn' : '',
   });
+  const filledTechs = technicians.filter(techFilled);
+  const techStepValid =
+    filledTechs.length === 0 ||
+    filledTechs.every((t) => {
+      const e = techRowError(t);
+      return !e.name && !e.phone && !e.password;
+    });
 
   // ── Steg-overgang (fade + lett slide) ────────────────────────────────────
   const anim = useRef(new Animated.Value(1)).current;
@@ -104,35 +134,62 @@ export function OnboardingWizard() {
     transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
   };
 
-  // ── Navigasjon mellom steg ────────────────────────────────────────────────
-  const goStep1Next = () => {
-    setTouched((t) => ({ ...t, companyName: true, orgNumber: true, address: true, email: true }));
-    if (step1Valid) setStep(2);
-  };
-  const goStep2Next = () => {
-    setTouched((t) => ({ ...t, hourlyRate: true }));
-    if (step2Valid) setStep(3);
-  };
-
   const updateTech = (i: number, patch: Partial<Tech>) =>
     setTechnicians((list) => list.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
   const addTechRow = () => setTechnicians((list) => [...list, emptyTech()]);
   const removeTechRow = (i: number) =>
     setTechnicians((list) => list.filter((_, idx) => idx !== i));
 
-  // ── Fullføring ────────────────────────────────────────────────────────────
-  const handleFinish = async (skipTech: boolean) => {
-    const filled = technicians.filter(techFilled);
-
-    if (!skipTech) {
-      setTechTouched(true);
-      const anyInvalid = filled.some((t) => {
-        const e = techRowError(t);
-        return e.name || e.phone || e.password;
-      });
-      if (anyInvalid) return;
+  // ── Logo-opplasting (setup mode) ─────────────────────────────────────────
+  const handleUploadLogo = async () => {
+    setLogoError('');
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') { setLogoError('Trenger tilgang til bildebiblioteket'); return; }
     }
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 0.9,
+      });
+    } catch { setLogoError('Kunne ikke åpne bildebibliotek'); return; }
+    if (result.canceled || result.assets.length === 0) return;
+    setLogoUploading(true);
+    try {
+      const asset = result.assets[0];
+      await uploadCompanyLogo(asset.uri, asset.mimeType || 'image/png');
+    } catch (e: any) {
+      setLogoError(e?.message ?? 'Opplasting feilet');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
+  // ── Legg til teknikerne som er fylt inn (best effort) ────────────────────
+  const createFilledTechnicians = async () => {
+    if (skipTech) return;
+    for (const t of filledTechs) {
+      // Onboarding samler ikke inn e-post for teknikere — de logger inn med
+      // telefonnummer. Vi syntetiserer en unik e-post som intern nøkkel i auth.
+      const synthEmail = `${t.phone.replace(/\D/g, '')}@teknikere.efero.no`;
+      try {
+        await addTechnician(t.name.trim(), synthEmail, t.phone.trim(), t.password);
+      } catch (e) {
+        // Ikke kritisk — admin kan legge til teknikeren senere fra Team-skjermen
+        console.warn('Kunne ikke legge til tekniker:', e);
+      }
+    }
+  };
+
+  // ── Fullføring: CREATE mode (opprett firma) ──────────────────────────────
+  const handleFinishCreate = async (skip: boolean) => {
+    if (!skip) {
+      setTechTouched(true);
+      if (!techStepValid) return;
+    }
+    setSkipTech(skip);
     setSubmitError(null);
     setLoading(true);
     try {
@@ -144,24 +201,9 @@ export function OnboardingWizard() {
         calloutFee: parseFloat(calloutFee.replace(',', '.')) || 0,
         paymentTermsDays: parseInt(paymentTerms, 10) || 14,
       });
-
       // Bedriftens e-post (reply-to på fakturaer) lagres separat etter at firmaet finnes
       await updateCompany({ email: email.trim() });
-
-      if (!skipTech) {
-        for (const t of filled) {
-          // Onboarding samler ikke inn e-post for teknikere — de logger inn med
-          // telefonnummer. Vi syntetiserer en unik e-post som intern nøkkel i auth.
-          const synthEmail = `${t.phone.replace(/\D/g, '')}@teknikere.efero.no`;
-          try {
-            await addTechnician(t.name.trim(), synthEmail, t.phone.trim(), t.password);
-          } catch (e) {
-            // Ikke kritisk — admin kan legge til teknikeren senere fra Team-skjermen
-            console.warn('Kunne ikke legge til tekniker:', e);
-          }
-        }
-      }
-
+      if (!skip) await createFilledTechnicians();
       setPhase('success');
     } catch (e: any) {
       setSubmitError(e?.message ?? 'Kunne ikke fullføre oppsettet. Prøv igjen.');
@@ -170,15 +212,52 @@ export function OnboardingWizard() {
     }
   };
 
-  const goToBoard = async () => {
+  // ── Fullføring: SETUP mode (firma finnes — lagre pris + teknikere) ───────
+  const handleFinishSetup = async () => {
     setSubmitError(null);
     setLoading(true);
     try {
-      await completeOnboarding(); // gate i RootNavigator sender oss til Jobbtavlen
+      await updateCompany({
+        hourlyRate: rate,
+        calloutFee: parseFloat(calloutFee.replace(',', '.')) || 0,
+        paymentTermsDays: parseInt(paymentTerms, 10) || 14,
+        accountNumber: accountNumber.trim(),
+      });
+      await createFilledTechnicians();
+      setPhase('success');
     } catch (e: any) {
-      setSubmitError(e?.message ?? 'Noe gikk galt. Prøv igjen.');
+      setSubmitError(e?.message ?? 'Kunne ikke lagre oppsettet. Prøv igjen.');
+    } finally {
       setLoading(false);
     }
+  };
+
+  // ── Navigasjon mellom steg ────────────────────────────────────────────────
+  const goStep1Next = () => {
+    if (setupMode) {
+      setTouched((t) => ({ ...t, hourlyRate: true }));
+      if (rateValid) setStep(2);
+    } else {
+      setTouched((t) => ({ ...t, companyName: true, orgNumber: true, address: true, email: true }));
+      if (step1Valid) setStep(2);
+    }
+  };
+  const goStep2Next = () => {
+    if (setupMode) {
+      // Steg 2 = teknikere. Valider utfylte rader før logo-steget.
+      setTechTouched(true);
+      if (!techStepValid) return;
+      setSkipTech(false);
+      setStep(3);
+    } else {
+      // Create mode: steg 2 = pris.
+      setTouched((t) => ({ ...t, hourlyRate: true }));
+      if (rateValid) setStep(3);
+    }
+  };
+  const skipTechToLogo = () => {
+    setSkipTech(true);
+    setStep(3);
   };
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -227,200 +306,302 @@ export function OnboardingWizard() {
                 <Text style={styles.stepLabel}>Steg {step} av {TOTAL_STEPS}</Text>
 
                 <Animated.View style={animStyle}>
-                  {/* ─── STEG 1 ─── */}
-                  {step === 1 && (
-                    <View>
-                      <Text style={styles.title}>Velkommen til Efero!</Text>
-                      <Text style={styles.subtitle}>
-                        La oss sette opp bedriften din. Tar bare to minutter.
-                      </Text>
+                  {/* ═══════════════ SETUP MODE (firma finnes) ═══════════════ */}
+                  {setupMode ? (
+                    <>
+                      {/* ─── STEG 1: Fakturadetaljer ─── */}
+                      {step === 1 && (
+                        <View>
+                          <Text style={styles.title}>
+                            Velkommen til Efero{firstName ? `, ${firstName}` : ''}!
+                          </Text>
+                          <Text style={styles.subtitle}>
+                            Vi har satt opp bedriften din. Fyll inn litt fakturainfo, så er du klar.
+                          </Text>
 
-                      <Labeled label="Bedriftsnavn" error={nameError}>
-                        <Input
-                          placeholder="VVS Service AS"
-                          value={companyName}
-                          onChangeText={setCompanyName}
-                          onBlur={() => markTouched('companyName')}
-                          autoCapitalize="words"
-                          invalid={!!nameError}
-                        />
-                      </Labeled>
+                          <Labeled
+                            label="Standard timepris (kr)"
+                            hint="Brukes til å beregne fakturaer automatisk"
+                            error={rateError}
+                          >
+                            <Input
+                              placeholder="895"
+                              value={hourlyRate}
+                              onChangeText={setHourlyRate}
+                              onBlur={() => markTouched('hourlyRate')}
+                              keyboardType="number-pad"
+                              invalid={!!rateError}
+                            />
+                          </Labeled>
 
-                      <Labeled label="Organisasjonsnummer (valgfritt)" error={orgError}>
-                        <Input
-                          placeholder="123 456 789"
-                          value={orgNumber}
-                          onChangeText={setOrgNumber}
-                          onBlur={() => markTouched('orgNumber')}
-                          keyboardType="number-pad"
-                          invalid={!!orgError}
-                        />
-                      </Labeled>
+                          <Labeled
+                            label="Kontonummer (valgfritt)"
+                            hint="Vises på fakturaen så kundene vet hvor de skal betale"
+                          >
+                            <Input
+                              placeholder="1234 56 78901"
+                              value={accountNumber}
+                              onChangeText={setAccountNumber}
+                              keyboardType="number-pad"
+                            />
+                          </Labeled>
 
-                      <Labeled label="Adresse" error={addressError}>
-                        <Input
-                          placeholder="Storgata 1, 0182 Oslo"
-                          value={address}
-                          onChangeText={setAddress}
-                          onBlur={() => markTouched('address')}
-                          invalid={!!addressError}
-                        />
-                      </Labeled>
+                          <Labeled label="Fremmøtegebyr (kr)">
+                            <Input
+                              placeholder="0"
+                              value={calloutFee}
+                              onChangeText={setCalloutFee}
+                              keyboardType="number-pad"
+                            />
+                          </Labeled>
 
-                      <Labeled
-                        label="Bedriftens e-post"
-                        hint="Brukes som svaradresse på fakturaer"
-                        error={emailError}
-                      >
-                        <Input
-                          placeholder="post@dinbedrift.no"
-                          value={email}
-                          onChangeText={setEmail}
-                          onBlur={() => markTouched('email')}
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          invalid={!!emailError}
-                        />
-                      </Labeled>
+                          <Labeled label="Betalingsbetingelser (dager)">
+                            <Input
+                              placeholder="14"
+                              value={paymentTerms}
+                              onChangeText={setPaymentTerms}
+                              keyboardType="number-pad"
+                            />
+                          </Labeled>
 
-                      <PrimaryButton
-                        label="Neste"
-                        onPress={goStep1Next}
-                        disabled={!step1Valid}
-                      />
-                    </View>
-                  )}
+                          <PrimaryButton label="Neste" onPress={goStep1Next} disabled={!rateValid} />
+                        </View>
+                      )}
 
-                  {/* ─── STEG 2 ─── */}
-                  {step === 2 && (
-                    <View>
-                      <Text style={styles.title}>Sett opp prisene dine</Text>
-                      <Text style={styles.subtitle}>
-                        Dette brukes til å beregne fakturaer automatisk. Du kan endre det senere.
-                      </Text>
+                      {/* ─── STEG 2: Teknikere ─── */}
+                      {step === 2 && (
+                        <View>
+                          <Text style={styles.title}>Legg til teamet ditt</Text>
+                          <Text style={styles.subtitle}>
+                            Legg til teknikerne dine, eller hopp over hvis du jobber alene. De logger
+                            inn med telefonnummeret og passordet du velger.
+                          </Text>
 
-                      <Labeled label="Standard timepris (kr)" error={rateError}>
-                        <Input
-                          placeholder="895"
-                          value={hourlyRate}
-                          onChangeText={setHourlyRate}
-                          onBlur={() => markTouched('hourlyRate')}
-                          keyboardType="number-pad"
-                          invalid={!!rateError}
-                        />
-                      </Labeled>
+                          <TechnicianList
+                            technicians={technicians}
+                            techTouched={techTouched}
+                            techFilled={techFilled}
+                            techRowError={techRowError}
+                            updateTech={updateTech}
+                            addTechRow={addTechRow}
+                            removeTechRow={removeTechRow}
+                          />
 
-                      <Labeled label="Fremmøtegebyr (kr)">
-                        <Input
-                          placeholder="0"
-                          value={calloutFee}
-                          onChangeText={setCalloutFee}
-                          keyboardType="number-pad"
-                        />
-                      </Labeled>
-
-                      <Labeled label="Betalingsbetingelser (dager)">
-                        <Input
-                          placeholder="14"
-                          value={paymentTerms}
-                          onChangeText={setPaymentTerms}
-                          keyboardType="number-pad"
-                        />
-                      </Labeled>
-
-                      <View style={styles.btnRow}>
-                        <OutlineButton label="Tilbake" back onPress={() => setStep(1)} />
-                        <PrimaryButton
-                          label="Neste"
-                          flex
-                          onPress={goStep2Next}
-                          disabled={!step2Valid}
-                        />
-                      </View>
-                    </View>
-                  )}
-
-                  {/* ─── STEG 3 ─── */}
-                  {step === 3 && (
-                    <View>
-                      <Text style={styles.title}>Legg til teamet ditt</Text>
-                      <Text style={styles.subtitle}>
-                        Legg til teknikerne dine, eller hopp over hvis du jobber alene.
-                      </Text>
-
-                      {technicians.map((t, i) => {
-                        const err = techTouched && techFilled(t) ? techRowError(t) : null;
-                        return (
-                          <View key={i} style={styles.techCard}>
-                            {technicians.length > 1 && (
-                              <TouchableOpacity
-                                style={styles.techRemove}
-                                onPress={() => removeTechRow(i)}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                              >
-                                <Ionicons name="close" size={18} color={colors.slate} />
-                              </TouchableOpacity>
-                            )}
-                            <Text style={styles.techNum}>Tekniker {i + 1}</Text>
-
-                            <Labeled label="Navn" error={err?.name}>
-                              <Input
-                                placeholder="Magnus Olsen"
-                                value={t.name}
-                                onChangeText={(v) => updateTech(i, { name: v })}
-                                autoCapitalize="words"
-                                invalid={!!err?.name}
-                              />
-                            </Labeled>
-
-                            <Labeled label="Telefonnummer" error={err?.phone}>
-                              <Input
-                                placeholder="90000002"
-                                value={t.phone}
-                                onChangeText={(v) => updateTech(i, { phone: v })}
-                                keyboardType="phone-pad"
-                                invalid={!!err?.phone}
-                              />
-                            </Labeled>
-
-                            <Labeled label="Midlertidig passord" error={err?.password}>
-                              <Input
-                                placeholder="Minst 8 tegn"
-                                value={t.password}
-                                onChangeText={(v) => updateTech(i, { password: v })}
-                                autoCapitalize="none"
-                                invalid={!!err?.password}
-                              />
-                            </Labeled>
+                          <View style={styles.btnRow}>
+                            <OutlineButton label="Tilbake" back onPress={() => setStep(1)} />
+                            <PrimaryButton label="Neste" flex onPress={goStep2Next} />
                           </View>
-                        );
-                      })}
 
-                      <TouchableOpacity style={styles.addTech} onPress={addTechRow}>
-                        <Ionicons name="add" size={18} color={colors.electricBlue} />
-                        <Text style={styles.addTechText}>Legg til en til</Text>
-                      </TouchableOpacity>
+                          <TouchableOpacity style={styles.skip} onPress={skipTechToLogo}>
+                            <Text style={styles.skipText}>Hopp over — jeg jobber alene</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
 
-                      {submitError && <Text style={styles.submitError}>{submitError}</Text>}
+                      {/* ─── STEG 3: Logo ─── */}
+                      {step === 3 && (
+                        <View>
+                          <Text style={styles.title}>Last opp logoen din</Text>
+                          <Text style={styles.subtitle}>
+                            Logoen vises øverst på alle fakturaene dine. Du kan hoppe over og legge
+                            den til senere i Innstillinger.
+                          </Text>
 
-                      <View style={styles.btnRow}>
-                        <OutlineButton label="Tilbake" back onPress={() => setStep(2)} disabled={loading} />
-                        <PrimaryButton
-                          label="Fullfør oppsett"
-                          flex
-                          loading={loading}
-                          onPress={() => handleFinish(false)}
-                        />
-                      </View>
+                          {company?.logoUrl ? (
+                            <View style={styles.logoPreviewWrap}>
+                              <Image
+                                source={{ uri: company.logoUrl }}
+                                style={styles.logoPreview}
+                                resizeMode="contain"
+                              />
+                            </View>
+                          ) : (
+                            <View style={styles.logoPlaceholder}>
+                              <Ionicons name="image-outline" size={28} color={colors.slate} />
+                              <Text style={styles.logoPlaceholderText}>Ingen logo lastet opp</Text>
+                            </View>
+                          )}
 
-                      <TouchableOpacity
-                        style={styles.skip}
-                        onPress={() => handleFinish(true)}
-                        disabled={loading}
-                      >
-                        <Text style={styles.skipText}>Hopp over — jeg jobber alene</Text>
-                      </TouchableOpacity>
-                    </View>
+                          {logoError ? <Text style={styles.errorText}>{logoError}</Text> : null}
+
+                          <TouchableOpacity
+                            style={[styles.uploadLogoBtn, logoUploading && { opacity: 0.6 }]}
+                            onPress={handleUploadLogo}
+                            disabled={logoUploading}
+                          >
+                            {logoUploading ? (
+                              <ActivityIndicator color={colors.electricBlue} />
+                            ) : (
+                              <>
+                                <Ionicons name="cloud-upload-outline" size={18} color={colors.electricBlue} />
+                                <Text style={styles.uploadLogoText}>
+                                  {company?.logoUrl ? 'Bytt logo' : 'Last opp logo'}
+                                </Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+
+                          {submitError && <Text style={styles.submitError}>{submitError}</Text>}
+
+                          <View style={styles.btnRow}>
+                            <OutlineButton label="Tilbake" back onPress={() => setStep(2)} disabled={loading} />
+                            <PrimaryButton
+                              label="Fullfør oppsett"
+                              flex
+                              loading={loading}
+                              onPress={handleFinishSetup}
+                            />
+                          </View>
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    /* ═══════════════ CREATE MODE (opprett firma) ═══════════════ */
+                    <>
+                      {/* ─── STEG 1: Bedriftsinfo ─── */}
+                      {step === 1 && (
+                        <View>
+                          <Text style={styles.title}>Velkommen til Efero!</Text>
+                          <Text style={styles.subtitle}>
+                            La oss sette opp bedriften din. Tar bare to minutter.
+                          </Text>
+
+                          <Labeled label="Bedriftsnavn" error={nameError}>
+                            <Input
+                              placeholder="VVS Service AS"
+                              value={companyName}
+                              onChangeText={setCompanyName}
+                              onBlur={() => markTouched('companyName')}
+                              autoCapitalize="words"
+                              invalid={!!nameError}
+                            />
+                          </Labeled>
+
+                          <Labeled label="Organisasjonsnummer (valgfritt)" error={orgError}>
+                            <Input
+                              placeholder="123 456 789"
+                              value={orgNumber}
+                              onChangeText={setOrgNumber}
+                              onBlur={() => markTouched('orgNumber')}
+                              keyboardType="number-pad"
+                              invalid={!!orgError}
+                            />
+                          </Labeled>
+
+                          <Labeled label="Adresse" error={addressError}>
+                            <Input
+                              placeholder="Storgata 1, 0182 Oslo"
+                              value={address}
+                              onChangeText={setAddress}
+                              onBlur={() => markTouched('address')}
+                              invalid={!!addressError}
+                            />
+                          </Labeled>
+
+                          <Labeled
+                            label="Bedriftens e-post"
+                            hint="Brukes som svaradresse på fakturaer"
+                            error={emailError}
+                          >
+                            <Input
+                              placeholder="post@dinbedrift.no"
+                              value={email}
+                              onChangeText={setEmail}
+                              onBlur={() => markTouched('email')}
+                              keyboardType="email-address"
+                              autoCapitalize="none"
+                              invalid={!!emailError}
+                            />
+                          </Labeled>
+
+                          <PrimaryButton label="Neste" onPress={goStep1Next} disabled={!step1Valid} />
+                        </View>
+                      )}
+
+                      {/* ─── STEG 2: Pris ─── */}
+                      {step === 2 && (
+                        <View>
+                          <Text style={styles.title}>Sett opp prisene dine</Text>
+                          <Text style={styles.subtitle}>
+                            Dette brukes til å beregne fakturaer automatisk. Du kan endre det senere.
+                          </Text>
+
+                          <Labeled label="Standard timepris (kr)" error={rateError}>
+                            <Input
+                              placeholder="895"
+                              value={hourlyRate}
+                              onChangeText={setHourlyRate}
+                              onBlur={() => markTouched('hourlyRate')}
+                              keyboardType="number-pad"
+                              invalid={!!rateError}
+                            />
+                          </Labeled>
+
+                          <Labeled label="Fremmøtegebyr (kr)">
+                            <Input
+                              placeholder="0"
+                              value={calloutFee}
+                              onChangeText={setCalloutFee}
+                              keyboardType="number-pad"
+                            />
+                          </Labeled>
+
+                          <Labeled label="Betalingsbetingelser (dager)">
+                            <Input
+                              placeholder="14"
+                              value={paymentTerms}
+                              onChangeText={setPaymentTerms}
+                              keyboardType="number-pad"
+                            />
+                          </Labeled>
+
+                          <View style={styles.btnRow}>
+                            <OutlineButton label="Tilbake" back onPress={() => setStep(1)} />
+                            <PrimaryButton label="Neste" flex onPress={goStep2Next} disabled={!rateValid} />
+                          </View>
+                        </View>
+                      )}
+
+                      {/* ─── STEG 3: Teknikere ─── */}
+                      {step === 3 && (
+                        <View>
+                          <Text style={styles.title}>Legg til teamet ditt</Text>
+                          <Text style={styles.subtitle}>
+                            Legg til teknikerne dine, eller hopp over hvis du jobber alene.
+                          </Text>
+
+                          <TechnicianList
+                            technicians={technicians}
+                            techTouched={techTouched}
+                            techFilled={techFilled}
+                            techRowError={techRowError}
+                            updateTech={updateTech}
+                            addTechRow={addTechRow}
+                            removeTechRow={removeTechRow}
+                          />
+
+                          {submitError && <Text style={styles.submitError}>{submitError}</Text>}
+
+                          <View style={styles.btnRow}>
+                            <OutlineButton label="Tilbake" back onPress={() => setStep(2)} disabled={loading} />
+                            <PrimaryButton
+                              label="Fullfør oppsett"
+                              flex
+                              loading={loading}
+                              onPress={() => handleFinishCreate(false)}
+                            />
+                          </View>
+
+                          <TouchableOpacity
+                            style={styles.skip}
+                            onPress={() => handleFinishCreate(true)}
+                            disabled={loading}
+                          >
+                            <Text style={styles.skipText}>Hopp over — jeg jobber alene</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </>
                   )}
                 </Animated.View>
               </>
@@ -445,9 +626,95 @@ export function OnboardingWizard() {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+
+  async function goToBoard() {
+    setSubmitError(null);
+    setLoading(true);
+    try {
+      await completeOnboarding(); // gate i RootNavigator sender oss til Jobbtavlen
+    } catch (e: any) {
+      setSubmitError(e?.message ?? 'Noe gikk galt. Prøv igjen.');
+      setLoading(false);
+    }
+  }
 }
 
 // ── Gjenbrukbare delkomponenter ──────────────────────────────────────────────
+
+function TechnicianList({
+  technicians,
+  techTouched,
+  techFilled,
+  techRowError,
+  updateTech,
+  addTechRow,
+  removeTechRow,
+}: {
+  technicians: Tech[];
+  techTouched: boolean;
+  techFilled: (t: Tech) => boolean;
+  techRowError: (t: Tech) => { name: string; phone: string; password: string };
+  updateTech: (i: number, patch: Partial<Tech>) => void;
+  addTechRow: () => void;
+  removeTechRow: (i: number) => void;
+}) {
+  return (
+    <>
+      {technicians.map((t, i) => {
+        const err = techTouched && techFilled(t) ? techRowError(t) : null;
+        return (
+          <View key={i} style={styles.techCard}>
+            {technicians.length > 1 && (
+              <TouchableOpacity
+                style={styles.techRemove}
+                onPress={() => removeTechRow(i)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={18} color={colors.slate} />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.techNum}>Tekniker {i + 1}</Text>
+
+            <Labeled label="Navn" error={err?.name}>
+              <Input
+                placeholder="Magnus Olsen"
+                value={t.name}
+                onChangeText={(v) => updateTech(i, { name: v })}
+                autoCapitalize="words"
+                invalid={!!err?.name}
+              />
+            </Labeled>
+
+            <Labeled label="Telefonnummer" error={err?.phone}>
+              <Input
+                placeholder="90000002"
+                value={t.phone}
+                onChangeText={(v) => updateTech(i, { phone: v })}
+                keyboardType="phone-pad"
+                invalid={!!err?.phone}
+              />
+            </Labeled>
+
+            <Labeled label="Midlertidig passord" error={err?.password}>
+              <Input
+                placeholder="Minst 8 tegn"
+                value={t.password}
+                onChangeText={(v) => updateTech(i, { password: v })}
+                autoCapitalize="none"
+                invalid={!!err?.password}
+              />
+            </Labeled>
+          </View>
+        );
+      })}
+
+      <TouchableOpacity style={styles.addTech} onPress={addTechRow}>
+        <Ionicons name="add" size={18} color={colors.electricBlue} />
+        <Text style={styles.addTechText}>Legg til en til</Text>
+      </TouchableOpacity>
+    </>
+  );
+}
 
 function Labeled({
   label,
@@ -657,6 +924,43 @@ const styles = StyleSheet.create({
   addTechText: { color: colors.electricBlue, fontSize: 14, fontWeight: '600' },
   skip: { marginTop: 18, alignItems: 'center' },
   skipText: { color: colors.slate, fontSize: 14, textDecorationLine: 'underline' },
+
+  // Logo
+  logoPreviewWrap: {
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    backgroundColor: colors.white,
+  },
+  logoPreview: { width: '100%', height: 80, maxWidth: 240 },
+  logoPlaceholder: {
+    marginTop: 20,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 28,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.lightGray,
+  },
+  logoPlaceholderText: { fontSize: 13, color: colors.slate },
+  uploadLogoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.electricBlue,
+    borderStyle: 'dashed',
+  },
+  uploadLogoText: { color: colors.electricBlue, fontSize: 14, fontWeight: '600' },
 
   // Suksess
   successWrap: { alignItems: 'center', paddingTop: 8 },
