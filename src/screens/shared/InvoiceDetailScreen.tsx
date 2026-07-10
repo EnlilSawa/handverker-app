@@ -102,10 +102,12 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
           <View style={styles.invoiceTop}>
             <View>
               {company?.logoUrl ? (
-                <Image source={{ uri: company.logoUrl }} style={styles.logo} resizeMode="contain" />
+                <View style={styles.logoWrap}>
+                  <Image source={{ uri: company.logoUrl }} style={styles.logo} resizeMode="contain" />
+                </View>
               ) : null}
-              <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
-              <Text style={styles.invoiceMeta}>Dato: {formatDate(invoice.createdAt)}</Text>
+              <Text style={[styles.invoiceNumber, { color: C.textPrimary }]}>{invoice.invoiceNumber}</Text>
+              <Text style={[styles.invoiceMeta, { color: C.textSecondary }]}>Dato: {formatDate(invoice.createdAt)}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 24 }}>
               {company?.accountNumber ? (
@@ -275,7 +277,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 20 },
   invoiceTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  logo: { width: 120, height: 44, marginBottom: 28 },
+  logoWrap: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 8, alignSelf: 'flex-start', marginBottom: 20 },
+  logo: { width: 120, height: 44 },
   invoiceNumber: { fontSize: 18, fontWeight: '700' },
   invoiceMeta: { fontSize: 13, marginTop: 4 },
   divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 16 },

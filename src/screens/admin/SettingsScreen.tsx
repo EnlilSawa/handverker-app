@@ -185,7 +185,7 @@ export function SettingsScreen() {
           <Text style={[styles.logoHint, { color: C.textTertiary }]}>Vises øverst til venstre på alle fakturaer</Text>
 
           {company?.logoUrl ? (
-            <View style={[styles.logoPreviewWrap, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+            <View style={[styles.logoPreviewWrap, { backgroundColor: '#FFFFFF', borderColor: C.border }]}>
               <Image source={{ uri: company.logoUrl }} style={styles.logoPreview} resizeMode="contain" />
             </View>
           ) : (
