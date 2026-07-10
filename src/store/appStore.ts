@@ -542,7 +542,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   sendQuoteEmail: async (quoteId) => {
     const { error } = await supabase.functions.invoke('send-quote-email', { body: { quoteId } });
-    if (error) throw new Error(`E-post feilet: ${error.message}`);
+    if (error) {
+      // supabase.functions.invoke gir en generisk «non-2xx»-melding — hent den
+      // ekte feilteksten fra respons-body (edge-funksjonen returnerer { error }).
+      let detail = error.message;
+      try {
+        const ctx: any = (error as any).context;
+        if (ctx?.json) { const body = await ctx.json(); if (body?.error) detail = body.error; }
+      } catch { /* behold generisk melding */ }
+      throw new Error(detail);
+    }
   },
 
   loadCustomers: async () => {

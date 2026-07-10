@@ -24,6 +24,7 @@ export function NewQuoteScreen({ navigation }: any) {
   const company = useAppStore((s) => s.company);
   const customers = useAppStore((s) => s.customers);
   const createQuote = useAppStore((s) => s.createQuote);
+  const sendQuoteEmail = useAppStore((s) => s.sendQuoteEmail);
 
   // Customer
   const [customerSearch, setCustomerSearch] = useState('');
@@ -46,6 +47,9 @@ export function NewQuoteScreen({ navigation }: any) {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Settes når tilbudet ER opprettet, men e-posten feilet → retry sender kun på
+  // nytt (oppretter ikke et duplikat).
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   const suggestions = useMemo(() => {
     if (!customerSearch.trim() || selectedCustomer) return [];
@@ -82,21 +86,37 @@ export function NewQuoteScreen({ navigation }: any) {
       }));
 
     setSaving(true);
+    setError('');
     try {
-      await createQuote({
-        customerId: selectedCustomer?.id ?? null,
-        customerName: name,
-        customerEmail: customerEmail.trim(),
-        customerPhone: customerPhone.trim() || null,
-        customerAddress: customerAddress.trim() || null,
-        title: title.trim(),
-        description: description.trim() || null,
-        lines: quoteLines,
-        subtotalExVat: subtotal,
-        vat,
-        totalAmount: total,
-        validUntil,
-      });
+      // Opprett tilbudet (hopp over hvis det alt er opprettet og vi kun retryer sending).
+      let quoteId = createdId;
+      if (!quoteId) {
+        const newQuote = await createQuote({
+          customerId: selectedCustomer?.id ?? null,
+          customerName: name,
+          customerEmail: customerEmail.trim(),
+          customerPhone: customerPhone.trim() || null,
+          customerAddress: customerAddress.trim() || null,
+          title: title.trim(),
+          description: description.trim() || null,
+          lines: quoteLines,
+          subtotalExVat: subtotal,
+          vat,
+          totalAmount: total,
+          validUntil,
+        });
+        quoteId = newQuote.id;
+        setCreatedId(quoteId);
+      }
+
+      // Send tilbudet til kundens e-post automatisk.
+      try {
+        await sendQuoteEmail(quoteId);
+      } catch (sendErr: any) {
+        setError(`Tilbudet er opprettet, men e-posten kunne ikke sendes: ${sendErr?.message ?? 'ukjent feil'}`);
+        return; // bli på skjermen så brukeren kan prøve igjen eller lukke
+      }
+
       navigation.goBack();
     } catch (e: any) {
       setError(e.message ?? 'Kunne ikke opprette tilbud');
@@ -275,8 +295,18 @@ export function NewQuoteScreen({ navigation }: any) {
           disabled={saving}
         >
           {saving ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
-          <Text style={styles.saveBtnText}>{saving ? 'Oppretter…' : 'Opprett tilbud'}</Text>
+          <Text style={styles.saveBtnText}>
+            {saving ? 'Sender…' : createdId ? 'Send tilbudet på nytt' : 'Opprett og send tilbud'}
+          </Text>
         </TouchableOpacity>
+
+        {createdId && !saving ? (
+          <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 12 }} onPress={() => navigation.goBack()}>
+            <Text style={{ fontSize: 14, color: C.textSecondary, fontWeight: '500' }}>
+              Lukk — send senere fra tilbudet
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
     </ThemedScreen>
   );
