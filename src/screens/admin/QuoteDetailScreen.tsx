@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, TextInput, ActivityIndicator, Platform,
+  ActivityIndicator, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedScreen } from '../../components/ThemedScreen';
@@ -24,42 +24,15 @@ export function QuoteDetailScreen({ route, navigation }: any) {
 
   const quote = useAppStore((s) => s.quotes.find((q) => q.id === quoteId));
   const company = useAppStore((s) => s.company);
-  const updateQuoteStatus = useAppStore((s) => s.updateQuoteStatus);
   const convertQuoteToJob = useAppStore((s) => s.convertQuoteToJob);
   const sendQuoteEmail = useAppStore((s) => s.sendQuoteEmail);
 
-  const [showAcceptModal, setShowAcceptModal] = useState(false);
-  const [showDeclineModal, setShowDeclineModal] = useState(false);
-  const [acceptName, setAcceptName] = useState('');
-  const [declineReason, setDeclineReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
 
   if (!quote) return null;
   const cfg = STATUS_CFG[quote.status];
-
-  const handleAccept = async () => {
-    if (!acceptName.trim()) return;
-    setActionLoading(true);
-    try {
-      await updateQuoteStatus(quote.id, 'accepted', { acceptedByName: acceptName.trim() });
-      await convertQuoteToJob(quote.id);
-      setShowAcceptModal(false);
-      setFeedback('Tilbudet er godkjent og ny jobb er opprettet!');
-    } catch (e: any) { setFeedback('Feil: ' + (e.message ?? 'Ukjent')); }
-    finally { setActionLoading(false); }
-  };
-
-  const handleDecline = async () => {
-    setActionLoading(true);
-    try {
-      await updateQuoteStatus(quote.id, 'declined', { declinedReason: declineReason.trim() || undefined });
-      setShowDeclineModal(false);
-      setFeedback('Tilbudet er markert som avslått.');
-    } catch (e: any) { setFeedback('Feil: ' + (e.message ?? 'Ukjent')); }
-    finally { setActionLoading(false); }
-  };
 
   const handleSendEmail = async () => {
     setActionLoading(true);
@@ -134,6 +107,11 @@ export function QuoteDetailScreen({ route, navigation }: any) {
               Godkjent av {quote.acceptedByName} · {quote.acceptedAt ? formatDate(quote.acceptedAt) : ''}
             </Text>
           ) : null}
+          {quote.status === 'declined' ? (
+            <Text style={[styles.acceptedBy, { color: '#DC2626' }]}>
+              Avslått av kunde{quote.declinedReason ? ` · ${quote.declinedReason}` : ''}
+            </Text>
+          ) : null}
         </View>
 
         {/* Line items */}
@@ -191,21 +169,14 @@ export function QuoteDetailScreen({ route, navigation }: any) {
             <Text style={styles.actionBtnText}>Send på e-post</Text>
           </TouchableOpacity>
 
-          {/* Accept/Decline — only for pending */}
+          {/* Kunden godtar/avslår selv via e-postlenken (ikke admin) */}
           {quote.status === 'pending' && (
-            <>
-              <TouchableOpacity
-                style={styles.acceptBtn}
-                onPress={() => setShowAcceptModal(true)}
-              >
-                <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.acceptBtnText}>Godkjenn tilbud</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.declineBtn} onPress={() => setShowDeclineModal(true)}>
-                <Text style={styles.declineBtnText}>Avslå tilbud</Text>
-              </TouchableOpacity>
-            </>
+            <View style={styles.awaitBanner}>
+              <Ionicons name="mail-unread-outline" size={16} color="#C2410C" />
+              <Text style={styles.awaitText}>
+                Venter på svar fra kunden. De godtar eller avslår tilbudet via lenken i e-posten.
+              </Text>
+            </View>
           )}
 
           {/* Convert to job if accepted but no job yet */}
@@ -232,65 +203,6 @@ export function QuoteDetailScreen({ route, navigation }: any) {
           )}
         </View>
       </ScrollView>
-
-      {/* Accept modal */}
-      <Modal visible={showAcceptModal} transparent animationType="slide" onRequestClose={() => setShowAcceptModal(false)}>
-        <View style={styles.overlay}>
-          <View style={[styles.sheet, { backgroundColor: C.cardBg }]}>
-            <Text style={[styles.sheetTitle, { color: C.textPrimary }]}>Godkjenn tilbud</Text>
-            <Text style={[styles.sheetSub, { color: C.textSecondary }]}>
-              Skriv inn kundens fulle navn som bekreftelse
-            </Text>
-            <TextInput
-              style={[styles.sheetInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]}
-              value={acceptName}
-              onChangeText={setAcceptName}
-              placeholder="Fullt navn"
-              placeholderTextColor={C.textTertiary}
-            />
-            <TouchableOpacity
-              style={[styles.acceptBtn, actionLoading && { opacity: 0.6 }]}
-              onPress={handleAccept}
-              disabled={actionLoading || !acceptName.trim()}
-            >
-              {actionLoading ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
-              <Text style={styles.acceptBtnText}>Bekreft godkjenning</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAcceptModal(false)}>
-              <Text style={[styles.cancelBtnText, { color: C.textSecondary }]}>Avbryt</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Decline modal */}
-      <Modal visible={showDeclineModal} transparent animationType="slide" onRequestClose={() => setShowDeclineModal(false)}>
-        <View style={styles.overlay}>
-          <View style={[styles.sheet, { backgroundColor: C.cardBg }]}>
-            <Text style={[styles.sheetTitle, { color: C.textPrimary }]}>Avslå tilbud</Text>
-            <Text style={[styles.sheetSub, { color: C.textSecondary }]}>Årsak (valgfritt)</Text>
-            <TextInput
-              style={[styles.sheetInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border, height: 80 }]}
-              value={declineReason}
-              onChangeText={setDeclineReason}
-              placeholder="Hvorfor avslås tilbudet?"
-              placeholderTextColor={C.textTertiary}
-              multiline
-            />
-            <TouchableOpacity
-              style={[styles.declineSendBtn, actionLoading && { opacity: 0.6 }]}
-              onPress={handleDecline}
-              disabled={actionLoading}
-            >
-              {actionLoading ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
-              <Text style={styles.acceptBtnText}>Registrer avslag</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowDeclineModal(false)}>
-              <Text style={[styles.cancelBtnText, { color: C.textSecondary }]}>Avbryt</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </ThemedScreen>
   );
 }
@@ -332,19 +244,8 @@ const styles = StyleSheet.create({
     gap: 8, height: 52, backgroundColor: '#15803D', borderRadius: 10,
   },
   acceptBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
-  declineBtn: { alignItems: 'center', paddingVertical: 12 },
-  declineBtnText: { fontSize: 14, color: '#DC2626', fontWeight: '600' },
-  declineSendBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, height: 52, backgroundColor: '#DC2626', borderRadius: 10,
-  },
   jobCreatedBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F0FDF4', borderRadius: 10, padding: 12 },
   jobCreatedText: { fontSize: 14, color: '#15803D', fontWeight: '500' },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 12 },
-  sheetTitle: { fontSize: 18, fontWeight: '600' },
-  sheetSub: { fontSize: 14 },
-  sheetInput: { height: 52, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, fontSize: 15 },
-  cancelBtn: { alignItems: 'center', paddingVertical: 12 },
-  cancelBtnText: { fontSize: 14, fontWeight: '500' },
+  awaitBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFF7ED', borderRadius: 10, padding: 14 },
+  awaitText: { flex: 1, fontSize: 13, color: '#C2410C', lineHeight: 18 },
 });

@@ -48,7 +48,9 @@ Deno.serve(async (req) => {
     const { data: company } = await supabase.from('companies').select('*').eq('id', quote.company_id).single();
     if (!company) throw new Error('Firma ikke funnet');
 
-    const approvalUrl = `${Deno.env.get('APP_URL') ?? 'https://efero.app'}/tilbud/${quoteId}`;
+    // Offentlig tilbudsside på markedsføringssiden (efero.no), token-beskyttet.
+    // Kunden godtar/avslår her — ingen innlogging. public_token settes av DB-default.
+    const approvalUrl = `https://efero.no/tilbud/${quoteId}?t=${quote.public_token}`;
     const validDate = new Date(quote.valid_until).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' });
 
     const total = new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 0 }).format(Number(quote.total_amount)) + ' kr';
@@ -90,10 +92,10 @@ Deno.serve(async (req) => {
 
       ${quote.description ? `<p style="margin-top:20px;color:#64748B;font-size:14px;">${quote.description}</p>` : ''}
 
-      <a href="${approvalUrl}" class="btn">Se og godkjenn tilbud →</a>
+      <a href="${approvalUrl}" class="btn">Se tilbudet og svar →</a>
 
       <p style="font-size:13px;color:#94A3B8;text-align:center;">
-        Du kan godkjenne eller avslå tilbudet ved å klikke på knappen ovenfor.
+        Klikk på knappen for å se hele tilbudet og godta eller avslå det.
       </p>
     </div>
     <div class="footer">Generert av Efero · Tilbudsnummer ${quote.quote_number}</div>
