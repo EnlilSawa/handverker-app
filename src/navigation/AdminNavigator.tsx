@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Animated, Pressable } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { EferoLogo } from '../components/EferoLogo';
@@ -25,7 +24,6 @@ import { NotificationBell } from '../components/NotificationBell';
 import { SuperadminNavigator } from './SuperadminNavigator';
 import { isSuperadminEmail } from '../lib/superadminApi';
 
-const Tab = createBottomTabNavigator();
 const JobsStack = createNativeStackNavigator();
 const InvoiceStack = createNativeStackNavigator();
 const ArchiveStack = createNativeStackNavigator();
@@ -96,7 +94,7 @@ const NAV_ITEMS = [
 
 const SUPERADMIN_ITEM = { name: 'Superadmin', label: 'Admin', icon: 'shield-checkmark-outline' as const };
 
-function AdminSidebar({ activeTab, onNavigate, showSuperadmin }: { activeTab: string; onNavigate: (tab: string) => void; showSuperadmin: boolean }) {
+function AdminSidebar({ activeTab, onNavigate, showSuperadmin, showBell = true, containerStyle }: { activeTab: string; onNavigate: (tab: string) => void; showSuperadmin: boolean; showBell?: boolean; containerStyle?: any }) {
   const logout = useAppStore((s) => s.logout);
   const setPendingInvoicePreview = useAppStore((s) => s.setPendingInvoicePreview);
   const { isDark, toggleTheme } = useTheme();
@@ -111,11 +109,11 @@ function AdminSidebar({ activeTab, onNavigate, showSuperadmin }: { activeTab: st
   };
 
   return (
-    <View style={sidebar.container}>
+    <View style={[sidebar.container, containerStyle]}>
       {/* Logo + bjelle */}
       <View style={[sidebar.logoArea, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
         <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={20} />
-        <NotificationBell onNavigateToInvoice={handleBellNavigate} />
+        {showBell && <NotificationBell onNavigateToInvoice={handleBellNavigate} />}
       </View>
 
       {/* Nav items */}
@@ -226,70 +224,118 @@ function AdminWebLayout() {
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#0A1B33' }}>
       <AdminSidebar activeTab={activeTab} onNavigate={setActiveTab} showSuperadmin={isSuper} />
       <View style={{ flex: 1, backgroundColor: pageBg, overflow: 'hidden' }}>
-        {activeTab === 'Jobber' && <JobsStackNavigator />}
-        {activeTab === 'Tilbud' && <QuotesStackNavigator />}
-        {activeTab === 'Kunder' && <CustomersStackNavigator />}
-        {activeTab === 'Team' && <TeamScreen />}
-        {activeTab === 'Faktura' && <InvoiceStackNavigator />}
-        {activeTab === 'Arkiv' && <ArchiveStackNavigator />}
-        {activeTab === 'Statistikk' && <StatisticsScreen />}
-        {activeTab === 'Innstillinger' && <SettingsScreen />}
-        {activeTab === 'Superadmin' && isSuper && <SuperadminNavigator />}
+        <AdminContent activeTab={activeTab} isSuper={isSuper} />
       </View>
     </View>
   );
 }
 
-// ─── Mobile layout (bottom tabs) ─────────────────────────────────────────────
+// ─── Innholdsområde (delt av web og mobil) ───────────────────────────────────
 
-function AdminMobileLayout() {
-  const currentUser = useAppStore((s) => s.currentUser);
-  const isSuper = isSuperadminEmail(currentUser?.email);
-
+function AdminContent({ activeTab, isSuper }: { activeTab: string; isSuper: boolean }) {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        sceneContainerStyle: { backgroundColor: 'transparent' },
-        tabBarActiveTintColor: '#2563FF',
-        tabBarInactiveTintColor: '#94A3B8',
-        tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#E2E8F0',
-          backgroundColor: '#FFFFFF',
-          height: 60,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
-        tabBarIcon: ({ color }) => {
-          const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-            Jobber: 'home-outline',
-            Tilbud: 'document-text-outline',
-            Kunder: 'person-outline',
-            Team: 'people-outline',
-            Faktura: 'document-text-outline',
-            Arkiv: 'archive-outline',
-            Statistikk: 'bar-chart-outline',
-            Innstillinger: 'settings-outline',
-            Superadmin: 'shield-checkmark-outline',
-          };
-          return <Ionicons name={icons[route.name] ?? 'ellipse-outline'} size={22} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="Jobber" component={JobsStackNavigator} />
-      <Tab.Screen name="Tilbud" component={QuotesStackNavigator} />
-      <Tab.Screen name="Kunder" component={CustomersStackNavigator} />
-      <Tab.Screen name="Team" component={TeamScreen} />
-      <Tab.Screen name="Faktura" component={InvoiceStackNavigator} />
-      <Tab.Screen name="Arkiv" component={ArchiveStackNavigator} />
-      <Tab.Screen name="Statistikk" component={StatisticsScreen} />
-      <Tab.Screen name="Innstillinger" component={SettingsScreen} />
-      {isSuper && (
-        <Tab.Screen name="Superadmin" component={SuperadminNavigator} options={{ title: 'Admin' }} />
-      )}
-    </Tab.Navigator>
+    <>
+      {activeTab === 'Jobber' && <JobsStackNavigator />}
+      {activeTab === 'Tilbud' && <QuotesStackNavigator />}
+      {activeTab === 'Kunder' && <CustomersStackNavigator />}
+      {activeTab === 'Team' && <TeamScreen />}
+      {activeTab === 'Faktura' && <InvoiceStackNavigator />}
+      {activeTab === 'Arkiv' && <ArchiveStackNavigator />}
+      {activeTab === 'Statistikk' && <StatisticsScreen />}
+      {activeTab === 'Innstillinger' && <SettingsScreen />}
+      {activeTab === 'Superadmin' && isSuper && <SuperadminNavigator />}
+    </>
   );
 }
+
+// ─── Mobil-layout (topplinje + uttrekkbar venstremeny) ───────────────────────
+
+const DRAWER_W = 220;
+
+function AdminMobileLayout() {
+  const [activeTab, setActiveTab] = useState('Jobber');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMounted, setDrawerMounted] = useState(false);
+  const slide = React.useRef(new Animated.Value(0)).current;
+  const { pageBg, colors: C } = useTheme();
+  const currentUser = useAppStore((s) => s.currentUser);
+  const isSuper = isSuperadminEmail(currentUser?.email);
+  const setPendingInvoicePreview = useAppStore((s) => s.setPendingInvoicePreview);
+
+  // Guard: ikke-superadmin som havner på Superadmin-fanen sendes til Jobbtavlen.
+  React.useEffect(() => {
+    if (activeTab === 'Superadmin' && !isSuper) setActiveTab('Jobber');
+  }, [activeTab, isSuper]);
+
+  // Åpne/lukke-animasjon (useNativeDriver:false — kreves av RN Web).
+  React.useEffect(() => {
+    if (drawerOpen) {
+      setDrawerMounted(true);
+      Animated.timing(slide, { toValue: 1, duration: 220, useNativeDriver: false }).start();
+    } else if (drawerMounted) {
+      Animated.timing(slide, { toValue: 0, duration: 200, useNativeDriver: false }).start(({ finished }) => {
+        if (finished) setDrawerMounted(false);
+      });
+    }
+  }, [drawerOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const navigate = (tab: string) => { setActiveTab(tab); setDrawerOpen(false); };
+  const handleBellNavigate = (invoiceId: string) => { setPendingInvoicePreview(invoiceId); navigate('Faktura'); };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: pageBg }}>
+      {/* Topplinje: hamburger + logo + bjelle */}
+      <View style={[topbar.container, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
+        <TouchableOpacity onPress={() => setDrawerOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Åpne meny">
+          <Ionicons name="menu" size={26} color={C.textPrimary} />
+        </TouchableOpacity>
+        <EferoLogo textColor={C.textPrimary} lineColor="#2563FF" size={18} />
+        <NotificationBell onNavigateToInvoice={handleBellNavigate} />
+      </View>
+
+      {/* Innhold */}
+      <View style={{ flex: 1, overflow: 'hidden' }}>
+        <AdminContent activeTab={activeTab} isSuper={isSuper} />
+      </View>
+
+      {/* Uttrekkbar venstremeny */}
+      {drawerMounted && (
+        <View style={StyleSheet.absoluteFill}>
+          <Animated.View
+            style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: slide.interpolate({ inputRange: [0, 1], outputRange: [0, 0.45] }) }]}
+          >
+            <Pressable style={{ flex: 1 }} onPress={() => setDrawerOpen(false)} accessibilityLabel="Lukk meny" />
+          </Animated.View>
+          <Animated.View
+            style={{
+              position: 'absolute', top: 0, bottom: 0, left: 0, width: DRAWER_W,
+              transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [-DRAWER_W, 0] }) }],
+            }}
+          >
+            <AdminSidebar
+              activeTab={activeTab}
+              onNavigate={navigate}
+              showSuperadmin={isSuper}
+              showBell={false}
+              containerStyle={{ height: '100%' }}
+            />
+          </Animated.View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const topbar = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    height: 56,
+    borderBottomWidth: 1,
+  },
+});
 
 // ─── Root export ──────────────────────────────────────────────────────────────
 
