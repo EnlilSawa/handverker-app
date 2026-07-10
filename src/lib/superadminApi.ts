@@ -209,6 +209,45 @@ export async function sendCustomerInvite(input: {
   if (error) throw new Error(error.message);
 }
 
+// Leselig midlertidig passord (uten tvetydige tegn som 0/O/1/l/I).
+export function generateTempPassword(length = 10): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const cryptoObj: Crypto | undefined =
+    typeof globalThis !== 'undefined' ? (globalThis as any).crypto : undefined;
+  let out = '';
+  if (cryptoObj?.getRandomValues) {
+    const arr = new Uint32Array(length);
+    cryptoObj.getRandomValues(arr);
+    for (let i = 0; i < length; i++) out += chars[arr[i] % chars.length];
+  } else {
+    for (let i = 0; i < length; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+}
+
+// Send innlogging på nytt til en allerede opprettet kunde: tilbakestiller
+// admin-passordet til et nytt midlertidig passord og sender innloggings-e-posten.
+// Returnerer e-post + det nye passordet så eieren også kan dele det manuelt.
+export async function resendCustomerLogin(
+  companyId: string,
+): Promise<{ email: string; password: string; companyName: string }> {
+  const password = generateTempPassword();
+  const { data, error } = await supabase.rpc('superadmin_reset_company_login', {
+    p_company_id: companyId,
+    p_password: password,
+  });
+  if (error) throw new Error(error.message);
+  const email = data.email as string;
+  const companyName = data.company_name as string;
+  await sendCustomerInvite({
+    email,
+    password,
+    companyName,
+    contactName: (data.contact_name as string) ?? '',
+  });
+  return { email, password, companyName };
+}
+
 export async function exportCompanyData(companyId: string): Promise<any> {
   const { data, error } = await supabase.rpc('superadmin_export_company', {
     p_company_id: companyId,

@@ -24,6 +24,7 @@ import {
   downloadJson,
   downloadCsv,
   invoicesToCsv,
+  resendCustomerLogin,
 } from '../../lib/superadminApi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
@@ -74,6 +75,8 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
   const [msg, setMsg] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteText, setDeleteText] = useState('');
+  const [confirmLogin, setConfirmLogin] = useState(false);
+  const [loginInfo, setLoginInfo] = useState<{ email: string; password: string } | null>(null);
 
   if (!company) {
     return (
@@ -143,6 +146,21 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
       setMsg(ok ? `Fakturaer eksportert (${invoices.length} stk, CSV)` : 'Eksport er kun tilgjengelig på web');
     } catch (e: any) {
       setMsg(e?.message ?? 'Eksport feilet');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleResendLogin = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await resendCustomerLogin(company.id);
+      setLoginInfo({ email: res.email, password: res.password });
+      setMsg(`Innlogging sendt til ${res.email}`);
+      setConfirmLogin(false);
+    } catch (e: any) {
+      setMsg(e?.message ?? 'Kunne ikke sende innlogging');
     } finally {
       setBusy(false);
     }
@@ -318,6 +336,53 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
             </View>
           </View>
 
+          {/* Send innlogging på nytt */}
+          <View>
+            <Text style={[styles.actionLabel, { color: C.textSecondary }]}>Innlogging</Text>
+            {!confirmLogin ? (
+              <View style={styles.btnRow}>
+                <TouchableOpacity
+                  disabled={busy}
+                  style={[styles.solidBtn, { backgroundColor: EBLUE }]}
+                  onPress={() => { setConfirmLogin(true); setMsg(null); }}
+                >
+                  <Ionicons name="key-outline" size={15} color="#FFFFFF" />
+                  <Text style={[styles.solidBtnText, { color: '#FFFFFF' }]}>Send innlogging på e-post</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.btnRow}>
+                <TouchableOpacity
+                  disabled={busy}
+                  style={[styles.outlineBtn, { borderColor: C.border }]}
+                  onPress={() => setConfirmLogin(false)}
+                >
+                  <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>Avbryt</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  disabled={busy}
+                  style={[styles.solidBtn, { backgroundColor: EBLUE }]}
+                  onPress={handleResendLogin}
+                >
+                  <Ionicons name="mail-outline" size={15} color="#FFFFFF" />
+                  <Text style={[styles.solidBtnText, { color: '#FFFFFF' }]}>Ja, send nytt passord</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <Text style={[styles.hint, { color: C.textTertiary }]}>
+              Lager et NYTT midlertidig passord og sender innloggingen til kundens e-post.
+              Det gamle passordet slutter å virke — bruk kun hvis kunden ikke har logget inn ennå eller har mistet passordet.
+            </Text>
+            {loginInfo && (
+              <View style={[styles.credBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+                <Text style={[styles.credLabel, { color: C.textTertiary }]}>E-post</Text>
+                <Text style={[styles.credValue, { color: C.textPrimary }]} selectable>{loginInfo.email}</Text>
+                <Text style={[styles.credLabel, { color: C.textTertiary, marginTop: 10 }]}>Nytt midlertidig passord</Text>
+                <Text style={[styles.credValue, { color: C.textPrimary }]} selectable>{loginInfo.password}</Text>
+              </View>
+            )}
+          </View>
+
           {busy && <ActivityIndicator color={EBLUE} />}
         </View>
 
@@ -429,6 +494,9 @@ const styles = StyleSheet.create({
   solidBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 12 },
   solidBtnText: { fontSize: 13, fontWeight: '600' },
   hint: { fontSize: 12, marginTop: 8, lineHeight: 17 },
+  credBox: { borderWidth: 1, borderRadius: 12, padding: 16, marginTop: 12 },
+  credLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  credValue: { fontSize: 16, fontWeight: '600', marginTop: 2 },
   dangerText: { fontSize: 13, lineHeight: 19, marginBottom: 14 },
   dangerBtnOutline: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11, alignSelf: 'flex-start' },
   dangerBtnOutlineText: { fontSize: 13, fontWeight: '600', color: RED },
