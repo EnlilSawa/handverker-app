@@ -378,7 +378,7 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
             {loginInfo && (
               <View style={styles.successBox}>
                 <Ionicons name="checkmark-circle" size={20} color={GREEN} />
-                <Text style={styles.successText}>Innlogging sendt til {loginInfo.email}</Text>
+                <Text style={styles.successText}>Mailen er sendt til {loginInfo.email}</Text>
               </View>
             )}
             {loginInfo && (
