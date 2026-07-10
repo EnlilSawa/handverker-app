@@ -73,6 +73,12 @@ export function NewQuoteScreen({ navigation }: any) {
     const name = selectedCustomer?.name ?? customerSearch.trim();
     if (!name) { setError('Fyll inn kundenavn'); return; }
     if (!customerEmail.trim()) { setError('E-post er påkrevd'); return; }
+    // Nøyaktig én @ + domene med punktum — fanger typiske skrivefeil (f.eks.
+    // dobbel @), ellers avviser Resend sendingen og den feiler stille.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      setError('Ugyldig e-postadresse — sjekk at den er skrevet riktig');
+      return;
+    }
     if (!title.trim()) { setError('Fyll inn tittel'); return; }
     if (lines.length === 0) { setError('Legg til minst én linje'); return; }
 
