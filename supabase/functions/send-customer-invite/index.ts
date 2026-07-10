@@ -105,9 +105,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Kalleren MÅ være superadmin (samme kilde som is_superadmin()).
-    const { data: cfg } = await supabaseAdmin.from('app_config').select('superadmin_email').limit(1).single();
-    const superEmail = (cfg?.superadmin_email ?? '').toLowerCase().trim();
+    // 2. Kalleren MÅ være superadmin. app_config er en key/value-tabell (samme
+    //    kilde som is_superadmin(): SELECT value WHERE key='superadmin_email').
+    const { data: cfg } = await supabaseAdmin
+      .from('app_config').select('value').eq('key', 'superadmin_email').maybeSingle();
+    const superEmail = (cfg?.value ?? '').toLowerCase().trim();
     if (!superEmail || (user.email ?? '').toLowerCase().trim() !== superEmail) {
       return new Response(JSON.stringify({ error: 'Kun superadmin' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

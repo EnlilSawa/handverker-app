@@ -206,7 +206,22 @@ export async function sendCustomerInvite(input: {
       contactName: input.contactName ?? '',
     },
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(await edgeErrorMessage(error));
+}
+
+// supabase.functions.invoke gir en intetsigende «Edge Function returned a non-2xx
+// status code». Den ekte feilen ligger i respons-body → hent den fram.
+async function edgeErrorMessage(error: any): Promise<string> {
+  try {
+    const ctx = error?.context;
+    if (ctx && typeof ctx.json === 'function') {
+      const body = await ctx.json();
+      if (body?.error) return body.error;
+    }
+  } catch {
+    /* faller tilbake til generisk melding */
+  }
+  return error?.message ?? 'Ukjent feil ved sending';
 }
 
 // Leselig midlertidig passord (uten tvetydige tegn som 0/O/1/l/I).
