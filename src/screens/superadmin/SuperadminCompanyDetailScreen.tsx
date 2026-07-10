@@ -156,10 +156,12 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
     setMsg(null);
     try {
       const res = await resendCustomerLogin(company.id);
+      // loginInfo (satt kun ved vellykket sending) driver den grønne bekreftelsesboksen.
       setLoginInfo({ email: res.email, password: res.password });
-      setMsg(`Innlogging sendt til ${res.email}`);
+      setMsg(null);
       setConfirmLogin(false);
     } catch (e: any) {
+      setLoginInfo(null);
       setMsg(e?.message ?? 'Kunne ikke sende innlogging');
     } finally {
       setBusy(false);
@@ -344,7 +346,7 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
                 <TouchableOpacity
                   disabled={busy}
                   style={[styles.solidBtn, { backgroundColor: EBLUE }]}
-                  onPress={() => { setConfirmLogin(true); setMsg(null); }}
+                  onPress={() => { setConfirmLogin(true); setMsg(null); setLoginInfo(null); }}
                 >
                   <Ionicons name="key-outline" size={15} color="#FFFFFF" />
                   <Text style={[styles.solidBtnText, { color: '#FFFFFF' }]}>Send innlogging på e-post</Text>
@@ -373,6 +375,12 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
               Lager et NYTT midlertidig passord og sender innloggingen til kundens e-post.
               Det gamle passordet slutter å virke — bruk kun hvis kunden ikke har logget inn ennå eller har mistet passordet.
             </Text>
+            {loginInfo && (
+              <View style={styles.successBox}>
+                <Ionicons name="checkmark-circle" size={20} color={GREEN} />
+                <Text style={styles.successText}>Innlogging sendt til {loginInfo.email}</Text>
+              </View>
+            )}
             {loginInfo && (
               <View style={[styles.credBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
                 <Text style={[styles.credLabel, { color: C.textTertiary }]}>E-post</Text>
@@ -494,6 +502,8 @@ const styles = StyleSheet.create({
   solidBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 12 },
   solidBtnText: { fontSize: 13, fontWeight: '600' },
   hint: { fontSize: 12, marginTop: 8, lineHeight: 17 },
+  successBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F0FDF4', borderColor: '#BBF7D0', borderWidth: 1, borderRadius: 10, padding: 14, marginTop: 12 },
+  successText: { color: GREEN, fontSize: 14, fontWeight: '600', flex: 1 },
   credBox: { borderWidth: 1, borderRadius: 12, padding: 16, marginTop: 12 },
   credLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   credValue: { fontSize: 16, fontWeight: '600', marginTop: 2 },
