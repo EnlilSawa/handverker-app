@@ -75,7 +75,6 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
   const [msg, setMsg] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteText, setDeleteText] = useState('');
-  const [confirmLogin, setConfirmLogin] = useState(false);
   const [loginInfo, setLoginInfo] = useState<{ email: string; password: string } | null>(null);
 
   if (!company) {
@@ -154,12 +153,12 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
   const handleResendLogin = async () => {
     setBusy(true);
     setMsg(null);
+    setLoginInfo(null);
     try {
       const res = await resendCustomerLogin(company.id);
       // loginInfo (satt kun ved vellykket sending) driver den grønne bekreftelsesboksen.
       setLoginInfo({ email: res.email, password: res.password });
       setMsg(null);
-      setConfirmLogin(false);
     } catch (e: any) {
       setLoginInfo(null);
       setMsg(e?.message ?? 'Kunne ikke sende innlogging');
@@ -341,39 +340,19 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
           {/* Send innlogging på nytt */}
           <View>
             <Text style={[styles.actionLabel, { color: C.textSecondary }]}>Innlogging</Text>
-            {!confirmLogin ? (
-              <View style={styles.btnRow}>
-                <TouchableOpacity
-                  disabled={busy}
-                  style={[styles.solidBtn, { backgroundColor: EBLUE }]}
-                  onPress={() => { setConfirmLogin(true); setMsg(null); setLoginInfo(null); }}
-                >
-                  <Ionicons name="key-outline" size={15} color="#FFFFFF" />
-                  <Text style={[styles.solidBtnText, { color: '#FFFFFF' }]}>Send innlogging på e-post</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.btnRow}>
-                <TouchableOpacity
-                  disabled={busy}
-                  style={[styles.outlineBtn, { borderColor: C.border }]}
-                  onPress={() => setConfirmLogin(false)}
-                >
-                  <Text style={[styles.outlineBtnText, { color: C.textPrimary }]}>Avbryt</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  disabled={busy}
-                  style={[styles.solidBtn, { backgroundColor: EBLUE }]}
-                  onPress={handleResendLogin}
-                >
-                  <Ionicons name="mail-outline" size={15} color="#FFFFFF" />
-                  <Text style={[styles.solidBtnText, { color: '#FFFFFF' }]}>Ja, send nytt passord</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <View style={styles.btnRow}>
+              <TouchableOpacity
+                disabled={busy}
+                style={[styles.solidBtn, { backgroundColor: EBLUE }, busy && { opacity: 0.6 }]}
+                onPress={handleResendLogin}
+              >
+                <Ionicons name="mail-outline" size={15} color="#FFFFFF" />
+                <Text style={[styles.solidBtnText, { color: '#FFFFFF' }]}>Send innlogging på e-post</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={[styles.hint, { color: C.textTertiary }]}>
-              Lager et NYTT midlertidig passord og sender innloggingen til kundens e-post.
-              Det gamle passordet slutter å virke — bruk kun hvis kunden ikke har logget inn ennå eller har mistet passordet.
+              Sender innloggingen til kundens e-post og lager et nytt midlertidig passord
+              (det gamle slutter å virke). Bruk når kunden ikke har logget inn ennå eller har mistet passordet.
             </Text>
             {loginInfo && (
               <View style={styles.successBox}>
