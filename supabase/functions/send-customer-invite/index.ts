@@ -54,7 +54,8 @@ function inviteHtml(contactName: string, companyName: string, email: string, pas
         <p class="label">Midlertidig passord</p>
         <p class="value">${password}</p>
       </div>
-      <a href="${PORTAL_URL}" class="btn">Logg inn på portalen</a>
+      <a href="${PORTAL_URL}" class="btn">Logg inn og kom i gang</a>
+      <p>Første gang du logger inn, tar vi deg gjennom et kort oppsett — timepris, teknikere og logo — så du er klar til å sende faktura med én gang.</p>
       <div class="tip">💡 Bytt til ditt eget passord under <strong>Innstillinger</strong> etter første innlogging.</div>
       <p class="help">
         Trenger du hjelp? Svar på denne e-posten eller kontakt oss på
@@ -75,7 +76,9 @@ Vi har opprettet en konto for ${companyName}. Her er innloggingen din:
 E-post: ${email}
 Midlertidig passord: ${password}
 
-Logg inn på ${PORTAL_URL}
+Logg inn og kom i gang: ${PORTAL_URL}
+
+Første gang du logger inn, tar vi deg gjennom et kort oppsett (timepris, teknikere og logo) så du er klar til å sende faktura med én gang.
 
 Tips: Bytt til ditt eget passord under Innstillinger etter første innlogging.
 

@@ -462,14 +462,13 @@ function CreateCompanyModal({ visible, onClose }: { visible: boolean; onClose: (
     setEmailState('idle'); setEmailErr(null);
   };
 
-  const sendInvite = async () => {
-    if (!done) return;
+  const doSendInvite = async (creds: { email: string; password: string; companyName: string; contactName: string }) => {
     setEmailState('sending');
     setEmailErr(null);
     try {
       await sendCustomerInvite({
-        email: done.email, password: done.password,
-        companyName: done.companyName, contactName: done.contactName,
+        email: creds.email, password: creds.password,
+        companyName: creds.companyName, contactName: creds.contactName,
       });
       setEmailState('sent');
     } catch (e: any) {
@@ -477,6 +476,8 @@ function CreateCompanyModal({ visible, onClose }: { visible: boolean; onClose: (
       setEmailErr(e?.message ?? 'Kunne ikke sende e-post');
     }
   };
+  // «Send på nytt»-knappen i kvitteringen
+  const sendInvite = () => { if (done) void doSendInvite(done); };
   const close = () => { reset(); onClose(); };
 
   const submit = async () => {
@@ -497,7 +498,11 @@ function CreateCompanyModal({ visible, onClose }: { visible: boolean; onClose: (
         plan: plan ?? undefined,
         monthlyAmount: plan ? PLAN_PRICES[plan] : 0,
       });
-      setDone({ email: res.email, password, companyName: res.companyName, contactName: contactName.trim() });
+      const creds = { email: res.email, password, companyName: res.companyName, contactName: contactName.trim() };
+      setDone(creds);
+      // Send innloggings-e-posten automatisk. Feiler den, viser kvitteringen
+      // «Send på nytt»-knappen (emailState === 'error') så eieren kan prøve igjen.
+      void doSendInvite(creds);
     } catch (e: any) {
       setErr(e?.message ?? 'Kunne ikke opprette kunde');
     } finally {
