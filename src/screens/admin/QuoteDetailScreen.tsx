@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Platform,
+  TextInput, ActivityIndicator, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedScreen } from '../../components/ThemedScreen';
@@ -26,10 +26,14 @@ export function QuoteDetailScreen({ route, navigation }: any) {
   const company = useAppStore((s) => s.company);
   const convertQuoteToJob = useAppStore((s) => s.convertQuoteToJob);
   const sendQuoteEmail = useAppStore((s) => s.sendQuoteEmail);
+  const updateQuoteEmail = useAppStore((s) => s.updateQuoteEmail);
 
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [emailErr, setEmailErr] = useState('');
 
   if (!quote) return null;
   const cfg = STATUS_CFG[quote.status];
@@ -41,6 +45,23 @@ export function QuoteDetailScreen({ route, navigation }: any) {
       setFeedback('E-post sendt til ' + quote.customerEmail);
     } catch (e: any) {
       setFeedback('E-post feilet: ' + (e.message ?? 'Sett opp send-quote-email edge function'));
+    } finally { setActionLoading(false); }
+  };
+
+  const handleSaveEmail = async () => {
+    const v = emailInput.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      setEmailErr('Ugyldig e-postadresse — sjekk at den er skrevet riktig');
+      return;
+    }
+    setActionLoading(true);
+    setEmailErr('');
+    try {
+      await updateQuoteEmail(quote.id, v);
+      setEditingEmail(false);
+      setFeedback('E-postadresse oppdatert til ' + v);
+    } catch (e: any) {
+      setEmailErr(e?.message ?? 'Kunne ikke lagre e-post');
     } finally { setActionLoading(false); }
   };
 
@@ -90,9 +111,39 @@ export function QuoteDetailScreen({ route, navigation }: any) {
           <View style={styles.quoteHeaderRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.quoteTitle, { color: C.textPrimary }]}>{quote.title}</Text>
-              <Text style={[styles.quoteMeta, { color: C.textSecondary }]}>
-                {quote.customerName} · {quote.customerEmail}
-              </Text>
+              <Text style={[styles.quoteMeta, { color: C.textSecondary }]}>{quote.customerName}</Text>
+              {editingEmail ? (
+                <View style={{ marginTop: 6, gap: 6 }}>
+                  <TextInput
+                    style={[styles.emailInput, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: C.border }]}
+                    value={emailInput}
+                    onChangeText={setEmailInput}
+                    placeholder="kunde@epost.no"
+                    placeholderTextColor={C.textTertiary}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                  />
+                  {emailErr ? <Text style={styles.emailErrText}>{emailErr}</Text> : null}
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity style={styles.emailSaveBtn} onPress={handleSaveEmail} disabled={actionLoading}>
+                      {actionLoading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.emailSaveText}>Lagre</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.emailCancelBtn} onPress={() => { setEditingEmail(false); setEmailErr(''); }}>
+                      <Text style={[styles.emailCancelText, { color: C.textSecondary }]}>Avbryt</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.emailRow}
+                  onPress={() => { setEmailInput(quote.customerEmail); setEditingEmail(true); setEmailErr(''); }}
+                >
+                  <Ionicons name="mail-outline" size={13} color={C.textTertiary} />
+                  <Text style={[styles.quoteMeta, { color: C.textSecondary, marginTop: 0 }]}>{quote.customerEmail}</Text>
+                  <Ionicons name="pencil" size={12} color="#2563FF" />
+                </TouchableOpacity>
+              )}
               <Text style={[styles.quoteMeta, { color: C.textTertiary }]}>
                 Opprettet {formatDate(quote.createdAt)} · Gyldig til {formatShortDate(quote.validUntil)}
               </Text>
@@ -222,6 +273,13 @@ const styles = StyleSheet.create({
   quoteMeta: { fontSize: 13, marginTop: 3 },
   quoteDesc: { fontSize: 14, lineHeight: 20 },
   acceptedBy: { fontSize: 13, fontWeight: '600' },
+  emailRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  emailInput: { height: 44, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, fontSize: 14 },
+  emailErrText: { fontSize: 12, color: '#DC2626' },
+  emailSaveBtn: { backgroundColor: '#2563FF', borderRadius: 8, paddingHorizontal: 18, height: 40, alignItems: 'center', justifyContent: 'center' },
+  emailSaveText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  emailCancelBtn: { paddingHorizontal: 14, height: 40, alignItems: 'center', justifyContent: 'center' },
+  emailCancelText: { fontSize: 14, fontWeight: '500' },
   totalBig: { fontSize: 22, fontWeight: '700', color: '#2563FF' },
   lineRow: { paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
   lineDesc: { fontSize: 14, fontWeight: '500' },

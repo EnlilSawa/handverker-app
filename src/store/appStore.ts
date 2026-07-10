@@ -211,6 +211,7 @@ interface AppState {
   loadQuotes: () => Promise<void>;
   createQuote: (data: Omit<Quote, 'id'|'companyId'|'quoteNumber'|'status'|'acceptedByName'|'acceptedAt'|'declinedReason'|'jobId'|'createdAt'>) => Promise<Quote>;
   updateQuoteStatus: (id: string, status: QuoteStatus, extra?: { acceptedByName?: string; declinedReason?: string }) => Promise<void>;
+  updateQuoteEmail: (id: string, email: string) => Promise<void>;
   convertQuoteToJob: (quoteId: string) => Promise<void>;
   sendQuoteEmail: (quoteId: string) => Promise<void>;
 
@@ -513,6 +514,15 @@ export const useAppStore = create<AppState>((set, get) => ({
           declinedReason: extra?.declinedReason ?? q.declinedReason,
         } : q
       ),
+    }));
+  },
+
+  updateQuoteEmail: async (id, email) => {
+    const trimmed = email.trim();
+    const { error } = await supabase.from('quotes').update({ customer_email: trimmed }).eq('id', id);
+    if (error) throw new Error(error.message);
+    set((state) => ({
+      quotes: state.quotes.map((q) => (q.id === id ? { ...q, customerEmail: trimmed } : q)),
     }));
   },
 
