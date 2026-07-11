@@ -27,9 +27,19 @@ export function calcVat(subtotalExVat: number): number {
   return Math.round(subtotalExVat * 25) / 100;
 }
 
-/** Total inkl. mva = subtotal + mva. */
+/**
+ * Total = avrundet subtotal + avrundet mva. Runder HVER komponent til øre FØR
+ * summering, slik at de synlige tallene (subtotal + mva) alltid summerer til
+ * total. (Motsatt av å runde summen: round2(subtotal + vat) kan gi en total som
+ * avviker med ett øre fra de viste komponentene.)
+ */
+export function calcTotalFromParts(subtotalExVat: number, vat: number): number {
+  return round2(subtotalExVat) + round2(vat);
+}
+
+/** Total inkl. mva fra en subtotal (mva regnes internt). */
 export function calcTotal(subtotalExVat: number): number {
-  return subtotalExVat + calcVat(subtotalExVat);
+  return calcTotalFromParts(subtotalExVat, calcVat(subtotalExVat));
 }
 
 /** Summér linjebeløp. */
@@ -51,9 +61,11 @@ export function computeQuoteAmounts(lines: QuoteLineInput[]): {
   vat: number;
   totalAmount: number;
 } {
-  const subtotalExVat = lines.reduce((s, l) => s + calcQuoteLineAmount(l.quantity, l.unitPrice), 0);
+  const subtotalExVat = round2(
+    lines.reduce((s, l) => s + calcQuoteLineAmount(l.quantity, l.unitPrice), 0),
+  );
   const vat = calcVat(subtotalExVat);
-  return { subtotalExVat, vat, totalAmount: subtotalExVat + vat };
+  return { subtotalExVat, vat, totalAmount: calcTotalFromParts(subtotalExVat, vat) };
 }
 
 export interface InvoiceAmountInput {
@@ -95,7 +107,7 @@ export function computeInvoiceAmounts(lineItems: InvoiceLineItem[]): {
   vat: number;
   total: number;
 } {
-  const subtotalExVat = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const subtotalExVat = round2(lineItems.reduce((sum, item) => sum + item.amount, 0));
   const vat = calcVat(subtotalExVat);
-  return { subtotalExVat, vat, total: subtotalExVat + vat };
+  return { subtotalExVat, vat, total: calcTotalFromParts(subtotalExVat, vat) };
 }

@@ -4,6 +4,7 @@ import {
   calcQuoteLineAmount,
   calcVat,
   calcTotal,
+  calcTotalFromParts,
   sumAmounts,
   computeQuoteAmounts,
   buildInvoiceLineItems,
@@ -54,6 +55,32 @@ describe('calcTotal', () => {
     expect(calcTotal(1000)).toBe(1250);
     expect(calcTotal(895)).toBe(1118.75);
     expect(calcTotal(0)).toBe(0);
+  });
+});
+
+describe('calcTotalFromParts (avrundet subtotal + avrundet mva)', () => {
+  it('runder HVER komponent til øre før summering (ulikt fra round2(subtotal + vat))', () => {
+    const subtotal = 100.004;
+    const vat = 25.001;
+    // Metode A — avrund summen: round2(125.005) = 125,01
+    expect(round2(subtotal + vat)).toBe(125.01);
+    // Metode B (vår) — avrund hver komponent: round2(100,004) + round2(25,001) = 125,00
+    expect(calcTotalFromParts(subtotal, vat)).toBe(125);
+    // De to metodene gir ULIKT resultat her:
+    expect(calcTotalFromParts(subtotal, vat)).not.toBe(round2(subtotal + vat));
+  });
+
+  it('total er ALLTID lik round2(subtotal) + round2(vat)', () => {
+    const cases: Array<[number, number]> = [
+      [100.004, 25.001],
+      [9112.5, 2278.13],
+      [0, 0],
+      [1234.567, 308.642],
+      [999.995, 249.999],
+    ];
+    for (const [s, v] of cases) {
+      expect(calcTotalFromParts(s, v)).toBe(round2(s) + round2(v));
+    }
   });
 });
 
@@ -109,17 +136,16 @@ describe('computeQuoteAmounts (tilbud subtotal/mva/total)', () => {
     expect(r.totalAmount).toBeCloseTo(11390.63, 2);
   });
 
-  // ⚠️ KJENT BUG (rapportert, IKKE fikset): `total = subtotal + vat` avrundes
-  // aldri, så flyttall-rest kan lekke inn i lagret total_amount (her
-  // 11390.630000000001 i stedet for 11390.63). Gjelder både tilbud og faktura.
-  // Denne testen dokumenterer nåværende (feilaktige) oppførsel.
-  it('DOKUMENTERER flyttall-rest i total (kjent bug)', () => {
+  // Invariant: total = round2(subtotal) + round2(vat) — de synlige tallene
+  // summerer alltid til total (tidligere «flyttall-rest»-bug, nå låst).
+  it('total = round2(subtotal) + round2(vat) (synlig konsistens)', () => {
     const r = computeQuoteAmounts([
       { quantity: 7.5, unitPrice: 895 },
       { quantity: 2, unitPrice: 1200 },
     ]);
-    expect(r.totalAmount).toBe(11390.630000000001);
-    expect(r.totalAmount).not.toBe(round2(r.totalAmount)); // ikke avrundet til øre
+    expect(r.totalAmount).toBe(round2(r.subtotalExVat) + round2(r.vat));
+    expect(r.subtotalExVat).toBe(round2(r.subtotalExVat)); // subtotal er avrundet
+    expect(r.vat).toBe(round2(r.vat)); // mva er avrundet
   });
 
   it('tomt tilbud gir 0', () => {
@@ -208,5 +234,19 @@ describe('computeInvoiceAmounts (faktura subtotal/mva/total)', () => {
     expect(r.subtotalExVat).toBe(expectedSubtotal);
     expect(r.vat).toBe(expectedVat);
     expect(r.total).toBe(expectedSubtotal + expectedVat);
+  });
+
+  it('total = round2(subtotal) + round2(vat) (synlig konsistens)', () => {
+    // Brøk-timer gir en subtotal med > 2 desimaler før avrunding.
+    const items = buildInvoiceLineItems({
+      hours: 3.333,
+      hourlyRate: 895,
+      materials: 0,
+      calloutFee: 350,
+    });
+    const r = computeInvoiceAmounts(items);
+    expect(r.subtotalExVat).toBe(round2(r.subtotalExVat)); // avrundet til øre
+    expect(r.vat).toBe(round2(r.vat));
+    expect(r.total).toBe(round2(r.subtotalExVat) + round2(r.vat));
   });
 });
