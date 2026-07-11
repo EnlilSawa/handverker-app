@@ -10,7 +10,7 @@ import { useAppStore } from '../../store/appStore';
 import { QuoteLine } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { addDays } from '../../utils/formatters';
-import { calcQuoteLineAmount, calcVat, round2, calcTotalFromParts } from '../../utils/amounts';
+import { calcQuoteLineAmount, calcVat, calcTotalFromParts } from '../../utils/amounts';
 
 interface LineInput { description: string; quantity: string; unitPrice: string; }
 
@@ -58,7 +58,8 @@ export function NewQuoteScreen({ navigation }: any) {
     ).slice(0, 5);
   }, [customers, customerSearch, selectedCustomer]);
 
-  const subtotal = round2(lines.reduce((s, l) => s + calcLine(l), 0));
+  // subtotal = sum av avrundede linjebeløp (calcLine runder hver linje til øre).
+  const subtotal = lines.reduce((s, l) => s + calcLine(l), 0);
   const vat = calcVat(subtotal);
   const total = calcTotalFromParts(subtotal, vat);
 

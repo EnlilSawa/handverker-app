@@ -61,8 +61,11 @@ export function computeQuoteAmounts(lines: QuoteLineInput[]): {
   vat: number;
   totalAmount: number;
 } {
-  const subtotalExVat = round2(
-    lines.reduce((s, l) => s + calcQuoteLineAmount(l.quantity, l.unitPrice), 0),
+  // subtotal = sum av de avrundede linjebeløpene (calcQuoteLineAmount runder hver
+  // linje til øre) → linjene summerer alltid til subtotal.
+  const subtotalExVat = lines.reduce(
+    (s, l) => s + calcQuoteLineAmount(l.quantity, l.unitPrice),
+    0,
   );
   const vat = calcVat(subtotalExVat);
   return { subtotalExVat, vat, totalAmount: calcTotalFromParts(subtotalExVat, vat) };
@@ -79,11 +82,12 @@ export interface InvoiceAmountInput {
 /**
  * Faktura: bygger linjeposter fra timer/timepris/materiell/fremmøtegebyr.
  * Matcher appStore.generateInvoice EKSAKT:
- *  - arbeidstimer-beløp = timer × timepris (IKKE avrundet)
- *  - materiell kun hvis > 0
- *  - ekstra-linjer beholdes uendret
- *  - fremmøtegebyr kun hvis > 0
+ *  - arbeidstimer-beløp = timer × timepris, avrundet til øre (round2)
+ *  - materiell kun hvis > 0 (avrundet)
+ *  - ekstra-linjer beholdes, men beløpet avrundes
+ *  - fremmøtegebyr kun hvis > 0 (avrundet)
  *  - rekkefølge: arbeidstimer, materiell, ekstra, fremmøtegebyr
+ * Hvert linjebeløp avrundes til øre slik at sum av linjene alltid er lik subtotal.
  */
 export function buildInvoiceLineItems(input: InvoiceAmountInput): InvoiceLineItem[] {
   const { hours, hourlyRate, materials, calloutFee, extraLines } = input;
@@ -92,12 +96,14 @@ export function buildInvoiceLineItems(input: InvoiceAmountInput): InvoiceLineIte
       description: `Arbeidstimer (${hours}t × ${hourlyRate} kr)`,
       quantity: hours,
       unitPrice: hourlyRate,
-      amount: hours * hourlyRate,
+      amount: round2(hours * hourlyRate),
     },
   ];
-  if (materials > 0) lineItems.push({ description: 'Materiell', amount: materials });
-  if (extraLines?.length) lineItems.push(...extraLines);
-  if (calloutFee > 0) lineItems.push({ description: 'Fremmøtegebyr', amount: calloutFee });
+  if (materials > 0) lineItems.push({ description: 'Materiell', amount: round2(materials) });
+  if (extraLines?.length) {
+    lineItems.push(...extraLines.map((l) => ({ ...l, amount: round2(l.amount) })));
+  }
+  if (calloutFee > 0) lineItems.push({ description: 'Fremmøtegebyr', amount: round2(calloutFee) });
   return lineItems;
 }
 
@@ -107,7 +113,10 @@ export function computeInvoiceAmounts(lineItems: InvoiceLineItem[]): {
   vat: number;
   total: number;
 } {
-  const subtotalExVat = round2(lineItems.reduce((sum, item) => sum + item.amount, 0));
+  // subtotal = sum av de avrundede linjebeløpene → linjene summerer alltid til
+  // subtotal. (Linjer fra buildInvoiceLineItems er allerede avrundet; round2 her
+  // gjør funksjonen robust også for eksternt oppgitte linjer.)
+  const subtotalExVat = lineItems.reduce((sum, item) => sum + round2(item.amount), 0);
   const vat = calcVat(subtotalExVat);
   return { subtotalExVat, vat, total: calcTotalFromParts(subtotalExVat, vat) };
 }

@@ -138,14 +138,33 @@ describe('computeQuoteAmounts (tilbud subtotal/mva/total)', () => {
 
   // Invariant: total = round2(subtotal) + round2(vat) — de synlige tallene
   // summerer alltid til total (tidligere «flyttall-rest»-bug, nå låst).
-  it('total = round2(subtotal) + round2(vat) (synlig konsistens)', () => {
-    const r = computeQuoteAmounts([
+  it('subtotal = sum(round2(linjer)); total = round2(subtotal) + round2(vat)', () => {
+    const lines = [
       { quantity: 7.5, unitPrice: 895 },
       { quantity: 2, unitPrice: 1200 },
-    ]);
+    ];
+    const r = computeQuoteAmounts(lines);
+    expect(r.subtotalExVat).toBe(
+      lines.reduce((s, l) => s + calcQuoteLineAmount(l.quantity, l.unitPrice), 0),
+    );
     expect(r.totalAmount).toBe(round2(r.subtotalExVat) + round2(r.vat));
-    expect(r.subtotalExVat).toBe(round2(r.subtotalExVat)); // subtotal er avrundet
-    expect(r.vat).toBe(round2(r.vat)); // mva er avrundet
+  });
+
+  // INVARIANT: sum(round2(linjebeløp)) === subtotal, inkl. brøk-antall.
+  it('brøk-antall gir skjeve desimaler: sum av avrundede linjer === subtotal', () => {
+    const lines = [
+      { quantity: 1.333, unitPrice: 895 }, // 1193,035 -> 1193,04 pr. linje
+      { quantity: 2.5, unitPrice: 399.9 },
+    ];
+    for (const l of lines) {
+      const a = calcQuoteLineAmount(l.quantity, l.unitPrice);
+      expect(a).toBe(round2(a)); // linjen er avrundet til øre
+    }
+    const r = computeQuoteAmounts(lines);
+    expect(r.subtotalExVat).toBe(
+      lines.reduce((s, l) => s + calcQuoteLineAmount(l.quantity, l.unitPrice), 0),
+    );
+    expect(r.totalAmount).toBe(round2(r.subtotalExVat) + round2(r.vat));
   });
 
   it('tomt tilbud gir 0', () => {
@@ -154,7 +173,7 @@ describe('computeQuoteAmounts (tilbud subtotal/mva/total)', () => {
 });
 
 describe('buildInvoiceLineItems (faktura-linjer)', () => {
-  it('arbeidstimer-linje: timer × timepris, IKKE avrundet', () => {
+  it('arbeidstimer-linje: timer × timepris, avrundet til øre', () => {
     const items = buildInvoiceLineItems({
       hours: 2,
       hourlyRate: 895,
@@ -164,6 +183,12 @@ describe('buildInvoiceLineItems (faktura-linjer)', () => {
     expect(items).toEqual([
       { description: 'Arbeidstimer (2t × 895 kr)', quantity: 2, unitPrice: 895, amount: 1790 },
     ]);
+  });
+
+  it('avrunder brøktime-linjebeløp til øre', () => {
+    const items = buildInvoiceLineItems({ hours: 1.333, hourlyRate: 895, materials: 0, calloutFee: 0 });
+    expect(items[0].amount).toBe(round2(1.333 * 895));
+    expect(items[0].amount).toBe(round2(items[0].amount)); // maks 2 desimaler
   });
 
   it('legger materiell KUN når > 0', () => {
@@ -220,33 +245,26 @@ describe('computeInvoiceAmounts (faktura subtotal/mva/total)', () => {
     expect(r).toEqual({ subtotalExVat: 1000, vat: 250, total: 1250 });
   });
 
-  it('matcher opprinnelig generateInvoice-formel ende-til-ende', () => {
-    // Reproduser den opprinnelige inline-logikken og sammenlign.
-    const hours = 4.5;
-    const hourlyRate = 895;
-    const materials = 780;
-    const calloutFee = 350;
-    const expectedSubtotal = hours * hourlyRate + materials + calloutFee;
-    const expectedVat = Math.round(expectedSubtotal * 25) / 100;
-    const r = computeInvoiceAmounts(
-      buildInvoiceLineItems({ hours, hourlyRate, materials, calloutFee }),
-    );
-    expect(r.subtotalExVat).toBe(expectedSubtotal);
-    expect(r.vat).toBe(expectedVat);
-    expect(r.total).toBe(expectedSubtotal + expectedVat);
+  it('subtotal = sum(round2(linjebeløp)); mva av subtotal; total = round2(sub)+round2(vat)', () => {
+    const items = buildInvoiceLineItems({ hours: 4.5, hourlyRate: 895, materials: 780, calloutFee: 350 });
+    const r = computeInvoiceAmounts(items);
+    expect(r.subtotalExVat).toBe(items.reduce((s, i) => s + round2(i.amount), 0));
+    expect(r.vat).toBe(calcVat(r.subtotalExVat));
+    expect(r.total).toBe(round2(r.subtotalExVat) + round2(r.vat));
   });
 
-  it('total = round2(subtotal) + round2(vat) (synlig konsistens)', () => {
-    // Brøk-timer gir en subtotal med > 2 desimaler før avrunding.
+  // INVARIANT: sum(round2(linjebeløp)) === subtotal, inkl. brøktimer med skjeve desimaler.
+  it('brøktimer: sum av avrundede linjebeløp === subtotal', () => {
     const items = buildInvoiceLineItems({
       hours: 3.333,
       hourlyRate: 895,
-      materials: 0,
+      materials: 120.505, // skjev desimal
       calloutFee: 350,
     });
+    // Hvert linjebeløp er avrundet til øre.
+    for (const i of items) expect(i.amount).toBe(round2(i.amount));
     const r = computeInvoiceAmounts(items);
-    expect(r.subtotalExVat).toBe(round2(r.subtotalExVat)); // avrundet til øre
-    expect(r.vat).toBe(round2(r.vat));
+    expect(r.subtotalExVat).toBe(items.reduce((s, i) => s + round2(i.amount), 0));
     expect(r.total).toBe(round2(r.subtotalExVat) + round2(r.vat));
   });
 });
