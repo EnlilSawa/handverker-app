@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer, Quote, QuoteLine, QuoteStatus, AppNotification } from '../types';
+import { buildInvoiceLineItems, computeInvoiceAmounts } from '../utils/amounts';
 import { supabase } from '../lib/supabase';
 import { addDays } from '../utils/formatters';
 import { generateInvoicePdfBase64 } from '../utils/generatePdf';
@@ -752,21 +753,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       company_id: companyId,
     });
 
-    const lineItems: InvoiceLineItem[] = [
-      {
-        description: `Arbeidstimer (${hours}t × ${company.hourlyRate} kr)`,
-        quantity: hours,
-        unitPrice: company.hourlyRate,
-        amount: hours * company.hourlyRate,
-      },
-    ];
-    if (materials > 0) lineItems.push({ description: 'Materiell', amount: materials });
-    if (extraLines?.length) lineItems.push(...extraLines);
-    if (company.calloutFee > 0) lineItems.push({ description: 'Fremmøtegebyr', amount: company.calloutFee });
-
-    const subtotalExVat = lineItems.reduce((sum, item) => sum + item.amount, 0);
-    const vat = Math.round(subtotalExVat * 25) / 100;
-    const total = subtotalExVat + vat;
+    const lineItems = buildInvoiceLineItems({
+      hours,
+      hourlyRate: company.hourlyRate,
+      materials,
+      calloutFee: company.calloutFee,
+      extraLines,
+    });
+    const { subtotalExVat, vat, total } = computeInvoiceAmounts(lineItems);
 
     // Hent kunde-e-post for påminnelser
     let customerEmail: string | null = null;

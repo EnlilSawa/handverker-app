@@ -10,13 +10,12 @@ import { useAppStore } from '../../store/appStore';
 import { QuoteLine } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { addDays } from '../../utils/formatters';
+import { calcQuoteLineAmount, calcVat } from '../../utils/amounts';
 
 interface LineInput { description: string; quantity: string; unitPrice: string; }
 
 function calcLine(l: LineInput): number {
-  const q = parseFloat(l.quantity) || 0;
-  const p = parseFloat(l.unitPrice) || 0;
-  return Math.round(q * p * 100) / 100;
+  return calcQuoteLineAmount(parseFloat(l.quantity) || 0, parseFloat(l.unitPrice) || 0);
 }
 
 export function NewQuoteScreen({ navigation }: any) {
@@ -60,7 +59,7 @@ export function NewQuoteScreen({ navigation }: any) {
   }, [customers, customerSearch, selectedCustomer]);
 
   const subtotal = lines.reduce((s, l) => s + calcLine(l), 0);
-  const vat = Math.round(subtotal * 25) / 100;
+  const vat = calcVat(subtotal);
   const total = subtotal + vat;
 
   const addLine = () => setLines((prev) => [...prev, { description: '', quantity: '1', unitPrice: '0' }]);
