@@ -8,6 +8,24 @@ import { generateInvoicePdfBase64 } from '../utils/generatePdf';
 
 type RegisterResult = 'ok' | 'confirm_email' | 'error';
 
+// Server-side aggregat fra RPC-en get_company_stats() (migration_v34) — regnet
+// ut over HELE datasettet, ikke bare de paginerte sidene i store.
+export interface CompanyStats {
+  total_jobs: number;
+  jobs_by_status: { new: number; in_progress: number; completed: number };
+  current_month: {
+    month: string;
+    revenue: number;
+    by_technician: { technician_id: string; revenue: number; jobs: number }[];
+  };
+  revenue_by_month: { month: string; revenue: number }[];
+  invoice_status: {
+    paid: { count: number; amount: number };
+    sent: { count: number; amount: number };
+    overdue: { count: number; amount: number };
+  };
+}
+
 // Sidestørrelse for paginering ("last inn flere"). Aktive jobber lastes i sin
 // helhet (arbeidssettet er lite og må alltid vises på tavlen); fullførte jobber
 // (arkiv) og fakturaer lastes side for side i stedet for én hard grense — ellers
@@ -257,6 +275,7 @@ interface AppState {
   loadData: () => Promise<void>;
   loadMoreArchive: () => Promise<void>;
   loadMoreInvoices: () => Promise<void>;
+  fetchCompanyStats: () => Promise<CompanyStats | null>;
   subscribeRealtime: () => void;
   unsubscribeRealtime: () => void;
   initSession: () => Promise<void>;
@@ -627,6 +646,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       const merged = [...state.invoices, ...incoming.filter((i) => !seen.has(i.id))];
       return { invoices: merged, invoicesLoadingMore: false, invoicesHasMore: incoming.length === PAGE_SIZE };
     });
+  },
+
+  fetchCompanyStats: async () => {
+    // Aggregat over hele datasettet (ikke bare lastede sider). company_id utledes
+    // server-side i RPC-en fra innlogget bruker — sendes aldri fra klienten.
+    const { data, error } = await supabase.rpc('get_company_stats');
+    if (error) {
+      get().showToast('Kunne ikke laste statistikk: ' + errText(error), 'error');
+      return null;
+    }
+    return data as CompanyStats;
   },
 
   subscribeRealtime: () => {

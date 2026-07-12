@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
-import { useAppStore } from '../../store/appStore';
-import { formatCurrency, isThisMonth } from '../../utils/formatters';
+import { useAppStore, CompanyStats } from '../../store/appStore';
+import { formatCurrency } from '../../utils/formatters';
 
 function ProgressRow({ name, revenue, jobs, max }: { name: string; revenue: number; jobs: number; max: number }) {
   const { colors: C } = useTheme();
@@ -41,51 +41,73 @@ const MINI_STATS = (jobsByStatus: { new: number; in_progress: number; completed:
 
 export function StatisticsScreen() {
   const { colors: C } = useTheme();
+  const users = useAppStore((s) => s.users);
   const jobs = useAppStore((s) => s.jobs);
   const invoices = useAppStore((s) => s.invoices);
-  const users = useAppStore((s) => s.users);
+  const fetchCompanyStats = useAppStore((s) => s.fetchCompanyStats);
+
+  const [data, setData] = useState<CompanyStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Hent aggregatet (get_company_stats-RPC) på nytt når skjermen vises og når
+  // jobber/fakturaer endrer seg (mutasjon eller realtime), så tallene er ferske
+  // og dekker HELE datasettet — ikke bare de paginerte sidene i store.
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchCompanyStats().then((res) => {
+      if (!active) return;
+      if (res) setData(res);
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, [fetchCompanyStats, jobs, invoices]);
 
   const stats = useMemo(() => {
-    const thisMonthInvoices = invoices.filter((i) => isThisMonth(i.createdAt));
-    const revenue = thisMonthInvoices.reduce((s, i) => s + i.total, 0);
-    const revenueByTech: Record<string, number> = {};
-
-    thisMonthInvoices.forEach((inv) => {
-      const job = jobs.find((j) => j.id === inv.jobId);
-      if (job?.assignedTechnicianId) {
-        revenueByTech[job.assignedTechnicianId] =
-          (revenueByTech[job.assignedTechnicianId] ?? 0) + inv.total;
-      }
+    const byTech: Record<string, { revenue: number; jobs: number }> = {};
+    (data?.current_month.by_technician ?? []).forEach((t) => {
+      byTech[t.technician_id] = { revenue: t.revenue, jobs: t.jobs };
     });
-
-    const jobsByStatus = {
-      new: jobs.filter((j) => j.status === 'new').length,
-      in_progress: jobs.filter((j) => j.status === 'in_progress').length,
-      completed: jobs.filter((j) => j.status === 'completed').length };
 
     const techPerformance = users
       .filter((u) => u.role === 'technician')
       .map((u) => ({
         name: u.name,
-        revenue: revenueByTech[u.id] ?? 0,
-        jobs: jobs.filter((j) => j.assignedTechnicianId === u.id && isThisMonth(j.createdAt)).length }))
+        revenue: byTech[u.id]?.revenue ?? 0,
+        jobs: byTech[u.id]?.jobs ?? 0 }))
       .sort((a, b) => b.revenue - a.revenue);
 
     const maxRevenue = Math.max(...techPerformance.map((t) => t.revenue), 1);
 
-    const invoiceStats = {
-      paid: invoices.filter((i) => i.status === 'paid'),
-      sent: invoices.filter((i) => i.status === 'sent'),
-      overdue: invoices.filter((i) => i.status === 'overdue') };
-
-    return { revenue, jobsByStatus, techPerformance, maxRevenue, totalJobs: jobs.length, invoiceStats };
-  }, [jobs, invoices, users]);
+    return {
+      revenue: data?.current_month.revenue ?? 0,
+      jobsByStatus: data?.jobs_by_status ?? { new: 0, in_progress: 0, completed: 0 },
+      techPerformance,
+      maxRevenue,
+      totalJobs: data?.total_jobs ?? 0,
+      invoiceStatus: data?.invoice_status ?? {
+        paid: { count: 0, amount: 0 },
+        sent: { count: 0, amount: 0 },
+        overdue: { count: 0, amount: 0 } },
+    };
+  }, [data, users]);
 
   const monthName = new Date().toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' });
   const miniStats = MINI_STATS(stats.jobsByStatus, stats.totalJobs);
 
-  // Donut-style invoice summary (using colored pills instead of SVG chart)
-  const totalInvoices = stats.invoiceStats.paid.length + stats.invoiceStats.sent.length + stats.invoiceStats.overdue.length;
+  if (loading && !data) {
+    return (
+      <ThemedScreen>
+        <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
+          <Text style={[styles.title, { color: C.textPrimary }]}>Statistikk</Text>
+          <Text style={[styles.subtitle, { color: C.textSecondary }]}>{monthName}</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#2563FF" />
+        </View>
+      </ThemedScreen>
+    );
+  }
 
   return (
     <ThemedScreen>
@@ -141,19 +163,19 @@ export function StatisticsScreen() {
               label: 'Betalt',
               color: '#2563FF',
               bg: '#EEF4FF',
-              count: stats.invoiceStats.paid.length,
-              amount: stats.invoiceStats.paid.reduce((s, i) => s + i.total, 0) },
+              count: stats.invoiceStatus.paid.count,
+              amount: stats.invoiceStatus.paid.amount },
             {
               label: 'Utestående',
               bg: '#F1F5F9',
-              count: stats.invoiceStats.sent.length,
-              amount: stats.invoiceStats.sent.reduce((s, i) => s + i.total, 0) },
+              count: stats.invoiceStatus.sent.count,
+              amount: stats.invoiceStatus.sent.amount },
             {
               label: 'Forfalt',
               color: '#DC2626',
               bg: '#FEF2F2',
-              count: stats.invoiceStats.overdue.length,
-              amount: stats.invoiceStats.overdue.reduce((s, i) => s + i.total, 0) },
+              count: stats.invoiceStatus.overdue.count,
+              amount: stats.invoiceStatus.overdue.amount },
           ].map(({ label, color, bg, count, amount }) => (
             <View key={label} style={styles.invoiceRow}>
               <View style={[styles.dot, { backgroundColor: color }]} />
