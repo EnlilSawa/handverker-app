@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, ScrollView, useWindowDimensions,
-  FlatList,
+  FlatList, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
@@ -133,6 +133,9 @@ export function ArchiveScreen({ navigation }: any) {
   const jobs = useAppStore((s) => s.jobs);
   const invoices = useAppStore((s) => s.invoices);
   const jobImages = useAppStore((s) => s.jobImages);
+  const archiveHasMore = useAppStore((s) => s.archiveHasMore);
+  const archiveLoadingMore = useAppStore((s) => s.archiveLoadingMore);
+  const loadMoreArchive = useAppStore((s) => s.loadMoreArchive);
 
   const [search, setSearch] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
@@ -175,6 +178,24 @@ export function ArchiveScreen({ navigation }: any) {
   const getImageCount = (jobId: string) => (jobImages[jobId] ?? []).length;
 
   const goToDetail = (job: Job) => navigation.navigate('ArchiveDetail', { jobId: job.id });
+
+  // «Last inn flere» — laster neste side med fullførte jobber fra databasen.
+  // Vises kun når det finnes flere rader på serveren (archiveHasMore). Filteret
+  // over (søk/måned) er rent klient-side og påvirker ikke pagineringen.
+  const loadMoreBtn = archiveHasMore ? (
+    <TouchableOpacity
+      style={[styles.loadMore, { borderColor: C.border, backgroundColor: C.cardBg }]}
+      onPress={() => loadMoreArchive()}
+      disabled={archiveLoadingMore}
+      activeOpacity={0.7}
+    >
+      {archiveLoadingMore ? (
+        <ActivityIndicator size="small" color="#2563FF" />
+      ) : (
+        <Text style={styles.loadMoreText}>Last inn flere</Text>
+      )}
+    </TouchableOpacity>
+  ) : null;
 
   return (
     <ThemedScreen>
@@ -256,6 +277,9 @@ export function ArchiveScreen({ navigation }: any) {
               ? 'Fullførte jobber vises her automatisk'
               : 'Prøv et annet søkeord eller fjern filteret'}
           </Text>
+          {/* Filteret kan skjule alle lastede rader mens det finnes eldre på
+              serveren — la brukeren fortsatt hente dem inn. */}
+          {loadMoreBtn}
         </View>
       ) : isWide ? (
         /* Web table */
@@ -280,6 +304,7 @@ export function ArchiveScreen({ navigation }: any) {
               />
             ))}
           </View>
+          {loadMoreBtn}
         </ScrollView>
       ) : (
         /* Mobile list */
@@ -287,6 +312,8 @@ export function ArchiveScreen({ navigation }: any) {
           data={filtered}
           keyExtractor={(j) => j.id}
           contentContainerStyle={styles.mobileList}
+          onEndReachedThreshold={0.4}
+          onEndReached={() => { if (archiveHasMore) loadMoreArchive(); }}
           renderItem={({ item }) => (
             <MobileCard
               job={item}
@@ -295,6 +322,7 @@ export function ArchiveScreen({ navigation }: any) {
               onPress={() => goToDetail(item)}
             />
           )}
+          ListFooterComponent={loadMoreBtn}
         />
       )}
 
@@ -372,6 +400,16 @@ const styles = StyleSheet.create({
   monthOptionText: { fontSize: 14 },
   monthOptionTextActive: { color: '#2563FF', fontWeight: '600' },
   tableWrap: { padding: 24 },
+  loadMore: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 13,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#2563FF' },
   tableCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
   th: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   mobileList: { padding: 16, paddingBottom: 40 },

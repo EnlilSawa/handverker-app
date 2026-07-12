@@ -5,6 +5,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { Toast } from './src/components/Toast';
 
 // NavigationContainer theme — makes all card/screen backgrounds transparent
 // so our root pageBg shows through everywhere.
@@ -22,7 +24,11 @@ function Root() {
   return (
     <View style={{ flex: 1, backgroundColor: pageBg }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <RootNavigator />
+      <ErrorBoundary>
+        <RootNavigator />
+      </ErrorBoundary>
+      {/* Global feil-/beskjedbanner — ligger over navigatoren */}
+      <Toast />
     </View>
   );
 }

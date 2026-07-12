@@ -29,6 +29,7 @@ export function RootNavigator() {
   const [pendingEmail, setPendingEmail] = useState('');
   const [recoveryMode, setRecoveryMode] = useState(false);
   const logout = useAppStore((s) => s.logout);
+  const unsubscribeRealtime = useAppStore((s) => s.unsubscribeRealtime);
 
   useEffect(() => {
     initSession();
@@ -46,7 +47,12 @@ export function RootNavigator() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      // Rydd opp Realtime-kanaler ved unmount (loadData abonnerer på nytt ved
+      // neste innlogging).
+      unsubscribeRealtime();
+    };
   }, []);
 
   // Tilbakestilling av passord — vises uavhengig av innloggingsstatus

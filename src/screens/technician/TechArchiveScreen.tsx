@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
-  TouchableOpacity, TextInput,
+  TouchableOpacity, TextInput, ActivityIndicator,
 } from 'react-native';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
@@ -13,6 +13,9 @@ export function TechArchiveScreen({ navigation }: any) {
   const { colors: C } = useTheme();
   const currentUser = useAppStore((s) => s.currentUser);
   const jobs = useAppStore((s) => s.jobs);
+  const archiveHasMore = useAppStore((s) => s.archiveHasMore);
+  const archiveLoadingMore = useAppStore((s) => s.archiveLoadingMore);
+  const loadMoreArchive = useAppStore((s) => s.loadMoreArchive);
   const [search, setSearch] = useState('');
 
   const completedJobs = useMemo(
@@ -70,6 +73,24 @@ export function TechArchiveScreen({ navigation }: any) {
         data={filtered}
         keyExtractor={(j) => j.id}
         contentContainerStyle={styles.list}
+        onEndReachedThreshold={0.4}
+        onEndReached={() => { if (archiveHasMore) loadMoreArchive(); }}
+        ListFooterComponent={
+          archiveHasMore ? (
+            <TouchableOpacity
+              style={[styles.loadMore, { borderColor: C.border, backgroundColor: C.cardBg }]}
+              onPress={() => loadMoreArchive()}
+              disabled={archiveLoadingMore}
+              activeOpacity={0.7}
+            >
+              {archiveLoadingMore ? (
+                <ActivityIndicator size="small" color="#2563FF" />
+              ) : (
+                <Text style={styles.loadMoreText}>Last inn flere</Text>
+              )}
+            </TouchableOpacity>
+          ) : null
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}
@@ -134,4 +155,9 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '600' },
   emptyText: { fontSize: 14 },
+  loadMore: {
+    marginTop: 6, borderWidth: 1, borderRadius: 10,
+    paddingVertical: 13, minHeight: 48, alignItems: 'center', justifyContent: 'center',
+  },
+  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#2563FF' },
 });

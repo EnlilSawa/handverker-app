@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
@@ -20,6 +20,9 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 export function InvoicesScreen({ navigation }: any) {
   const { colors: C } = useTheme();
   const invoices = useAppStore((s) => s.invoices);
+  const invoicesHasMore = useAppStore((s) => s.invoicesHasMore);
+  const invoicesLoadingMore = useAppStore((s) => s.invoicesLoadingMore);
+  const loadMoreInvoices = useAppStore((s) => s.loadMoreInvoices);
   const pendingInvoicePreview = useAppStore((s) => s.pendingInvoicePreview);
   const setPendingInvoicePreview = useAppStore((s) => s.setPendingInvoicePreview);
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -81,6 +84,8 @@ export function InvoicesScreen({ navigation }: any) {
         data={[...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt))}
         keyExtractor={(i) => i.id}
         contentContainerStyle={styles.list}
+        onEndReachedThreshold={0.4}
+        onEndReached={() => { if (invoicesHasMore) loadMoreInvoices(); }}
         renderItem={({ item }) => (
           <InvoiceCard
             invoice={item}
@@ -91,6 +96,22 @@ export function InvoicesScreen({ navigation }: any) {
           <View style={styles.empty}>
             <Text style={[styles.emptyText, { color: C.textTertiary }]}>Ingen fakturaer</Text>
           </View>
+        }
+        ListFooterComponent={
+          invoicesHasMore ? (
+            <TouchableOpacity
+              style={[styles.loadMore, { borderColor: C.border, backgroundColor: C.cardBg }]}
+              onPress={() => loadMoreInvoices()}
+              disabled={invoicesLoadingMore}
+              activeOpacity={0.7}
+            >
+              {invoicesLoadingMore ? (
+                <ActivityIndicator size="small" color="#2563FF" />
+              ) : (
+                <Text style={styles.loadMoreText}>Last inn flere</Text>
+              )}
+            </TouchableOpacity>
+          ) : null
         }
       />
 
@@ -130,4 +151,13 @@ const styles = StyleSheet.create({
   filterTextActive: { color: '#FFFFFF', fontWeight: '600' },
   list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 14 } });
+  emptyText: { fontSize: 14 },
+  loadMore: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 13,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center' },
+  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#2563FF' } });

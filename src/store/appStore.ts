@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer, Quote, QuoteLine, QuoteStatus, AppNotification } from '../types';
 import { buildInvoiceLineItems, computeInvoiceAmounts } from '../utils/amounts';
 import { supabase } from '../lib/supabase';
@@ -6,6 +7,21 @@ import { addDays } from '../utils/formatters';
 import { generateInvoicePdfBase64 } from '../utils/generatePdf';
 
 type RegisterResult = 'ok' | 'confirm_email' | 'error';
+
+// Sidestørrelse for paginering ("last inn flere"). Aktive jobber lastes i sin
+// helhet (arbeidssettet er lite og må alltid vises på tavlen); fullførte jobber
+// (arkiv) og fakturaer lastes side for side i stedet for én hard grense — ellers
+// forsvinner eldre rader så snart antallet passerer grensen.
+const PAGE_SIZE = 30;
+
+// Realtime-kanaler holdes på modulnivå (ikke i zustand-state — kanaler er ikke
+// serialiserbare). Ryddes opp ved logout/unmount via unsubscribeRealtime().
+let jobsChannel: RealtimeChannel | null = null;
+let invoicesChannel: RealtimeChannel | null = null;
+
+function errText(e: any): string {
+  return e?.message || e?.error_description || 'Ukjent feil';
+}
 
 // Tilfeldig, ugjettbart filsti-token. Brukes for opplastinger så company_id/job_id
 // IKKE bygges inn i offentlige storage-URL-er (audit #6 — ID-lekkasje).
@@ -153,6 +169,60 @@ function mapJobImage(row: any): JobImage {
   };
 }
 
+// ── Realtime change appliers ────────────────────────────────────────────────
+// Slår innkommende endringer fra Supabase Realtime sammen med lokal state.
+// RLS på tabellene styrer hvilke rader klienten faktisk mottar; vi endrer ikke
+// den antakelsen. `set`/`get` sendes inn fra store-closuren.
+
+type SetState = (partial: any) => void;
+type GetState = () => AppState;
+
+function applyJobChange(set: SetState, get: GetState, payload: any) {
+  const { eventType } = payload;
+  if (eventType === 'DELETE') {
+    const oldId = payload.old?.id;
+    if (oldId) set((state: AppState) => ({ jobs: state.jobs.filter((j) => j.id !== oldId) }));
+    return;
+  }
+  const row = payload.new;
+  if (!row?.id) return;
+  const state = get();
+  // Realtime-raden har ikke med profiles-joinen — slå opp teknikernavnet fra
+  // lokalt lastede brukere (admin), ellers behold det vi allerede viste.
+  const techName = row.assigned_technician_id
+    ? state.users.find((u) => u.id === row.assigned_technician_id)?.name
+        ?? state.jobs.find((j) => j.id === row.id)?.assignedTechnicianName
+        ?? null
+    : null;
+  const job = mapJob({ ...row, technician: techName ? { name: techName } : null });
+  set((s: AppState) => {
+    const idx = s.jobs.findIndex((j) => j.id === job.id);
+    if (idx === -1) return { jobs: [job, ...s.jobs] };
+    const copy = [...s.jobs];
+    copy[idx] = job;
+    return { jobs: copy };
+  });
+}
+
+function applyInvoiceChange(set: SetState, get: GetState, payload: any) {
+  const { eventType } = payload;
+  if (eventType === 'DELETE') {
+    const oldId = payload.old?.id;
+    if (oldId) set((state: AppState) => ({ invoices: state.invoices.filter((i) => i.id !== oldId) }));
+    return;
+  }
+  const row = payload.new;
+  if (!row?.id) return;
+  const invoice = mapInvoice(row);
+  set((s: AppState) => {
+    const idx = s.invoices.findIndex((i) => i.id === invoice.id);
+    if (idx === -1) return { invoices: [invoice, ...s.invoices] };
+    const copy = [...s.invoices];
+    copy[idx] = invoice;
+    return { invoices: copy };
+  });
+}
+
 // ── Store interface ────────────────────────────────────────────────────────
 
 interface AppState {
@@ -171,9 +241,24 @@ interface AppState {
   loading: boolean;
   initialized: boolean;
 
+  // Paginering ("last inn flere")
+  archiveHasMore: boolean;
+  archiveLoadingMore: boolean;
+  invoicesHasMore: boolean;
+  invoicesLoadingMore: boolean;
+
+  // Global, brukersynlig feil/beskjed
+  toast: { message: string; type: 'error' | 'info' } | null;
+  showToast: (message: string, type?: 'error' | 'info') => void;
+  hideToast: () => void;
+
   login: (emailOrPhone: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   loadData: () => Promise<void>;
+  loadMoreArchive: () => Promise<void>;
+  loadMoreInvoices: () => Promise<void>;
+  subscribeRealtime: () => void;
+  unsubscribeRealtime: () => void;
   initSession: () => Promise<void>;
 
   register: (name: string, email: string, phone: string, password: string) => Promise<RegisterResult>;
@@ -256,6 +341,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   jobNotes: {},
   loading: false,
   initialized: false,
+
+  archiveHasMore: false,
+  archiveLoadingMore: false,
+  invoicesHasMore: false,
+  invoicesLoadingMore: false,
+
+  toast: null,
+  showToast: (message, type = 'error') => set({ toast: { message, type } }),
+  hideToast: () => set({ toast: null }),
 
   initSession: async () => {
     // På web kan URL-tokens fra e-postbekreftelse trenge et øyeblikk å prosessere
@@ -354,6 +448,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   logout: async () => {
+    // Riv ned Realtime-kanalene før state nullstilles (unngå lekkende abonnement).
+    get().unsubscribeRealtime();
     await supabase.auth.signOut();
     set({
       currentUser: null,
@@ -362,6 +458,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       jobs: [],
       invoices: [],
       company: null,
+      archiveHasMore: false,
+      archiveLoadingMore: false,
+      invoicesHasMore: false,
+      invoicesLoadingMore: false,
+      toast: null,
     });
   },
 
@@ -375,7 +476,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       .eq('id', authData.user.id)
       .single();
 
-    if (profileError || !profileData) return;
+    if (profileError || !profileData) {
+      if (profileError) get().showToast('Kunne ikke laste profilen din: ' + errText(profileError), 'error');
+      return;
+    }
 
     const currentUser: User = {
       id: profileData.id,
@@ -403,22 +507,42 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ currentUser, companyId: profileData.company_id, company });
 
-    // Jobs (RLS filters automatically: admin sees all, technician sees own)
-    const { data: jobsData } = await supabase
+    // Jobber (RLS filtrerer automatisk: admin ser alle, tekniker ser egne).
+    // Aktive jobber lastes i sin helhet — de er arbeidssettet og må alltid vises
+    // på tavlen. Fullførte jobber (arkiv) lastes side for side (se loadMoreArchive)
+    // så eldre rader ikke forsvinner bak en hard grense.
+    const { data: activeJobsData, error: activeJobsError } = await supabase
       .from('jobs')
       .select('*, technician:profiles!assigned_technician_id(name)')
+      .neq('status', 'completed')
       .order('scheduled_at', { ascending: true });
+    if (activeJobsError) get().showToast('Kunne ikke laste jobber: ' + errText(activeJobsError), 'error');
 
-    if (jobsData) set({ jobs: jobsData.map(mapJob) });
+    const { data: completedJobsData, error: completedJobsError } = await supabase
+      .from('jobs')
+      .select('*, technician:profiles!assigned_technician_id(name)')
+      .eq('status', 'completed')
+      .order('updated_at', { ascending: false })
+      .range(0, PAGE_SIZE - 1);
+    if (completedJobsError) get().showToast('Kunne ikke laste arkivet: ' + errText(completedJobsError), 'error');
+
+    set({
+      jobs: [...(activeJobsData ?? []).map(mapJob), ...(completedJobsData ?? []).map(mapJob)],
+      archiveHasMore: (completedJobsData?.length ?? 0) === PAGE_SIZE,
+      archiveLoadingMore: false,
+    });
 
     // Admin only: invoices + team
     if (profileData.role === 'admin') {
-      const { data: invoicesData } = await supabase
+      const { data: invoicesData, error: invoicesError } = await supabase
         .from('invoices')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, PAGE_SIZE - 1);
 
+      if (invoicesError) get().showToast('Kunne ikke laste fakturaer: ' + errText(invoicesError), 'error');
       if (invoicesData) set({ invoices: invoicesData.map(mapInvoice) });
+      set({ invoicesHasMore: (invoicesData?.length ?? 0) === PAGE_SIZE, invoicesLoadingMore: false });
 
       const { data: usersData } = await supabase
         .from('profiles')
@@ -452,6 +576,90 @@ export const useAppStore = create<AppState>((set, get) => ({
         .limit(50);
       if (notifData) set({ appNotifications: notifData.map(mapAppNotification) });
     }
+
+    // Abonner på sanntidsendringer for jobber (+ fakturaer for admin) slik at
+    // f.eks. teknikerens statusendringer dukker opp uten reload. Idempotent —
+    // subscribeRealtime river ned evt. eksisterende kanaler først.
+    get().subscribeRealtime();
+  },
+
+  loadMoreArchive: async () => {
+    const { jobs, archiveHasMore, archiveLoadingMore } = get();
+    if (!archiveHasMore || archiveLoadingMore) return;
+    set({ archiveLoadingMore: true });
+    const offset = jobs.filter((j) => j.status === 'completed').length;
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*, technician:profiles!assigned_technician_id(name)')
+      .eq('status', 'completed')
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) {
+      get().showToast('Kunne ikke laste flere arkiverte jobber: ' + errText(error), 'error');
+      set({ archiveLoadingMore: false });
+      return;
+    }
+    const incoming = (data ?? []).map(mapJob);
+    set((state) => {
+      const seen = new Set(state.jobs.map((j) => j.id));
+      const merged = [...state.jobs, ...incoming.filter((j) => !seen.has(j.id))];
+      return { jobs: merged, archiveLoadingMore: false, archiveHasMore: incoming.length === PAGE_SIZE };
+    });
+  },
+
+  loadMoreInvoices: async () => {
+    const { invoices, invoicesHasMore, invoicesLoadingMore } = get();
+    if (!invoicesHasMore || invoicesLoadingMore) return;
+    set({ invoicesLoadingMore: true });
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(invoices.length, invoices.length + PAGE_SIZE - 1);
+    if (error) {
+      get().showToast('Kunne ikke laste flere fakturaer: ' + errText(error), 'error');
+      set({ invoicesLoadingMore: false });
+      return;
+    }
+    const incoming = (data ?? []).map(mapInvoice);
+    set((state) => {
+      const seen = new Set(state.invoices.map((i) => i.id));
+      const merged = [...state.invoices, ...incoming.filter((i) => !seen.has(i.id))];
+      return { invoices: merged, invoicesLoadingMore: false, invoicesHasMore: incoming.length === PAGE_SIZE };
+    });
+  },
+
+  subscribeRealtime: () => {
+    const { companyId, currentUser } = get();
+    if (!companyId) return;
+    // Rens opp evt. tidligere kanaler før vi abonnerer på nytt (idempotent).
+    get().unsubscribeRealtime();
+
+    jobsChannel = supabase
+      .channel(`rt-jobs-${companyId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'jobs', filter: `company_id=eq.${companyId}` },
+        (payload) => applyJobChange(set, get, payload),
+      )
+      .subscribe();
+
+    // Kun admin laster/viser fakturaer.
+    if (currentUser?.role === 'admin') {
+      invoicesChannel = supabase
+        .channel(`rt-invoices-${companyId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'invoices', filter: `company_id=eq.${companyId}` },
+          (payload) => applyInvoiceChange(set, get, payload),
+        )
+        .subscribe();
+    }
+  },
+
+  unsubscribeRealtime: () => {
+    if (jobsChannel) { supabase.removeChannel(jobsChannel); jobsChannel = null; }
+    if (invoicesChannel) { supabase.removeChannel(invoicesChannel); invoicesChannel = null; }
   },
 
   loadQuotes: async () => {
