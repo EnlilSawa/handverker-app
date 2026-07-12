@@ -119,7 +119,7 @@ export function NotificationBell({
             onPress={() => setOpen(false)}
             style={Platform.OS === 'web'
               ? ({ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 } as any)
-              : StyleSheet.absoluteFillObject
+              : StyleSheet.absoluteFill
             }
           />
 

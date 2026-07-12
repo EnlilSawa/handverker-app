@@ -257,7 +257,7 @@ export function ArchiveScreen({ navigation }: any) {
           (30) men over innholdet, så dropdownen er klikkbar og fanger utsideklikk. */}
       {showMonthPicker && (
         <TouchableOpacity
-          style={[StyleSheet.absoluteFillObject, { zIndex: 20 }]}
+          style={[StyleSheet.absoluteFill, { zIndex: 20 }]}
           onPress={() => setShowMonthPicker(false)}
           activeOpacity={1}
         />

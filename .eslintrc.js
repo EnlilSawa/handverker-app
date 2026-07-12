@@ -22,6 +22,12 @@ module.exports = {
     // Kodebasen bruker bevisst `any` enkelte steder (Supabase-rader, navigasjon).
     '@typescript-eslint/no-explicit-any': 'off',
     'react-hooks/exhaustive-deps': 'warn',
+    // Nye React 19 / React-Compiler-regler i eslint-config-expo 57. Koden kjører
+    // (tester + web-eksport passerer); nedgradert til advarsel i tråd med resten
+    // av de "støyende" reglene over. Vurder å rydde disse mønstrene senere:
+    // set-state-i-effekt (kaskaderender) og ref-tilgang under render.
+    'react-hooks/set-state-in-effect': 'warn',
+    'react-hooks/refs': 'warn',
     '@typescript-eslint/no-unused-vars': [
       'warn',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
