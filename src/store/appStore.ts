@@ -89,6 +89,7 @@ function mapInvoice(row: any): Invoice {
     emailStatus: row.email_status ?? null,
     reminderCount: row.reminder_count ?? 0,
     lastReminderSentAt: row.last_reminder_sent_at ?? null,
+    creditsInvoiceId: row.credits_invoice_id ?? null,
   };
 }
 
@@ -293,6 +294,7 @@ interface AppState {
 
   generateInvoice: (jobId: string, hours: number, materials: number, note?: string, extraLines?: { description: string; amount: number }[]) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
+  createCreditNote: (invoiceId: string, reason?: string) => Promise<Invoice>;
   sendInvoiceEmail: (invoiceId: string) => Promise<string>;
   sendPaymentReminder: (invoiceId: string) => Promise<void>;
   sendWelcomeEmail: () => Promise<void>;
@@ -1152,6 +1154,28 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       }
     }
+  },
+
+  createCreditNote: async (invoiceId, reason) => {
+    // Server-side RPC (SECURITY DEFINER, admin/eget firma): lager kreditnota i samme
+    // nummerserie med negerte beløp og setter originalen til 'credited'. Se migration_v35.
+    const { data, error } = await supabase.rpc('create_credit_note', {
+      p_invoice_id: invoiceId,
+      p_reason: reason?.trim() || null,
+    });
+    if (error) throw new Error(error.message);
+
+    const creditNote = mapInvoice(data);
+    // Prepend kreditnotaen og speil at originalen nå er kreditert (RPC gjorde det i DB).
+    set((state) => ({
+      invoices: [
+        creditNote,
+        ...state.invoices.map((inv) =>
+          inv.id === invoiceId ? { ...inv, status: 'credited' as InvoiceStatus } : inv,
+        ),
+      ],
+    }));
+    return creditNote;
   },
 
   updateCompany: async (updates) => {

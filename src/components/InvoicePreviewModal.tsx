@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  ScrollView, ActivityIndicator, Image,
+  ScrollView, ActivityIndicator, Image, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/appStore';
@@ -13,7 +13,9 @@ const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: stri
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF' },
   paid: { label: 'Betalt', color: '#15803D', bg: '#F0FDF4' },
   overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' },
+  credited: { label: 'Kreditert', color: '#64748B', bg: '#F1F5F9' },
 };
+const CREDIT_NOTE_CFG = { label: 'Kreditnota', color: '#7C3AED', bg: '#F5F3FF' };
 
 interface Props {
   invoiceId: string | null;
@@ -22,15 +24,20 @@ interface Props {
 
 export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
   const invoice = useAppStore((s) => s.invoices.find((i) => i.id === invoiceId));
+  const invoices = useAppStore((s) => s.invoices);
   const company = useAppStore((s) => s.company);
   const currentUser = useAppStore((s) => s.currentUser);
   const updateInvoiceStatus = useAppStore((s) => s.updateInvoiceStatus);
   const sendInvoiceEmail = useAppStore((s) => s.sendInvoiceEmail);
+  const createCreditNote = useAppStore((s) => s.createCreditNote);
 
   const [marking, setMarking] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [confirmCredit, setConfirmCredit] = useState(false);
+  const [creditReason, setCreditReason] = useState('');
+  const [crediting, setCrediting] = useState(false);
 
   const handleViewPdf = async () => {
     setPdfLoading(true);
@@ -58,15 +65,37 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
 
   if (!invoiceId || !invoice) return null;
 
-  const cfg = STATUS_CFG[invoice.status];
+  const isCreditNote = !!invoice.creditsInvoiceId;
+  const cfg = isCreditNote ? CREDIT_NOTE_CFG : STATUS_CFG[invoice.status];
   const isAdmin = currentUser?.role === 'admin';
-  const isOverdue = invoice.status === 'overdue';
+  const isOverdue = invoice.status === 'overdue' && !isCreditNote;
+  // Kan krediteres: en vanlig faktura som ikke allerede er kreditert og ikke selv er en kreditnota.
+  const canCredit = isAdmin && invoice.status !== 'credited' && !isCreditNote;
+  // Motpartens fakturanummer for koblingsbanneret.
+  const linkedNumber = isCreditNote
+    ? invoices.find((i) => i.id === invoice.creditsInvoiceId)?.invoiceNumber
+    : invoices.find((i) => i.creditsInvoiceId === invoice.id)?.invoiceNumber;
 
   const handleMarkPaid = async () => {
     setMarking(true);
     await updateInvoiceStatus(invoice.id, 'paid');
     setMarking(false);
     setFeedback('Faktura er markert som betalt');
+  };
+
+  const handleCreateCreditNote = async () => {
+    setCrediting(true);
+    setFeedback('');
+    try {
+      const note = await createCreditNote(invoice.id, creditReason);
+      setConfirmCredit(false);
+      setCreditReason('');
+      setFeedback(`Kreditnota ${note.invoiceNumber} opprettet for ${invoice.invoiceNumber}`);
+    } catch (e: any) {
+      setFeedback(e?.message ?? 'Kreditnota kunne ikke opprettes — prøv igjen.');
+    } finally {
+      setCrediting(false);
+    }
   };
 
   const handleSendEmail = async () => {
@@ -106,6 +135,18 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
               <View style={styles.feedbackBox}>
                 <Ionicons name="checkmark-circle" size={15} color="#15803D" />
                 <Text style={styles.feedbackText}>{feedback}</Text>
+              </View>
+            ) : null}
+
+            {/* Koblingsbanner kreditnota↔original */}
+            {(isCreditNote || invoice.status === 'credited') ? (
+              <View style={styles.linkBox}>
+                <Ionicons name="swap-horizontal" size={15} color={CREDIT_NOTE_CFG.color} />
+                <Text style={styles.linkBoxText}>
+                  {isCreditNote
+                    ? `Dette er en kreditnota som motposterer ${linkedNumber ?? 'originalfakturaen'}.`
+                    : `Denne fakturaen er kreditert${linkedNumber ? ` av ${linkedNumber}` : ''} og er ikke lenger utestående.`}
+                </Text>
               </View>
             ) : null}
 
@@ -228,7 +269,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                   </Text>
                 </TouchableOpacity>
 
-                {invoice.status !== 'paid' && (
+                {(invoice.status === 'sent' || invoice.status === 'overdue') && (
                   <TouchableOpacity
                     style={styles.paidBtn}
                     onPress={handleMarkPaid}
@@ -240,6 +281,54 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                     }
                     <Text style={styles.paidBtnText}>Marker som betalt</Text>
                   </TouchableOpacity>
+                )}
+
+                {/* Opprett kreditnota — bekreftelse + valgfri årsak inline (unngår nestet Modal på RN Web) */}
+                {canCredit && !confirmCredit && (
+                  <TouchableOpacity
+                    style={styles.creditBtn}
+                    onPress={() => { setFeedback(''); setConfirmCredit(true); }}
+                  >
+                    <Ionicons name="receipt-outline" size={16} color={CREDIT_NOTE_CFG.color} />
+                    <Text style={styles.creditBtnText}>Opprett kreditnota</Text>
+                  </TouchableOpacity>
+                )}
+
+                {canCredit && confirmCredit && (
+                  <View style={styles.confirmPanel}>
+                    <Text style={styles.confirmTitle}>Opprett kreditnota?</Text>
+                    <Text style={styles.confirmBody}>
+                      Dette lager en ny faktura i samme nummerserie med negative beløp som
+                      motposterer {invoice.invoiceNumber}. Fakturaen kan ikke slettes (bokføringsloven).
+                    </Text>
+                    <TextInput
+                      style={styles.reasonInput}
+                      placeholder="Årsak (valgfritt)"
+                      placeholderTextColor="#94A3B8"
+                      value={creditReason}
+                      onChangeText={setCreditReason}
+                      multiline
+                      editable={!crediting}
+                    />
+                    <View style={styles.confirmRow}>
+                      <TouchableOpacity
+                        style={styles.cancelBtn}
+                        onPress={() => { setConfirmCredit(false); setCreditReason(''); }}
+                        disabled={crediting}
+                      >
+                        <Text style={styles.cancelBtnText}>Avbryt</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.confirmBtn}
+                        onPress={handleCreateCreditNote}
+                        disabled={crediting}
+                      >
+                        {crediting
+                          ? <ActivityIndicator size="small" color="#FFFFFF" />
+                          : <Text style={styles.confirmBtnText}>Ja, opprett kreditnota</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 )}
               </View>
             )}
@@ -290,6 +379,58 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   feedbackText: { fontSize: 13, color: '#15803D', flex: 1 },
+
+  linkBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F5F3FF',
+    marginHorizontal: 20,
+    marginTop: 14,
+    borderRadius: 10,
+    padding: 12,
+  },
+  linkBoxText: { fontSize: 13, color: '#5B21B6', flex: 1, lineHeight: 18 },
+
+  creditBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, height: 52, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#7C3AED',
+  },
+  creditBtnText: { color: '#7C3AED', fontSize: 14, fontWeight: '600' },
+
+  confirmPanel: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    gap: 10,
+  },
+  confirmTitle: { fontSize: 15, fontWeight: '700', color: '#0A1B33' },
+  confirmBody: { fontSize: 13, color: '#64748B', lineHeight: 19 },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  confirmRow: { flexDirection: 'row', gap: 10 },
+  cancelBtn: {
+    flex: 1, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#E2E8F0',
+  },
+  cancelBtnText: { color: '#64748B', fontSize: 14, fontWeight: '600' },
+  confirmBtn: {
+    flex: 1.4, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#7C3AED',
+  },
+  confirmBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
 
   document: {
     margin: 20,

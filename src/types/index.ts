@@ -27,7 +27,7 @@ export interface Job {
   updatedAt: string;
 }
 
-export type InvoiceStatus = 'sent' | 'paid' | 'overdue';
+export type InvoiceStatus = 'sent' | 'paid' | 'overdue' | 'credited';
 
 export interface InvoiceLineItem {
   description: string;
@@ -54,6 +54,8 @@ export interface Invoice {
   emailStatus?: 'sent' | 'failed' | null;
   reminderCount?: number;
   lastReminderSentAt?: string | null;
+  /** Satt på en kreditnota → peker til originalfakturaen den motposterer. NULL på vanlige fakturaer. */
+  creditsInvoiceId?: string | null;
 }
 
 export interface QuoteLine {

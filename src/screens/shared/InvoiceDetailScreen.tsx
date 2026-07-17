@@ -11,7 +11,8 @@ import { formatCurrency, formatDate, formatShortDate } from '../../utils/formatt
 const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: string }> = {
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF' },
   paid: { label: 'Betalt', color: '#15803D', bg: '#F0FDF4' },
-  overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' } };
+  overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' },
+  credited: { label: 'Kreditert', color: '#64748B', bg: '#F1F5F9' } };
 
 export function InvoiceDetailScreen({ route, navigation }: any) {
   const { colors: C } = useTheme();
