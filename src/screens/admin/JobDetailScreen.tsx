@@ -39,7 +39,7 @@ function initials(name: string) {
 
 function SectionLabel({ title }: { title: string }) {
   const { colors: C } = useTheme();
-  return <Text style={[styles.sectionLabel, { color: '#64748B' }]}>{title}</Text>;
+  return <Text style={[styles.sectionLabel, { color: C.textSecondary }]}>{title}</Text>;
 }
 
 // ─── Locked image cell ────────────────────────────────────────────────────────
@@ -600,7 +600,7 @@ export function JobDetailScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </View>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#64748B' }}>Jobb ikke funnet</Text>
+        <Text style={{ color: C.textSecondary }}>Jobb ikke funnet</Text>
       </View>
     </ThemedScreen>
   );
