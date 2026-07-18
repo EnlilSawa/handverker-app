@@ -61,8 +61,11 @@ function NotifItem({
 
 export function NotificationBell({
   onNavigateToInvoice,
+  iconColor = 'rgba(255,255,255,0.75)',
 }: {
   onNavigateToInvoice: (invoiceId: string) => void;
+  /** Bjelle-ikonets farge. Default hvit (navy sidebar). Mobil-topplinja sender C.textPrimary. */
+  iconColor?: string;
 }) {
   const { colors: C } = useTheme();
   const notifications = useAppStore((s) => s.appNotifications);
@@ -104,7 +107,7 @@ export function NotificationBell({
   return (
     <View style={{ position: 'relative', zIndex: 300 }}>
       <TouchableOpacity ref={bellRef} onPress={handleToggle} activeOpacity={0.8} style={styles.bell}>
-        <Ionicons name="notifications-outline" size={19} color="rgba(255,255,255,0.75)" />
+        <Ionicons name="notifications-outline" size={19} color={iconColor} />
         {unreadCount > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>

@@ -290,7 +290,7 @@ function AdminMobileLayout() {
           <Ionicons name="menu" size={26} color={C.textPrimary} />
         </TouchableOpacity>
         <EferoLogo textColor={C.textPrimary} lineColor="#2563FF" size={18} />
-        <NotificationBell onNavigateToInvoice={handleBellNavigate} />
+        <NotificationBell onNavigateToInvoice={handleBellNavigate} iconColor={C.textPrimary} />
       </View>
 
       {/* Innhold */}
