@@ -39,11 +39,19 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
   const [creditReason, setCreditReason] = useState('');
   const [crediting, setCrediting] = useState(false);
 
+  const isCreditNote = !!invoice?.creditsInvoiceId;
+  // Motpartens fakturanummer (kreditnota↔original) — brukes i koblingsbanneret OG i PDF-en.
+  const linkedNumber = invoice
+    ? isCreditNote
+      ? invoices.find((i) => i.id === invoice.creditsInvoiceId)?.invoiceNumber
+      : invoices.find((i) => i.creditsInvoiceId === invoice.id)?.invoiceNumber
+    : undefined;
+
   const handleViewPdf = async () => {
     setPdfLoading(true);
     setFeedback('');
     try {
-      await viewInvoicePdf(invoice!, company);
+      await viewInvoicePdf(invoice!, company, linkedNumber);
     } catch (e: any) {
       setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
@@ -55,7 +63,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
     setPdfLoading(true);
     setFeedback('');
     try {
-      await downloadInvoicePdf(invoice!, company);
+      await downloadInvoicePdf(invoice!, company, linkedNumber);
     } catch (e: any) {
       setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
@@ -65,16 +73,11 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
 
   if (!invoiceId || !invoice) return null;
 
-  const isCreditNote = !!invoice.creditsInvoiceId;
   const cfg = isCreditNote ? CREDIT_NOTE_CFG : STATUS_CFG[invoice.status];
   const isAdmin = currentUser?.role === 'admin';
   const isOverdue = invoice.status === 'overdue' && !isCreditNote;
   // Kan krediteres: en vanlig faktura som ikke allerede er kreditert og ikke selv er en kreditnota.
   const canCredit = isAdmin && invoice.status !== 'credited' && !isCreditNote;
-  // Motpartens fakturanummer for koblingsbanneret.
-  const linkedNumber = isCreditNote
-    ? invoices.find((i) => i.id === invoice.creditsInvoiceId)?.invoiceNumber
-    : invoices.find((i) => i.creditsInvoiceId === invoice.id)?.invoiceNumber;
 
   const handleMarkPaid = async () => {
     setMarking(true);

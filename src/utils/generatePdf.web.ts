@@ -1,10 +1,9 @@
 // Web-specific PDF generation using jsPDF (no print dialog)
 import { jsPDF } from 'jspdf';
 import { Invoice, Company } from '../types';
-
-function fmt(n: number): string {
-  return new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 0 }).format(n) + ' kr';
-}
+// Delt pdf-trygg beløpsformatter — jsPDF-fontene mangler U+2212 (typografisk minus),
+// så negative beløp (kreditnota) MÅ formateres med vanlig bindestrek. Se formatters.ts.
+import { formatInvoiceAmount as fmt } from './formatters';
 
 function fmtDate(s: string): string {
   return new Date(s).toLocaleDateString('nb-NO', {
@@ -13,7 +12,7 @@ function fmtDate(s: string): string {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  sent: 'Sendt', paid: 'Betalt', overdue: 'Forfalt',
+  sent: 'Sendt', paid: 'Betalt', overdue: 'Forfalt', credited: 'Kreditert',
 };
 
 async function loadImageAsBase64(url: string): Promise<string | null> {
@@ -29,7 +28,11 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
   } catch { return null; }
 }
 
-async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPDF> {
+async function buildDoc(
+  invoice: Invoice,
+  company: Company | null,
+  linkedInvoiceNumber?: string,
+): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
   const pageW = 210;
@@ -41,8 +44,12 @@ async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPD
   const gray = '#64748B';
   const navy = '#0A1B33';
   const blue = '#2563FF';
+  const purple = '#7C3AED';
   const lineGray = '#E2E8F0';
   const lightLine = '#F1F5F9';
+
+  // Kreditnota (credits_invoice_id satt): eget dokumenthode, ingen betalingsfrist.
+  const isCreditNote = !!invoice.creditsInvoiceId;
 
   // ── Header ────────────────────────────────────────────────────────────────
 
@@ -68,11 +75,19 @@ async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPD
   doc.setTextColor(navy);
   doc.text(company?.name ?? 'Efero', lm, y);
 
-  // Status badge — right side, ALLTID under fakturanummeret (unngår overlapp når firma mangler logo)
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(gray);
-  doc.text(STATUS_LABEL[invoice.status] ?? invoice.status, rm, numberY + 6, { align: 'right' });
+  // Status badge — right side, ALLTID under fakturanummeret (unngår overlapp når firma mangler logo).
+  // Kreditnota: dokumenttypen ERSTATTER status («KREDITNOTA» i stedet for f.eks. «Sendt»).
+  if (isCreditNote) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(purple);
+    doc.text('KREDITNOTA', rm, numberY + 6, { align: 'right' });
+  } else {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(gray);
+    doc.text(STATUS_LABEL[invoice.status] ?? invoice.status, rm, numberY + 6, { align: 'right' });
+  }
 
   // Org.nr and address — same spacing as between other lines
   y += 6;
@@ -116,8 +131,9 @@ async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPD
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(gray);
-  doc.text('FAKTURADATO', lm, y);
-  doc.text('FORFALL', colMid + 5, y);
+  doc.text(isCreditNote ? 'DATO' : 'FAKTURADATO', lm, y);
+  // Kreditnota har ingen betalingsfrist → ingen FORFALL-kolonne.
+  if (!isCreditNote) doc.text('FORFALL', colMid + 5, y);
   if (company?.accountNumber) doc.text('KONTONUMMER', rm, y, { align: 'right' });
   y += 4;
 
@@ -125,7 +141,7 @@ async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPD
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(navy);
   doc.text(fmtDate(invoice.createdAt), lm, y);
-  doc.text(fmtDate(invoice.dueDate), colMid + 5, y);
+  if (!isCreditNote) doc.text(fmtDate(invoice.dueDate), colMid + 5, y);
   if (company?.accountNumber) {
     doc.setFont('helvetica', 'bold');
     doc.text(company.accountNumber, rm, y, { align: 'right' });
@@ -136,6 +152,22 @@ async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPD
   doc.setDrawColor(lineGray);
   doc.line(lm, y, rm, y);
   y += 7;
+
+  // Kobling kreditnota↔original: «Krediterer faktura X» / «Kreditert av X».
+  const refLine = isCreditNote
+    ? linkedInvoiceNumber
+      ? `Krediterer faktura ${linkedInvoiceNumber}`
+      : 'Krediterer originalfakturaen'
+    : invoice.status === 'credited' && linkedInvoiceNumber
+      ? `Kreditert av ${linkedInvoiceNumber}`
+      : null;
+  if (refLine) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bolditalic');
+    doc.setTextColor(isCreditNote ? purple : gray);
+    doc.text(refLine, lm, y);
+    y += 7;
+  }
 
   // ── Line items ────────────────────────────────────────────────────────────
   doc.setFontSize(8);
@@ -214,31 +246,42 @@ async function buildDoc(invoice: Invoice, company: Company | null): Promise<jsPD
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(gray);
   doc.text('Generert av Efero', rm, fy + 6, { align: 'right' });
-  doc.text(`Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto`, lm, fy + 6);
+  // Kreditnota er ikke et betalingskrav → ingen betalingsfrist.
+  if (!isCreditNote) {
+    doc.text(`Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto`, lm, fy + 6);
+  }
 
   return doc;
 }
 
-export async function viewInvoicePdf(invoice: Invoice, company: Company | null): Promise<void> {
+export async function viewInvoicePdf(
+  invoice: Invoice,
+  company: Company | null,
+  linkedInvoiceNumber?: string,
+): Promise<void> {
   // Open blank window synchronously (before any async work) to avoid popup blocker
   const win = window.open('', '_blank');
   if (!win) throw new Error('Popup ble blokkert av nettleseren. Tillat popups for denne siden.');
 
-  const doc = await buildDoc(invoice, company);
+  const doc = await buildDoc(invoice, company, linkedInvoiceNumber);
   const blob = doc.output('blob');
   const url = URL.createObjectURL(blob);
   win.location.href = url;
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export async function downloadInvoicePdf(invoice: Invoice, company: Company | null): Promise<void> {
-  const doc = await buildDoc(invoice, company);
+export async function downloadInvoicePdf(
+  invoice: Invoice,
+  company: Company | null,
+  linkedInvoiceNumber?: string,
+): Promise<void> {
+  const doc = await buildDoc(invoice, company, linkedInvoiceNumber);
   const blob = doc.output('blob');
   const url = URL.createObjectURL(blob);
   // Use anchor click — works after async operations, no popup blocker
   const a = document.createElement('a');
   a.href = url;
-  a.download = `faktura-${invoice.invoiceNumber}.pdf`;
+  a.download = `${invoice.creditsInvoiceId ? 'kreditnota' : 'faktura'}-${invoice.invoiceNumber}.pdf`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -246,8 +289,12 @@ export async function downloadInvoicePdf(invoice: Invoice, company: Company | nu
 }
 
 // Returns the invoice PDF as base64 (no data: prefix) for e-mail attachment.
-export async function generateInvoicePdfBase64(invoice: Invoice, company: Company | null): Promise<string> {
-  const doc = await buildDoc(invoice, company);
+export async function generateInvoicePdfBase64(
+  invoice: Invoice,
+  company: Company | null,
+  linkedInvoiceNumber?: string,
+): Promise<string> {
+  const doc = await buildDoc(invoice, company, linkedInvoiceNumber);
   const dataUri = doc.output('datauristring'); // data:application/pdf;...;base64,XXXX
   return dataUri.substring(dataUri.indexOf('base64,') + 'base64,'.length);
 }

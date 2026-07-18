@@ -1075,8 +1075,30 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
     }
 
+    // Kreditnota/kreditert original: finn motpartens fakturanummer til PDF-ens
+    // referanselinje. Lokalt først; DB-fallback for kreditnota (originalen kan
+    // ligge utenfor de paginerte sidene).
+    let linkedNumber: string | undefined;
+    if (invoice.creditsInvoiceId) {
+      linkedNumber = invoices.find((i) => i.id === invoice.creditsInvoiceId)?.invoiceNumber;
+      if (!linkedNumber) {
+        const { data: orig } = await supabase
+          .from('invoices')
+          .select('invoice_number')
+          .eq('id', invoice.creditsInvoiceId)
+          .maybeSingle();
+        linkedNumber = orig?.invoice_number ?? undefined;
+      }
+    } else if (invoice.status === 'credited') {
+      linkedNumber = invoices.find((i) => i.creditsInvoiceId === invoice.id)?.invoiceNumber;
+    }
+
     try {
-      const pdfBase64 = await generateInvoicePdfBase64({ ...invoice, customerEmail: to }, company);
+      const pdfBase64 = await generateInvoicePdfBase64(
+        { ...invoice, customerEmail: to },
+        company,
+        linkedNumber,
+      );
       const { error } = await supabase.functions.invoke('send-invoice-email', {
         body: { invoiceId, pdfBase64 },
       });

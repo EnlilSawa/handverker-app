@@ -1,8 +1,6 @@
 import { Invoice, Company } from '../types';
-
-function fmt(amount: number): string {
-  return new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 0 }).format(amount) + ' kr';
-}
+// Delt pdf-trygg beløpsformatter (vanlig bindestrek for negative tall — kreditnota).
+import { formatInvoiceAmount as fmt } from './formatters';
 
 function fmtDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('nb-NO', {
@@ -14,21 +12,28 @@ const STATUS_LABEL: Record<string, string> = {
   sent: 'Sendt',
   paid: 'Betalt',
   overdue: 'Forfalt',
+  credited: 'Kreditert',
 };
 
 const STATUS_COLOR: Record<string, string> = {
   sent: '#2563FF',
   paid: '#15803D',
   overdue: '#DC2626',
+  credited: '#64748B',
 };
 
 const STATUS_BG: Record<string, string> = {
   sent: '#EEF4FF',
   paid: '#F0FDF4',
   overdue: '#FEF2F2',
+  credited: '#F1F5F9',
 };
 
-export function generateInvoiceHtml(invoice: Invoice, company: Company | null): string {
+export function generateInvoiceHtml(
+  invoice: Invoice,
+  company: Company | null,
+  linkedInvoiceNumber?: string,
+): string {
   const lineItemsHtml = invoice.lineItems
     .map(
       (item) => `
@@ -39,15 +44,25 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
     )
     .join('');
 
-  const statusLabel = STATUS_LABEL[invoice.status] ?? invoice.status;
-  const statusColor = STATUS_COLOR[invoice.status] ?? '#64748B';
-  const statusBg = STATUS_BG[invoice.status] ?? '#F1F5F9';
+  // Kreditnota (credits_invoice_id satt): «KREDITNOTA»-tittel i stedet for status,
+  // referanselinje til originalen, ingen forfall/betalingsfrist.
+  const isCreditNote = !!invoice.creditsInvoiceId;
+  const statusLabel = isCreditNote ? 'Kreditnota' : (STATUS_LABEL[invoice.status] ?? invoice.status);
+  const statusColor = isCreditNote ? '#7C3AED' : (STATUS_COLOR[invoice.status] ?? '#64748B');
+  const statusBg = isCreditNote ? '#F5F3FF' : (STATUS_BG[invoice.status] ?? '#F1F5F9');
+  const refLine = isCreditNote
+    ? linkedInvoiceNumber
+      ? `Krediterer faktura ${linkedInvoiceNumber}`
+      : 'Krediterer originalfakturaen'
+    : invoice.status === 'credited' && linkedInvoiceNumber
+      ? `Kreditert av ${linkedInvoiceNumber}`
+      : null;
 
   return `<!DOCTYPE html>
 <html lang="no">
 <head>
   <meta charset="utf-8" />
-  <title>Faktura ${invoice.invoiceNumber}</title>
+  <title>${isCreditNote ? 'Kreditnota' : 'Faktura'} ${invoice.invoiceNumber}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -136,6 +151,7 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
       ${company?.address ? `<div class="company-detail">${company.address}</div>` : ''}
     </div>
     <div class="invoice-meta">
+      ${isCreditNote ? `<div style="font-size: 13px; font-weight: 700; color: #7C3AED; letter-spacing: 1.5px; margin-bottom: 4px;">KREDITNOTA</div>` : ''}
       <div class="invoice-number">${invoice.invoiceNumber}</div>
       <span class="status-badge">${statusLabel}</span>
     </div>
@@ -157,19 +173,21 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
   <!-- Dates + Kontonummer -->
   <div class="dates">
     <div>
-      <div class="date-label">Fakturadato</div>
+      <div class="date-label">${isCreditNote ? 'Dato' : 'Fakturadato'}</div>
       <div class="date-value">${fmtDate(invoice.createdAt)}</div>
     </div>
+    ${!isCreditNote ? `
     <div>
       <div class="date-label">Forfall</div>
       <div class="date-value">${fmtDate(invoice.dueDate)}</div>
-    </div>
+    </div>` : ''}
     ${company?.accountNumber ? `
     <div>
       <div class="date-label">Kontonummer</div>
       <div class="date-value" style="font-weight: 700; color: #0A1B33; letter-spacing: 0.5px;">${company.accountNumber}</div>
     </div>` : ''}
   </div>
+  ${refLine ? `<div style="margin: -14px 0 24px; font-size: 13px; font-weight: 600; font-style: italic; color: ${isCreditNote ? '#7C3AED' : '#64748B'};">${refLine}</div>` : ''}
 
   <!-- Line items -->
   <div class="section-title">Spesifikasjon</div>
@@ -197,10 +215,10 @@ export function generateInvoiceHtml(invoice: Invoice, company: Company | null): 
     </div>
   </div>
 
-  <!-- Footer -->
+  <!-- Footer (kreditnota er ikke et betalingskrav → ingen betalingsfrist) -->
   <div class="footer">
     <p style="margin: 0; display: flex; justify-content: space-between;">
-      <span>Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto</span>
+      <span>${isCreditNote ? '' : `Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto`}</span>
       <span style="color: #CBD5E1;">Generert av Efero</span>
     </p>
   </div>
