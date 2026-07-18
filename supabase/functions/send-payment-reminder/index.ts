@@ -91,6 +91,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Faktura ikke funnet' }), { status: 404, headers: json });
     }
 
+    // En kreditert faktura er motpostert (ikke utestående), og en kreditnota er ikke
+    // et betalingskrav → purring gir ingen mening og skal aldri sendes til kunden.
+    if (invoice.status === 'credited' || invoice.credits_invoice_id) {
+      return new Response(
+        JSON.stringify({ error: 'Kan ikke sende purring på en kreditert faktura eller kreditnota' }),
+        { status: 400, headers: json },
+      );
+    }
+
     // Autorisasjon: samme firma (alle roller — som relaxet send-invoice-email)
     const { data: profile } = await supabase
       .from('profiles').select('company_id').eq('id', user.id).single();

@@ -125,6 +125,14 @@ Deno.serve(async (req) => {
       const company = invoice.company;
       if (!company) { results.skipped++; continue; }
 
+      // Krediterte fakturaer og kreditnotaer skal ALDRI purres eller markeres forfalt
+      // (motpostert / ikke utestående). Query-filteret over henter kun 'sent'/'overdue',
+      // så en 'credited' faktura fanges normalt ikke — dette er en eksplisitt sikring.
+      if (invoice.status === 'credited' || invoice.credits_invoice_id) {
+        results.skipped++;
+        continue;
+      }
+
       const days = daysDiff(invoice.due_date);
 
       // ── FØR forfall: automatiske kunde-påminnelser (uendret) ────────────────
