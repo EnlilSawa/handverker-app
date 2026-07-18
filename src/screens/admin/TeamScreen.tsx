@@ -45,7 +45,7 @@ function TechCard({ user, index, onRemove, onResetPassword }: {
       <View style={[styles.cardDivider, { borderTopColor: C.border }]}>
         <TouchableOpacity onPress={onResetPassword} style={styles.resetBtn}>
           <Ionicons name="key-outline" size={13} color="#64748B" />
-          <Text style={styles.resetBtnText}>Tilbakestill passord</Text>
+          <Text style={[styles.resetBtnText, { color: C.textSecondary }]}>Tilbakestill passord</Text>
         </TouchableOpacity>
       </View>
     </View>

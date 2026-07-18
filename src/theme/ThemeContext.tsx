@@ -30,8 +30,10 @@ const dark: ThemeColors = {
   cardBg: '#1F2937',
   cardAlt: '#283548',
   textPrimary: '#F9FAFB',
-  textSecondary: '#D1D5DB',
-  textTertiary: '#9CA3AF',
+  // Sekundær/tertiær løftet ett hakk lysere så grå tekst (datoer, metadata,
+  // etiketter) er tydelig i mørk modus — bevarer fortsatt lesehierarkiet.
+  textSecondary: '#E5E7EB',
+  textTertiary: '#CBD2DC',
   border: '#374151',
   inputBg: '#374151',
   headerBg: '#1F2937',

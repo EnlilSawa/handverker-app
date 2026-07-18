@@ -878,7 +878,7 @@ export function JobDetailScreen({ route, navigation }: any) {
           /* Completed: info banner only — no input */
           <View style={[styles.noteCompletedBanner, { backgroundColor: C.cardBg, borderColor: C.border }]}>
             <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
-            <Text style={styles.noteCompletedText}>Jobben er fullført — nye notater kan ikke legges til</Text>
+            <Text style={[styles.noteCompletedText, { color: C.textSecondary }]}>Jobben er fullført — nye notater kan ikke legges til</Text>
           </View>
         ) : (
           /* Active: textarea + button */
@@ -893,7 +893,7 @@ export function JobDetailScreen({ route, navigation }: any) {
                 multiline
                 textAlignVertical="top"
               />
-              <Text style={styles.noteCounter}>{noteText.length}/500</Text>
+              <Text style={[styles.noteCounter, { color: C.textTertiary }]}>{noteText.length}/500</Text>
             </View>
             <TouchableOpacity
               style={[styles.noteAddBtn, (!noteText.trim() || savingNote) && styles.noteAddBtnDisabled]}
@@ -918,7 +918,7 @@ export function JobDetailScreen({ route, navigation }: any) {
                 <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
                 <View style={styles.noteDateRow}>
                   <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
-                  <Text style={styles.noteDateText}>{formatNoteDate(note.createdAt)}</Text>
+                  <Text style={[styles.noteDateText, { color: C.textTertiary }]}>{formatNoteDate(note.createdAt)}</Text>
                 </View>
               </View>
               <Text style={[styles.noteBody, { color: C.textPrimary }]}>{note.content}</Text>
@@ -972,7 +972,7 @@ export function JobDetailScreen({ route, navigation }: any) {
           {images.length === 0 ? (
             <View style={styles.noImages}>
               <Ionicons name="images-outline" size={32} color="#CBD5E1" />
-              <Text style={styles.noImagesText}>Ingen bilder ennå</Text>
+              <Text style={[styles.noImagesText, { color: C.textTertiary }]}>Ingen bilder ennå</Text>
             </View>
           ) : (
             <View style={styles.imageGrid}>

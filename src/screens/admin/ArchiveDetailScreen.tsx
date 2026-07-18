@@ -205,7 +205,7 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
           {/* Archived banner */}
           <View style={styles.archivedNoteBanner}>
             <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
-            <Text style={styles.archivedNoteBannerText}>Arkivert jobb — notater kan ikke endres</Text>
+            <Text style={[styles.archivedNoteBannerText, { color: C.textSecondary }]}>Arkivert jobb — notater kan ikke endres</Text>
           </View>
 
           {notes.length === 0 ? (
@@ -221,7 +221,7 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
                     <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
                     <View style={styles.noteDateRow}>
                       <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
-                      <Text style={styles.noteDateText}>{dateStr}</Text>
+                      <Text style={[styles.noteDateText, { color: C.textTertiary }]}>{dateStr}</Text>
                     </View>
                   </View>
                   <Text style={[styles.noteBody, { color: C.textPrimary }]}>{note.content}</Text>

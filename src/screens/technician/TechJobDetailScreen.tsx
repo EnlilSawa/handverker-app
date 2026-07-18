@@ -153,7 +153,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
         {isCompleted ? (
           <View style={[styles.lockedBanner, { backgroundColor: C.cardBg, borderColor: C.border }]}>
             <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
-            <Text style={styles.lockedText}>Jobben er fullført — notater kan ikke endres</Text>
+            <Text style={[styles.lockedText, { color: C.textSecondary }]}>Jobben er fullført — notater kan ikke endres</Text>
           </View>
         ) : (
           <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border, gap: 10 }]}>
@@ -170,7 +170,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
                 multiline
                 textAlignVertical="top"
               />
-              <Text style={styles.noteCounter}>{noteText.length}/500</Text>
+              <Text style={[styles.noteCounter, { color: C.textTertiary }]}>{noteText.length}/500</Text>
             </View>
             <TouchableOpacity
               style={[styles.noteAddBtn, (!noteText.trim() || savingNote) && styles.noteAddBtnDisabled]}
@@ -199,7 +199,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
                 <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
                 <View style={styles.noteDateRow}>
                   <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
-                  <Text style={styles.noteDateText}>{formatNoteDate(note.createdAt)}</Text>
+                  <Text style={[styles.noteDateText, { color: C.textTertiary }]}>{formatNoteDate(note.createdAt)}</Text>
                 </View>
               </View>
               <Text style={[styles.noteBody, { color: C.textPrimary }]}>{note.content}</Text>
@@ -213,7 +213,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
           {isCompleted ? (
             <View style={styles.lockedHint}>
               <Ionicons name="lock-closed-outline" size={12} color="#64748B" />
-              <Text style={styles.lockedText}>Jobben er fullført — bilder kan ikke lastes opp</Text>
+              <Text style={[styles.lockedText, { color: C.textSecondary }]}>Jobben er fullført — bilder kan ikke lastes opp</Text>
             </View>
           ) : (
             <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowUploadModal(true)}>

@@ -116,7 +116,7 @@ export function TechArchiveDetailScreen({ route, navigation }: any) {
           <Text style={[styles.cardLabel, { color: C.textSecondary }]}>NOTATER</Text>
           <View style={styles.archivedBanner}>
             <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
-            <Text style={styles.archivedBannerText}>Arkivert jobb — notater kan ikke endres</Text>
+            <Text style={[styles.archivedBannerText, { color: C.textSecondary }]}>Arkivert jobb — notater kan ikke endres</Text>
           </View>
           {notes.length === 0 ? (
             <Text style={[styles.emptyText, { color: C.textTertiary }]}>Ingen notater på denne jobben</Text>
@@ -131,7 +131,7 @@ export function TechArchiveDetailScreen({ route, navigation }: any) {
                     <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                       <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
-                      <Text style={styles.noteDate}>{dateStr}</Text>
+                      <Text style={[styles.noteDate, { color: C.textTertiary }]}>{dateStr}</Text>
                     </View>
                   </View>
                   <Text style={[styles.noteBody, { color: C.textPrimary }]}>{note.content}</Text>

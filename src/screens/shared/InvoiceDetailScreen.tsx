@@ -205,7 +205,7 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
             )}
 
             {reminderCount > 0 && (
-              <Text style={styles.reminderSentText}>
+              <Text style={[styles.reminderSentText, { color: C.textSecondary }]}>
                 Purring sendt{invoice.lastReminderSentAt ? ` ${formatShortDate(invoice.lastReminderSentAt)}` : ''} (x{reminderCount})
               </Text>
             )}
