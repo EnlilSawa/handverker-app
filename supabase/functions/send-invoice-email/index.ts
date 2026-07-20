@@ -19,8 +19,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// U+2212 (typografisk minus fra Intl) → vanlig bindestrek, NBSP/NNBSP → mellomrom,
+// så negative beløp (kreditnota) vises likt i e-post og PDF.
 const fmt = (n: number) =>
-  new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 0 }).format(Number(n)) + ' kr';
+  new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 0 })
+    .format(Number(n))
+    .replace(/\u2212/g, '-')
+    .replace(/[\u00A0\u202F]/g, ' ') + ' kr';
 
 const fmtDate = (s: string) =>
   new Date(s).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -54,6 +59,98 @@ function invoiceText(invoice: any, company: any): string {
     company.name,
     company.email || 'kontakt@efero.no',
   ].join('\n');
+}
+
+// ── Kreditnota (credits_invoice_id satt) ─────────────────────────────────────
+// Eget innhold: forklarer at den krediterer originalfakturaen med årsak.
+// INGEN betalingsinformasjon, forfallsdato eller beløp-å-betale — en kreditnota
+// er ikke et betalingskrav.
+function creditNoteText(invoice: any, company: any, originalNumber: string | null): string {
+  const lines = ((invoice.line_items as LineItem[]) ?? [])
+    .map((li) => `- ${li.description}: ${fmt(li.amount)}`)
+    .join('\n');
+  const credits = originalNumber ? `faktura ${originalNumber}` : 'originalfakturaen';
+  return [
+    `Kreditnota ${invoice.invoice_number} fra ${company.name}`,
+    '',
+    `Hei ${invoice.customer_name},`,
+    `${company.name} har opprettet kreditnota ${invoice.invoice_number} som krediterer ${credits}. Fakturaen er dermed nullet ut og skal ikke betales.`,
+    invoice.credit_reason ? `Årsak: ${invoice.credit_reason}` : '',
+    '',
+    'Spesifikasjon:',
+    lines,
+    '',
+    `Sum eks. MVA: ${fmt(invoice.subtotal_ex_vat)}`,
+    `MVA 25%: ${fmt(invoice.vat)}`,
+    `Totalt inkl. MVA: ${fmt(invoice.total)}`,
+    '',
+    'Kreditnotaen er også vedlagt som PDF.',
+    '',
+    'Med vennlig hilsen',
+    company.name,
+    company.email || 'kontakt@efero.no',
+  ].join('\n');
+}
+
+function creditNoteHtml(invoice: any, company: any, originalNumber: string | null): string {
+  const lineRows = ((invoice.line_items as LineItem[]) ?? [])
+    .map(
+      (item) => `
+      <div class="info-row"><span>${item.description}</span><span>${fmt(item.amount)}</span></div>`,
+    )
+    .join('');
+
+  const credits = originalNumber ? `faktura <strong>${originalNumber}</strong>` : 'originalfakturaen';
+
+  return `
+<!DOCTYPE html>
+<html lang="no">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><style>
+  body { font-family: 'Inter', Arial, sans-serif; color: #1F2937; background: #F5F7FA; padding: 0; margin: 0; }
+  .container { max-width: 600px; margin: 0 auto; background: #FFFFFF; }
+  .header { background: #0A1B33; padding: 28px 32px; }
+  .header h1 { color: #FFFFFF; font-size: 22px; font-weight: 700; margin: 0; }
+  .doc-type { color: #A78BFA; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; margin: 0 0 6px; }
+  .content { padding: 32px; }
+  .greeting { font-size: 16px; margin: 0 0 8px; }
+  p { font-size: 16px; line-height: 1.6; margin: 0 0 16px; color: #1F2937; }
+  .reason-box { background: #F5F3FF; border-radius: 12px; padding: 14px 18px; margin: 0 0 16px; font-size: 15px; color: #5B21B6; }
+  .section-label { font-size: 12px; font-weight: 700; color: #64748B; letter-spacing: 0.5px; margin: 28px 0 8px; }
+  .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #F1F5F9; font-size: 15px; }
+  .sub-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; color: #64748B; }
+  .total-box { background: #F5F3FF; border-radius: 12px; padding: 18px 20px; margin: 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
+  .total-box .label { font-size: 15px; font-weight: 600; color: #0A1B33; }
+  .total-box .value { font-size: 26px; font-weight: 700; color: #7C3AED; }
+  .footer { background: #F8FAFC; padding: 24px 32px; text-align: center; font-size: 13px; color: #94A3B8; border-top: 1px solid #E2E8F0; }
+</style></head>
+<body>
+  <div class="container">
+    <div class="header"><p class="doc-type">KREDITNOTA</p><h1>${company.name}</h1></div>
+    <div class="content">
+      <p class="greeting">Hei ${invoice.customer_name},</p>
+      <p>${company.name} har opprettet kreditnota <strong>${invoice.invoice_number}</strong> som
+      krediterer ${credits}. Fakturaen er dermed nullet ut og skal ikke betales.</p>
+      ${invoice.credit_reason ? `<div class="reason-box"><strong>Årsak:</strong> ${invoice.credit_reason}</div>` : ''}
+
+      <div class="section-label">SPESIFIKASJON</div>
+      ${lineRows}
+
+      <div class="sub-row"><span>Sum eks. MVA</span><span>${fmt(invoice.subtotal_ex_vat)}</span></div>
+      <div class="sub-row"><span>MVA 25%</span><span>${fmt(invoice.vat)}</span></div>
+
+      <div class="total-box">
+        <span class="label">Totalt inkl. MVA</span>
+        <span class="value">${fmt(invoice.total)}</span>
+      </div>
+
+      <p style="font-size:13px;color:#94A3B8;margin-top:24px;">
+        Kreditnotaen er også vedlagt som PDF. Har du spørsmål? Svar på denne e-posten.
+      </p>
+    </div>
+    <div class="footer">Generert av Efero for ${company.name}</div>
+  </div>
+</body>
+</html>`;
 }
 
 function invoiceHtml(invoice: any, company: any): string {
@@ -179,18 +276,37 @@ Deno.serve(async (req) => {
 
     const replyTo = company.email || 'kontakt@efero.no';
 
+    // Kreditnota: eget emne/innhold uten betalingsinformasjon. Originalens
+    // fakturanummer hentes for «krediterer faktura X»-teksten.
+    const isCreditNote = !!invoice.credits_invoice_id;
+    let originalNumber: string | null = null;
+    if (isCreditNote) {
+      const { data: orig } = await supabase
+        .from('invoices')
+        .select('invoice_number')
+        .eq('id', invoice.credits_invoice_id)
+        .maybeSingle();
+      originalNumber = orig?.invoice_number ?? null;
+    }
+
     const body: Record<string, unknown> = {
       from: `${company.name} <faktura@efero.no>`,
       reply_to: replyTo,
       to: [invoice.customer_email],
-      subject: `Faktura ${invoice.invoice_number} fra ${company.name}`,
-      html: invoiceHtml(invoice, company),
-      text: invoiceText(invoice, company),
+      subject: isCreditNote
+        ? `Kreditnota ${invoice.invoice_number}`
+        : `Faktura ${invoice.invoice_number} fra ${company.name}`,
+      html: isCreditNote
+        ? creditNoteHtml(invoice, company, originalNumber)
+        : invoiceHtml(invoice, company),
+      text: isCreditNote
+        ? creditNoteText(invoice, company, originalNumber)
+        : invoiceText(invoice, company),
     };
 
     if (pdfBase64) {
       body.attachments = [{
-        filename: `faktura-${invoice.invoice_number}.pdf`,
+        filename: `${isCreditNote ? 'kreditnota' : 'faktura'}-${invoice.invoice_number}.pdf`,
         content: pdfBase64,
       }];
     }

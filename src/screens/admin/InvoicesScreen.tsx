@@ -15,6 +15,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'sent', label: 'Sendt' },
   { key: 'paid', label: 'Betalt' },
   { key: 'overdue', label: 'Forfalt' },
+  { key: 'credited', label: 'Kreditert' },
 ];
 
 export function InvoicesScreen({ navigation }: any) {
@@ -40,12 +41,29 @@ export function InvoicesScreen({ navigation }: any) {
     [invoices, filter]
   );
 
+  // Koblingsoppslag kreditnota↔original, så begge kort kan vise motpartens fakturanummer.
+  const linkedNumberFor = useMemo(() => {
+    const byId = new Map(invoices.map((i) => [i.id, i]));
+    const creditNoteByOriginal = new Map<string, string>();
+    invoices.forEach((i) => {
+      if (i.creditsInvoiceId) creditNoteByOriginal.set(i.creditsInvoiceId, i.invoiceNumber);
+    });
+    return (inv: (typeof invoices)[number]): string | undefined =>
+      inv.creditsInvoiceId
+        ? byId.get(inv.creditsInvoiceId)?.invoiceNumber
+        : creditNoteByOriginal.get(inv.id);
+  }, [invoices]);
+
   const totalPaid = useMemo(
     () => invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.total, 0),
     [invoices]
   );
+  // Utestående = kun åpne fakturaer (sendt/forfalt). Krediterte er motpostert (nettes ut).
   const totalUnpaid = useMemo(
-    () => invoices.filter((i) => i.status !== 'paid').reduce((s, i) => s + i.total, 0),
+    () =>
+      invoices
+        .filter((i) => i.status === 'sent' || i.status === 'overdue')
+        .reduce((s, i) => s + i.total, 0),
     [invoices]
   );
 
@@ -89,6 +107,7 @@ export function InvoicesScreen({ navigation }: any) {
         renderItem={({ item }) => (
           <InvoiceCard
             invoice={item}
+            linkedNumber={linkedNumberFor(item)}
             onPress={() => setPreviewId(item.id)}
           />
         )}

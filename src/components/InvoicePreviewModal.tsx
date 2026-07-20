@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  ScrollView, ActivityIndicator, Image,
+  ScrollView, ActivityIndicator, Image, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/appStore';
@@ -13,7 +13,9 @@ const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: stri
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF' },
   paid: { label: 'Betalt', color: '#15803D', bg: '#F0FDF4' },
   overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' },
+  credited: { label: 'Kreditert', color: '#64748B', bg: '#F1F5F9' },
 };
+const CREDIT_NOTE_CFG = { label: 'Kreditnota', color: '#7C3AED', bg: '#F5F3FF' };
 
 interface Props {
   invoiceId: string | null;
@@ -22,21 +24,35 @@ interface Props {
 
 export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
   const invoice = useAppStore((s) => s.invoices.find((i) => i.id === invoiceId));
+  const invoices = useAppStore((s) => s.invoices);
   const company = useAppStore((s) => s.company);
   const currentUser = useAppStore((s) => s.currentUser);
   const updateInvoiceStatus = useAppStore((s) => s.updateInvoiceStatus);
   const sendInvoiceEmail = useAppStore((s) => s.sendInvoiceEmail);
+  const createCreditNote = useAppStore((s) => s.createCreditNote);
 
   const [marking, setMarking] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [confirmCredit, setConfirmCredit] = useState(false);
+  const [creditReason, setCreditReason] = useState('');
+  const [creditError, setCreditError] = useState('');
+  const [crediting, setCrediting] = useState(false);
+
+  const isCreditNote = !!invoice?.creditsInvoiceId;
+  // Motpartens fakturanummer (kreditnota↔original) — brukes i koblingsbanneret OG i PDF-en.
+  const linkedNumber = invoice
+    ? isCreditNote
+      ? invoices.find((i) => i.id === invoice.creditsInvoiceId)?.invoiceNumber
+      : invoices.find((i) => i.creditsInvoiceId === invoice.id)?.invoiceNumber
+    : undefined;
 
   const handleViewPdf = async () => {
     setPdfLoading(true);
     setFeedback('');
     try {
-      await viewInvoicePdf(invoice!, company);
+      await viewInvoicePdf(invoice!, company, linkedNumber);
     } catch (e: any) {
       setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
@@ -48,7 +64,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
     setPdfLoading(true);
     setFeedback('');
     try {
-      await downloadInvoicePdf(invoice!, company);
+      await downloadInvoicePdf(invoice!, company, linkedNumber);
     } catch (e: any) {
       setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
@@ -58,9 +74,11 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
 
   if (!invoiceId || !invoice) return null;
 
-  const cfg = STATUS_CFG[invoice.status];
+  const cfg = isCreditNote ? CREDIT_NOTE_CFG : STATUS_CFG[invoice.status];
   const isAdmin = currentUser?.role === 'admin';
-  const isOverdue = invoice.status === 'overdue';
+  const isOverdue = invoice.status === 'overdue' && !isCreditNote;
+  // Kan krediteres: en vanlig faktura som ikke allerede er kreditert og ikke selv er en kreditnota.
+  const canCredit = isAdmin && invoice.status !== 'credited' && !isCreditNote;
 
   const handleMarkPaid = async () => {
     setMarking(true);
@@ -69,12 +87,42 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
     setFeedback('Faktura er markert som betalt');
   };
 
+  const handleCreateCreditNote = async () => {
+    // Årsak er obligatorisk (valideres også i store + RPC).
+    if (!creditReason.trim()) {
+      setCreditError('Oppgi en årsak for kreditnotaen.');
+      return;
+    }
+    setCrediting(true);
+    setFeedback('');
+    setCreditError('');
+    try {
+      const note = await createCreditNote(invoice.id, creditReason);
+      setConfirmCredit(false);
+      setCreditReason('');
+      // createCreditNote har allerede forsøkt e-postsending (awaited) — les utfallet
+      // fra state: 'sent'/'failed', eller null når kunden mangler e-postadresse.
+      const fresh = useAppStore.getState().invoices.find((i) => i.id === note.id);
+      const emailMsg =
+        fresh?.emailStatus === 'sent'
+          ? ` og sendt til ${fresh.customerEmail ?? 'kunden'}`
+          : fresh?.emailStatus === 'failed'
+            ? ' — e-posten feilet, åpne kreditnotaen og trykk «Send på nytt»'
+            : ' — ikke sendt: kunden har ingen e-postadresse';
+      setFeedback(`Kreditnota ${note.invoiceNumber} opprettet for ${invoice.invoiceNumber}${emailMsg}`);
+    } catch (e: any) {
+      setFeedback(e?.message ?? 'Kreditnota kunne ikke opprettes — prøv igjen.');
+    } finally {
+      setCrediting(false);
+    }
+  };
+
   const handleSendEmail = async () => {
     setSending(true);
     setFeedback('');
     try {
       const to = await sendInvoiceEmail(invoice.id);
-      setFeedback(`Faktura ${invoice.invoiceNumber} sendt til ${to}`);
+      setFeedback(`${isCreditNote ? 'Kreditnota' : 'Faktura'} ${invoice.invoiceNumber} sendt til ${to}`);
     } catch (e: any) {
       setFeedback(e?.message ?? 'E-post kunne ikke sendes — prøv å sende på nytt.');
     } finally {
@@ -106,6 +154,23 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
               <View style={styles.feedbackBox}>
                 <Ionicons name="checkmark-circle" size={15} color="#15803D" />
                 <Text style={styles.feedbackText}>{feedback}</Text>
+              </View>
+            ) : null}
+
+            {/* Koblingsbanner kreditnota↔original */}
+            {(isCreditNote || invoice.status === 'credited') ? (
+              <View style={styles.linkBox}>
+                <Ionicons name="swap-horizontal" size={15} color={CREDIT_NOTE_CFG.color} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.linkBoxText}>
+                    {isCreditNote
+                      ? `Dette er en kreditnota som motposterer ${linkedNumber ?? 'originalfakturaen'}.`
+                      : `Denne fakturaen er kreditert${linkedNumber ? ` av ${linkedNumber}` : ''} og er ikke lenger utestående.`}
+                  </Text>
+                  {isCreditNote && invoice.creditReason ? (
+                    <Text style={styles.linkBoxText}>Årsak: {invoice.creditReason}</Text>
+                  ) : null}
+                </View>
               </View>
             ) : null}
 
@@ -219,16 +284,25 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
             {/* Actions */}
             {isAdmin && (
               <View style={styles.actions}>
-                <TouchableOpacity style={styles.smsBtn} onPress={handleSendEmail} disabled={sending}>
-                  {sending
-                    ? <ActivityIndicator size="small" color="#2563FF" />
-                    : <Ionicons name="mail-outline" size={16} color="#2563FF" />}
-                  <Text style={styles.smsBtnText}>
-                    {invoice.emailStatus === 'failed' ? 'Send på nytt' : 'Send faktura på E-post'}
-                  </Text>
-                </TouchableOpacity>
+                {/* Kreditert original: skjul e-postknappen — å re-sende en utnullet
+                    faktura med betalingsinformasjon ville villede kunden. Kreditnotaen
+                    er dokumentet som sendes. */}
+                {(isCreditNote || invoice.status !== 'credited') && (
+                  <TouchableOpacity style={styles.smsBtn} onPress={handleSendEmail} disabled={sending}>
+                    {sending
+                      ? <ActivityIndicator size="small" color="#2563FF" />
+                      : <Ionicons name="mail-outline" size={16} color="#2563FF" />}
+                    <Text style={styles.smsBtnText}>
+                      {invoice.emailStatus === 'failed'
+                        ? 'Send på nytt'
+                        : isCreditNote
+                          ? 'Send kreditnota på E-post'
+                          : 'Send faktura på E-post'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
-                {invoice.status !== 'paid' && (
+                {(invoice.status === 'sent' || invoice.status === 'overdue') && (
                   <TouchableOpacity
                     style={styles.paidBtn}
                     onPress={handleMarkPaid}
@@ -240,6 +314,55 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                     }
                     <Text style={styles.paidBtnText}>Marker som betalt</Text>
                   </TouchableOpacity>
+                )}
+
+                {/* Opprett kreditnota — bekreftelse + valgfri årsak inline (unngår nestet Modal på RN Web) */}
+                {canCredit && !confirmCredit && (
+                  <TouchableOpacity
+                    style={styles.creditBtn}
+                    onPress={() => { setFeedback(''); setConfirmCredit(true); }}
+                  >
+                    <Ionicons name="receipt-outline" size={16} color={CREDIT_NOTE_CFG.color} />
+                    <Text style={styles.creditBtnText}>Opprett kreditnota</Text>
+                  </TouchableOpacity>
+                )}
+
+                {canCredit && confirmCredit && (
+                  <View style={styles.confirmPanel}>
+                    <Text style={styles.confirmTitle}>Opprett kreditnota?</Text>
+                    <Text style={styles.confirmBody}>
+                      Dette lager en ny faktura i samme nummerserie med negative beløp som
+                      motposterer {invoice.invoiceNumber}. Fakturaen kan ikke slettes (bokføringsloven).
+                    </Text>
+                    <TextInput
+                      style={[styles.reasonInput, creditError ? styles.reasonInputError : null]}
+                      placeholder="Årsak (påkrevd)"
+                      placeholderTextColor="#94A3B8"
+                      value={creditReason}
+                      onChangeText={(t) => { setCreditReason(t); if (creditError) setCreditError(''); }}
+                      multiline
+                      editable={!crediting}
+                    />
+                    {creditError ? <Text style={styles.reasonErrorText}>{creditError}</Text> : null}
+                    <View style={styles.confirmRow}>
+                      <TouchableOpacity
+                        style={styles.cancelBtn}
+                        onPress={() => { setConfirmCredit(false); setCreditReason(''); setCreditError(''); }}
+                        disabled={crediting}
+                      >
+                        <Text style={styles.cancelBtnText}>Avbryt</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.confirmBtn}
+                        onPress={handleCreateCreditNote}
+                        disabled={crediting}
+                      >
+                        {crediting
+                          ? <ActivityIndicator size="small" color="#FFFFFF" />
+                          : <Text style={styles.confirmBtnText}>Ja, opprett kreditnota</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 )}
               </View>
             )}
@@ -290,6 +413,60 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   feedbackText: { fontSize: 13, color: '#15803D', flex: 1 },
+
+  linkBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F5F3FF',
+    marginHorizontal: 20,
+    marginTop: 14,
+    borderRadius: 10,
+    padding: 12,
+  },
+  linkBoxText: { fontSize: 13, color: '#5B21B6', flex: 1, lineHeight: 18 },
+
+  creditBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, height: 52, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#7C3AED',
+  },
+  creditBtnText: { color: '#7C3AED', fontSize: 14, fontWeight: '600' },
+
+  confirmPanel: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    gap: 10,
+  },
+  confirmTitle: { fontSize: 15, fontWeight: '700', color: '#0A1B33' },
+  confirmBody: { fontSize: 13, color: '#64748B', lineHeight: 19 },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  reasonInputError: { borderColor: '#DC2626' },
+  reasonErrorText: { fontSize: 13, color: '#DC2626' },
+  confirmRow: { flexDirection: 'row', gap: 10 },
+  cancelBtn: {
+    flex: 1, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#E2E8F0',
+  },
+  cancelBtnText: { color: '#64748B', fontSize: 14, fontWeight: '600' },
+  confirmBtn: {
+    flex: 1.4, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#7C3AED',
+  },
+  confirmBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
 
   document: {
     margin: 20,

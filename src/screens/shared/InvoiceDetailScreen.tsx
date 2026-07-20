@@ -11,7 +11,8 @@ import { formatCurrency, formatDate, formatShortDate } from '../../utils/formatt
 const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: string }> = {
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF' },
   paid: { label: 'Betalt', color: '#15803D', bg: '#F0FDF4' },
-  overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' } };
+  overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' },
+  credited: { label: 'Kreditert', color: '#64748B', bg: '#F1F5F9' } };
 
 export function InvoiceDetailScreen({ route, navigation }: any) {
   const { colors: C } = useTheme();
@@ -33,10 +34,13 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
 
   const cfg = STATUS_CFG[invoice.status];
   const isAdmin = currentUser?.role === 'admin';
+  const isCreditNote = !!invoice.creditsInvoiceId;
   const isOverdue = invoice.status === 'overdue';
-  // Forfalt og ubetalt → manuell purring kan sendes.
+  // Forfalt og ubetalt → manuell purring kan sendes. Aldri for kreditnota/kreditert
+  // (status 'credited' dekker begge) — de er ikke betalingskrav.
   const isPastDue =
     invoice.status !== 'paid' &&
+    invoice.status !== 'credited' &&
     (invoice.status === 'overdue' || new Date(invoice.dueDate + 'T23:59:59') < new Date());
   const reminderCount = invoice.reminderCount ?? 0;
 
@@ -46,7 +50,7 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
     try {
       const to = await sendInvoiceEmail(invoice.id);
       setFeedbackError(false);
-      setFeedback(`Faktura ${invoice.invoiceNumber} sendt til ${to}`);
+      setFeedback(`${isCreditNote ? 'Kreditnota' : 'Faktura'} ${invoice.invoiceNumber} sendt til ${to}`);
     } catch (e: any) {
       setFeedbackError(true);
       setFeedback(e?.message ?? 'E-post kunne ikke sendes — prøv å sende på nytt.');
@@ -175,18 +179,26 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
         {/* Actions */}
         {isAdmin && (
           <>
-            <TouchableOpacity
-              style={styles.smsBtn}
-              onPress={handleSendEmail}
-              disabled={sending}
-            >
-              {sending
-                ? <ActivityIndicator size="small" color="#2563FF" />
-                : <Ionicons name="mail-outline" size={17} color="#2563FF" />}
-              <Text style={styles.smsBtnText}>
-                {invoice.emailStatus === 'failed' ? 'Send på nytt' : 'Send faktura på E-post'}
-              </Text>
-            </TouchableOpacity>
+            {/* Kreditert original: skjul e-postknappen — å re-sende en utnullet faktura
+                med betalingsinformasjon ville villede kunden. */}
+            {(isCreditNote || invoice.status !== 'credited') && (
+              <TouchableOpacity
+                style={styles.smsBtn}
+                onPress={handleSendEmail}
+                disabled={sending}
+              >
+                {sending
+                  ? <ActivityIndicator size="small" color="#2563FF" />
+                  : <Ionicons name="mail-outline" size={17} color="#2563FF" />}
+                <Text style={styles.smsBtnText}>
+                  {invoice.emailStatus === 'failed'
+                    ? 'Send på nytt'
+                    : isCreditNote
+                      ? 'Send kreditnota på E-post'
+                      : 'Send faktura på E-post'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Send purring — kun ved forfalt/ubetalt */}
             {isPastDue && (
@@ -210,7 +222,7 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
               </Text>
             )}
 
-            {invoice.status !== 'paid' && (
+            {invoice.status !== 'paid' && invoice.status !== 'credited' && (
               <TouchableOpacity
                 style={styles.paidBtn}
                 onPress={() => { updateInvoiceStatus(invoice.id, 'paid'); setFeedback('Faktura er markert som betalt'); }}

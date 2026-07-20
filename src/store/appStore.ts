@@ -89,6 +89,8 @@ function mapInvoice(row: any): Invoice {
     emailStatus: row.email_status ?? null,
     reminderCount: row.reminder_count ?? 0,
     lastReminderSentAt: row.last_reminder_sent_at ?? null,
+    creditsInvoiceId: row.credits_invoice_id ?? null,
+    creditReason: row.credit_reason ?? null,
   };
 }
 
@@ -293,6 +295,7 @@ interface AppState {
 
   generateInvoice: (jobId: string, hours: number, materials: number, note?: string, extraLines?: { description: string; amount: number }[]) => Promise<Invoice>;
   updateInvoiceStatus: (invoiceId: string, status: InvoiceStatus) => Promise<void>;
+  createCreditNote: (invoiceId: string, reason: string) => Promise<Invoice>;
   sendInvoiceEmail: (invoiceId: string) => Promise<string>;
   sendPaymentReminder: (invoiceId: string) => Promise<void>;
   sendWelcomeEmail: () => Promise<void>;
@@ -1073,8 +1076,30 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
     }
 
+    // Kreditnota/kreditert original: finn motpartens fakturanummer til PDF-ens
+    // referanselinje. Lokalt først; DB-fallback for kreditnota (originalen kan
+    // ligge utenfor de paginerte sidene).
+    let linkedNumber: string | undefined;
+    if (invoice.creditsInvoiceId) {
+      linkedNumber = invoices.find((i) => i.id === invoice.creditsInvoiceId)?.invoiceNumber;
+      if (!linkedNumber) {
+        const { data: orig } = await supabase
+          .from('invoices')
+          .select('invoice_number')
+          .eq('id', invoice.creditsInvoiceId)
+          .maybeSingle();
+        linkedNumber = orig?.invoice_number ?? undefined;
+      }
+    } else if (invoice.status === 'credited') {
+      linkedNumber = invoices.find((i) => i.creditsInvoiceId === invoice.id)?.invoiceNumber;
+    }
+
     try {
-      const pdfBase64 = await generateInvoicePdfBase64({ ...invoice, customerEmail: to }, company);
+      const pdfBase64 = await generateInvoicePdfBase64(
+        { ...invoice, customerEmail: to },
+        company,
+        linkedNumber,
+      );
       const { error } = await supabase.functions.invoke('send-invoice-email', {
         body: { invoiceId, pdfBase64 },
       });
@@ -1152,6 +1177,43 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       }
     }
+  },
+
+  createCreditNote: async (invoiceId, reason) => {
+    // Årsak er obligatorisk (v36) — valideres også server-side i RPC-en.
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) throw new Error('Oppgi en årsak for kreditnotaen');
+
+    // Server-side RPC (SECURITY DEFINER, admin/eget firma): lager kreditnota i samme
+    // nummerserie med negerte beløp og setter originalen til 'credited'. Se migration_v36.
+    const { data, error } = await supabase.rpc('create_credit_note', {
+      p_invoice_id: invoiceId,
+      p_reason: trimmedReason,
+    });
+    if (error) throw new Error(error.message);
+
+    const creditNote = mapInvoice(data);
+    // Prepend kreditnotaen og speil at originalen nå er kreditert (RPC gjorde det i DB).
+    set((state) => ({
+      invoices: [
+        creditNote,
+        ...state.invoices.map((inv) =>
+          inv.id === invoiceId ? { ...inv, status: 'credited' as InvoiceStatus } : inv,
+        ),
+      ],
+    }));
+
+    // Send kreditnotaen til kunden automatisk. Forsøkes ALLTID — sendInvoiceEmail
+    // finner mottaker via kunderegisteret også når fakturaraden mangler e-post.
+    // Awaited så UI-et kan vise utfallet: email_status blir 'sent'/'failed' i state,
+    // eller forblir null hvis kunden ikke har e-postadresse.
+    try {
+      await get().sendInvoiceEmail(creditNote.id);
+    } catch (e) {
+      console.warn('Kreditnota-e-post feilet:', e);
+    }
+
+    return creditNote;
   },
 
   updateCompany: async (updates) => {
