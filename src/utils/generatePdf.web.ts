@@ -89,7 +89,12 @@ async function buildDoc(
     doc.text(STATUS_LABEL[invoice.status] ?? invoice.status, rm, numberY + 6, { align: 'right' });
   }
 
-  // Org.nr and address — same spacing as between other lines
+  // Org.nr and address — same spacing as between other lines.
+  // jsPDF-state er sticky: nullstill eksplisitt så linjene ikke arver
+  // KREDITNOTA-merkets lilla/bold fra kreditnota-grenen over.
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(gray);
   y += 6;
   if (company?.orgNumber) { doc.text(`Org.nr: ${company.orgNumber}`, lm, y); y += 4; }
   if (company?.address)   { doc.text(company.address, lm, y); y += 4; }
@@ -222,6 +227,8 @@ async function buildDoc(
   // ── Totals ────────────────────────────────────────────────────────────────
   const tx = rm - 65;
 
+  // Nullstill font — note-blokken over kan ha satt italic (sticky state).
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(gray);
   doc.text('Sum eks. MVA', tx, y);
