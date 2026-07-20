@@ -1203,12 +1203,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       ],
     }));
 
-    // Send kreditnotaen til kunden automatisk (ikke-blokkerende) — samme mønster som
-    // generateInvoice. Status lagres på kreditnotaen; feiler den, vises «Send på nytt».
-    if (creditNote.customerEmail) {
-      get()
-        .sendInvoiceEmail(creditNote.id)
-        .catch((e) => console.warn('Kreditnota-e-post feilet:', e));
+    // Send kreditnotaen til kunden automatisk. Forsøkes ALLTID — sendInvoiceEmail
+    // finner mottaker via kunderegisteret også når fakturaraden mangler e-post.
+    // Awaited så UI-et kan vise utfallet: email_status blir 'sent'/'failed' i state,
+    // eller forblir null hvis kunden ikke har e-postadresse.
+    try {
+      await get().sendInvoiceEmail(creditNote.id);
+    } catch (e) {
+      console.warn('Kreditnota-e-post feilet:', e);
     }
 
     return creditNote;

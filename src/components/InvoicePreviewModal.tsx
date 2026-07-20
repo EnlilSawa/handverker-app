@@ -100,10 +100,16 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
       const note = await createCreditNote(invoice.id, creditReason);
       setConfirmCredit(false);
       setCreditReason('');
-      setFeedback(
-        `Kreditnota ${note.invoiceNumber} opprettet for ${invoice.invoiceNumber}` +
-          (note.customerEmail ? ` — sendes til ${note.customerEmail}` : ''),
-      );
+      // createCreditNote har allerede forsøkt e-postsending (awaited) — les utfallet
+      // fra state: 'sent'/'failed', eller null når kunden mangler e-postadresse.
+      const fresh = useAppStore.getState().invoices.find((i) => i.id === note.id);
+      const emailMsg =
+        fresh?.emailStatus === 'sent'
+          ? ` og sendt til ${fresh.customerEmail ?? 'kunden'}`
+          : fresh?.emailStatus === 'failed'
+            ? ' — e-posten feilet, åpne kreditnotaen og trykk «Send på nytt»'
+            : ' — ikke sendt: kunden har ingen e-postadresse';
+      setFeedback(`Kreditnota ${note.invoiceNumber} opprettet for ${invoice.invoiceNumber}${emailMsg}`);
     } catch (e: any) {
       setFeedback(e?.message ?? 'Kreditnota kunne ikke opprettes — prøv igjen.');
     } finally {
@@ -278,18 +284,23 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
             {/* Actions */}
             {isAdmin && (
               <View style={styles.actions}>
-                <TouchableOpacity style={styles.smsBtn} onPress={handleSendEmail} disabled={sending}>
-                  {sending
-                    ? <ActivityIndicator size="small" color="#2563FF" />
-                    : <Ionicons name="mail-outline" size={16} color="#2563FF" />}
-                  <Text style={styles.smsBtnText}>
-                    {invoice.emailStatus === 'failed'
-                      ? 'Send på nytt'
-                      : isCreditNote
-                        ? 'Send kreditnota på E-post'
-                        : 'Send faktura på E-post'}
-                  </Text>
-                </TouchableOpacity>
+                {/* Kreditert original: skjul e-postknappen — å re-sende en utnullet
+                    faktura med betalingsinformasjon ville villede kunden. Kreditnotaen
+                    er dokumentet som sendes. */}
+                {(isCreditNote || invoice.status !== 'credited') && (
+                  <TouchableOpacity style={styles.smsBtn} onPress={handleSendEmail} disabled={sending}>
+                    {sending
+                      ? <ActivityIndicator size="small" color="#2563FF" />
+                      : <Ionicons name="mail-outline" size={16} color="#2563FF" />}
+                    <Text style={styles.smsBtnText}>
+                      {invoice.emailStatus === 'failed'
+                        ? 'Send på nytt'
+                        : isCreditNote
+                          ? 'Send kreditnota på E-post'
+                          : 'Send faktura på E-post'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
                 {(invoice.status === 'sent' || invoice.status === 'overdue') && (
                   <TouchableOpacity
