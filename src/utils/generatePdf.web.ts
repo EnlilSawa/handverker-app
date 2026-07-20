@@ -169,6 +169,16 @@ async function buildDoc(
     y += 7;
   }
 
+  // Årsak — obligatorisk på kreditnotaer (v36), rett under referanselinjen.
+  if (isCreditNote && invoice.creditReason) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(gray);
+    const reasonLines = doc.splitTextToSize(`Årsak: ${invoice.creditReason}`, rm - lm);
+    doc.text(reasonLines, lm, y);
+    y += reasonLines.length * 5 + 2;
+  }
+
   // ── Line items ────────────────────────────────────────────────────────────
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');

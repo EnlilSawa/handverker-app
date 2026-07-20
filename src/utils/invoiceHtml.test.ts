@@ -36,7 +36,7 @@ const creditNote: Invoice = {
   total: -7125,
   status: 'credited',
   creditsInvoiceId: 'inv-1',
-  note: 'Kreditnota for INV-2026-027',
+  creditReason: 'Feil beløp på fakturaen',
 };
 
 describe('generateInvoiceHtml — kreditnota', () => {
@@ -61,6 +61,15 @@ describe('generateInvoiceHtml — kreditnota', () => {
   it('har ingen betalingsfrist eller forfall', () => {
     expect(html).not.toContain('Betalingsfrist');
     expect(html).not.toContain('Forfall');
+  });
+
+  it('viser den obligatoriske årsaken (v36)', () => {
+    expect(html).toContain('Årsak: Feil beløp på fakturaen');
+  });
+
+  it('viser ingen årsak-linje på gamle kreditnotaer uten credit_reason', () => {
+    const old = generateInvoiceHtml({ ...creditNote, creditReason: null }, null, 'INV-2026-027');
+    expect(old).not.toContain('Årsak:');
   });
 });
 

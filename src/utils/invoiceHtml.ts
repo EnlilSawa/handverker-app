@@ -187,7 +187,8 @@ export function generateInvoiceHtml(
       <div class="date-value" style="font-weight: 700; color: #0A1B33; letter-spacing: 0.5px;">${company.accountNumber}</div>
     </div>` : ''}
   </div>
-  ${refLine ? `<div style="margin: -14px 0 24px; font-size: 13px; font-weight: 600; font-style: italic; color: ${isCreditNote ? '#7C3AED' : '#64748B'};">${refLine}</div>` : ''}
+  ${refLine ? `<div style="margin: -14px 0 ${isCreditNote && invoice.creditReason ? '6px' : '24px'}; font-size: 13px; font-weight: 600; font-style: italic; color: ${isCreditNote ? '#7C3AED' : '#64748B'};">${refLine}</div>` : ''}
+  ${isCreditNote && invoice.creditReason ? `<div style="margin: 0 0 24px; font-size: 13px; color: #64748B;">Årsak: ${invoice.creditReason}</div>` : ''}
 
   <!-- Line items -->
   <div class="section-title">Spesifikasjon</div>

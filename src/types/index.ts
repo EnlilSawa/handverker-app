@@ -56,6 +56,8 @@ export interface Invoice {
   lastReminderSentAt?: string | null;
   /** Satt på en kreditnota → peker til originalfakturaen den motposterer. NULL på vanlige fakturaer. */
   creditsInvoiceId?: string | null;
+  /** Obligatorisk årsak på kreditnotaer (v36). NULL på vanlige fakturaer. */
+  creditReason?: string | null;
 }
 
 export interface QuoteLine {
