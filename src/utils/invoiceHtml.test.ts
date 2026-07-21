@@ -95,3 +95,25 @@ describe('generateInvoiceHtml — vanlig faktura (uendret)', () => {
     expect(html).not.toContain('Krediterer');
   });
 });
+
+describe('generateInvoiceHtml — KID (v37)', () => {
+  it('faktura MED KID: viser KID i betalingsseksjonen, ingen merk-linje', () => {
+    const html = generateInvoiceHtml({ ...baseInvoice, invoiceNumber: '1043', kid: '000010430' }, null);
+    expect(html).toContain('KID');
+    expect(html).toContain('000010430');
+    expect(html).not.toContain('Merk betalingen');
+  });
+
+  it('faktura UTEN KID: viser «Merk betalingen med fakturanummer», ingen KID-felt', () => {
+    const html = generateInvoiceHtml({ ...baseInvoice, invoiceNumber: '1043', kid: null }, null);
+    expect(html).toContain('Merk betalingen med fakturanummer 1043');
+    expect(html).not.toContain('>KID<');
+  });
+
+  it('kreditnota viser ALDRI KID eller merk-linje — selv om kid-feltet skulle være satt', () => {
+    const html = generateInvoiceHtml({ ...creditNote, kid: '000010430' }, null, 'INV-2026-027');
+    expect(html).not.toContain('000010430');
+    expect(html).not.toContain('>KID<');
+    expect(html).not.toContain('Merk betalingen');
+  });
+});

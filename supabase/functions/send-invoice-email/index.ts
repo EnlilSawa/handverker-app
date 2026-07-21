@@ -52,6 +52,9 @@ function invoiceText(invoice: any, company: any): string {
     '',
     `Forfallsdato: ${fmtDate(invoice.due_date)}`,
     company.account_number ? `Kontonummer: ${company.account_number}` : '',
+    invoice.kid
+      ? `KID: ${invoice.kid}`
+      : `Merk betalingen med fakturanummer ${invoice.invoice_number}`,
     '',
     'Fakturaen er også vedlagt som PDF.',
     '',
@@ -207,6 +210,9 @@ function invoiceHtml(invoice: any, company: any): string {
 
       <div class="section-label">BETALINGSINFORMASJON</div>
       ${paymentInfo}
+      ${invoice.kid
+        ? `<div class="info-row"><span>KID</span><strong>${invoice.kid}</strong></div>`
+        : `<div class="info-row"><span>Merk betalingen med</span><strong>Fakturanummer ${invoice.invoice_number}</strong></div>`}
       <div class="info-row"><span>Forfall</span><strong>${fmtDate(invoice.due_date)}</strong></div>
       <div class="info-row"><span>Beløp å betale</span><strong>${fmt(invoice.total)}</strong></div>
 

@@ -8,3 +8,6 @@ web-build/
 .DS_Store
 supabase/.temp/
 test-reminders.sh
+
+# Lokale forretningsdokumenter
+*.pdf

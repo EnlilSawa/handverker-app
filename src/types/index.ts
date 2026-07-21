@@ -58,6 +58,8 @@ export interface Invoice {
   creditsInvoiceId?: string | null;
   /** Obligatorisk årsak på kreditnotaer (v36). NULL på vanlige fakturaer. */
   creditReason?: string | null;
+  /** KID (MOD10) — settes server-side (v37) kun på vanlige fakturaer når firmaet har KID på. */
+  kid?: string | null;
 }
 
 export interface QuoteLine {
@@ -148,6 +150,12 @@ export interface Company {
   email?: string | null;
   logoUrl?: string | null;
   accountNumber?: string | null;
+  /** KID-generering på fakturaer (av til firmaet har bankavtale). */
+  kidEnabled?: boolean;
+  /** Total KID-lengde inkl. kontrollsiffer (4–25, default 9). */
+  kidLength?: number;
+  /** Firmaets fakturateller (neste løpenummer) — leses for innstillingsvisning. */
+  nextInvoiceSeq?: number;
   trialEndsAt?: string;
   subscriptionStatus?: SubscriptionStatus;
   onboardingCompleted?: boolean;

@@ -181,6 +181,11 @@ export function generateInvoiceHtml(
       <div class="date-label">Forfall</div>
       <div class="date-value">${fmtDate(invoice.dueDate)}</div>
     </div>` : ''}
+    ${!isCreditNote && invoice.kid ? `
+    <div>
+      <div class="date-label">KID</div>
+      <div class="date-value" style="font-weight: 700; color: #0A1B33; letter-spacing: 0.5px;">${invoice.kid}</div>
+    </div>` : ''}
     ${company?.accountNumber ? `
     <div>
       <div class="date-label">Kontonummer</div>
@@ -222,6 +227,7 @@ export function generateInvoiceHtml(
       <span>${isCreditNote ? '' : `Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto`}</span>
       <span style="color: #CBD5E1;">Generert av Efero</span>
     </p>
+    ${!isCreditNote && !invoice.kid ? `<p style="margin: 4px 0 0;">Merk betalingen med fakturanummer ${invoice.invoiceNumber}</p>` : ''}
   </div>
 </body>
 </html>`;

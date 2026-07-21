@@ -133,12 +133,19 @@ async function buildDoc(
   doc.line(lm, y, rm, y);
   y += 5;
 
+  // KID vises kun på vanlige fakturaer (aldri kreditnota — ikke et betalingskrav).
+  const showKid = !isCreditNote && !!invoice.kid;
+  // Med KID: fire kolonner (dato, forfall, KID, kontonummer); ellers som før.
+  const dueX = showKid ? 75 : colMid + 5;
+  const kidX = 125;
+
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(gray);
   doc.text(isCreditNote ? 'DATO' : 'FAKTURADATO', lm, y);
   // Kreditnota har ingen betalingsfrist → ingen FORFALL-kolonne.
-  if (!isCreditNote) doc.text('FORFALL', colMid + 5, y);
+  if (!isCreditNote) doc.text('FORFALL', dueX, y);
+  if (showKid) doc.text('KID', kidX, y);
   if (company?.accountNumber) doc.text('KONTONUMMER', rm, y, { align: 'right' });
   y += 4;
 
@@ -146,7 +153,12 @@ async function buildDoc(
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(navy);
   doc.text(fmtDate(invoice.createdAt), lm, y);
-  if (!isCreditNote) doc.text(fmtDate(invoice.dueDate), colMid + 5, y);
+  if (!isCreditNote) doc.text(fmtDate(invoice.dueDate), dueX, y);
+  if (showKid) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(invoice.kid!, kidX, y);
+    doc.setFont('helvetica', 'normal');
+  }
   if (company?.accountNumber) {
     doc.setFont('helvetica', 'bold');
     doc.text(company.accountNumber, rm, y, { align: 'right' });
@@ -266,6 +278,10 @@ async function buildDoc(
   // Kreditnota er ikke et betalingskrav → ingen betalingsfrist.
   if (!isCreditNote) {
     doc.text(`Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto`, lm, fy + 6);
+    // Uten KID: be kunden merke betalingen så den kan identifiseres.
+    if (!invoice.kid) {
+      doc.text(`Merk betalingen med fakturanummer ${invoice.invoiceNumber}`, lm, fy + 11);
+    }
   }
 
   return doc;
