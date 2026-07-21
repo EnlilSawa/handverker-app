@@ -5,22 +5,19 @@
 export const toPdfSafeNumber = (s: string): string =>
   s.replace(/\u2212/g, '-').replace(/[\u00A0\u202F]/g, ' ');
 
-export const formatCurrency = (amount: number): string => {
-  return (
-    toPdfSafeNumber(
-      new Intl.NumberFormat('nb-NO', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount),
-    ) + ' kr'
-  );
-};
+// Alltid to desimaler («1 187,50 kr», aldri «1 187,5 kr») — konsekvent i
+// app-UI, PDF/HTML og e-post (edge-funksjonen speiler samme opsjoner).
+const NOK = new Intl.NumberFormat('nb-NO', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
-// Beløp på faktura-PDF/HTML — samme Intl-opsjoner som PDF/HTML-malene alltid har
-// brukt (viser ører når de finnes), men med pdf-trygge tegn.
+export const formatCurrency = (amount: number): string =>
+  toPdfSafeNumber(NOK.format(amount)) + ' kr';
+
+// Beløp på faktura-PDF/HTML — samme formatering som UI, med pdf-trygge tegn.
 export const formatInvoiceAmount = (amount: number): string =>
-  toPdfSafeNumber(new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 0 }).format(amount)) +
-  ' kr';
+  toPdfSafeNumber(NOK.format(amount)) + ' kr';
 
 export const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);

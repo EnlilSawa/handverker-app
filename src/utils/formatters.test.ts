@@ -22,37 +22,46 @@ describe('toPdfSafeNumber', () => {
   });
 });
 
-describe('formatInvoiceAmount (PDF/HTML-beløp)', () => {
+describe('formatInvoiceAmount (PDF/HTML-beløp) — alltid to desimaler', () => {
   it('negativt beløp (kreditnota) bruker bindestrek og er pdf-trygt', () => {
     const s = formatInvoiceAmount(-5700);
-    expect(s).toBe('-5 700 kr');
+    expect(s).toBe('-5 700,00 kr');
     expect(s).not.toContain('\u2212');
     expect(s).not.toMatch(/[\u00A0\u202F]/);
     expect(isPdfSafe(s)).toBe(true);
   });
 
-  it('positivt beløp er uendret visuelt og pdf-trygt', () => {
+  it('hele kroner får ,00', () => {
     const s = formatInvoiceAmount(5700);
-    expect(s).toBe('5 700 kr');
+    expect(s).toBe('5 700,00 kr');
     expect(isPdfSafe(s)).toBe(true);
   });
 
-  it('beholder ører når de finnes (som PDF-malene alltid har gjort)', () => {
-    const s = formatInvoiceAmount(-11390.63);
-    expect(s).toBe('-11 390,63 kr');
-    expect(isPdfSafe(s)).toBe(true);
+  it('halvøre-beløp viser to desimaler («237,50», aldri «237,5»)', () => {
+    expect(formatInvoiceAmount(237.5)).toBe('237,50 kr');
+    expect(formatInvoiceAmount(1187.5)).toBe('1 187,50 kr');
+  });
+
+  it('beholder ører og runder flyttall-haler', () => {
+    expect(formatInvoiceAmount(-11390.63)).toBe('-11 390,63 kr');
+    expect(formatInvoiceAmount(11390.630000000001)).toBe('11 390,63 kr');
   });
 });
 
-describe('formatCurrency (app-UI)', () => {
+describe('formatCurrency (app-UI) — alltid to desimaler', () => {
   it('negativt beløp er pdf-trygt (samme normalisering som PDF)', () => {
     const s = formatCurrency(-5700);
-    expect(s).toBe('-5 700 kr');
+    expect(s).toBe('-5 700,00 kr');
     expect(s).not.toContain('\u2212');
     expect(isPdfSafe(s)).toBe(true);
   });
 
-  it('positivt beløp rundes til hele kroner som før', () => {
-    expect(formatCurrency(11390.63)).toBe('11 391 kr');
+  it('halvøre-beløp viser to desimaler', () => {
+    expect(formatCurrency(237.5)).toBe('237,50 kr');
+    expect(formatCurrency(1187.5)).toBe('1 187,50 kr');
+  });
+
+  it('ører vises alltid — ingen avrunding til hele kroner', () => {
+    expect(formatCurrency(11390.63)).toBe('11 390,63 kr');
   });
 });

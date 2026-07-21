@@ -44,8 +44,8 @@ describe('generateInvoiceHtml — kreditnota', () => {
 
   it('inneholder ingen pdf-utrygge tegn (U+2212/NBSP/NNBSP) i beløpene', () => {
     expect(html).not.toMatch(/[\u2212\u00A0\u202F]/);
-    expect(html).toContain('-5 700 kr');
-    expect(html).toContain('-7 125 kr');
+    expect(html).toContain('-5 700,00 kr');
+    expect(html).toContain('-7 125,00 kr');
   });
 
   it('viser KREDITNOTA-tittel og norsk badge, aldri rå «credited»', () => {
