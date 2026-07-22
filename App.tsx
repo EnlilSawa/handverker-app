@@ -7,6 +7,10 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { Toast } from './src/components/Toast';
+import { initSentry } from './src/lib/sentry';
+
+// Init så tidlig som mulig — før første render, så oppstartsfeil også fanges.
+initSentry();
 
 // NavigationContainer theme — makes all card/screen backgrounds transparent
 // so our root pageBg shows through everywhere.

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { reportError } from '../lib/sentry';
 
 interface Props {
   children: React.ReactNode;
@@ -21,6 +22,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('ErrorBoundary fanget en feil:', error, info?.componentStack);
+    reportError(error, { source: 'ErrorBoundary', componentStack: info?.componentStack });
   }
 
   handleReset = () => this.setState({ error: null });

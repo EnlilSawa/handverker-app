@@ -3,6 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { User, Job, Invoice, Company, JobStatus, InvoiceStatus, InvoiceLineItem, JobImage, JobNote, Customer, Quote, QuoteLine, QuoteStatus, AppNotification } from '../types';
 import { buildInvoiceLineItems, computeInvoiceAmounts } from '../utils/amounts';
 import { supabase } from '../lib/supabase';
+import { reportError, reported, setSentryCompany } from '../lib/sentry';
 import { addDays } from '../utils/formatters';
 import { generateInvoicePdfBase64 } from '../utils/generatePdf';
 
@@ -419,7 +420,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       p_callout_fee: data.calloutFee,
       p_payment_terms_days: data.paymentTermsDays,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     await get().loadData();
 
     // Velkomst-e-post (ikke-blokkerende — onboarding fullføres uansett om e-post feiler).
@@ -429,7 +430,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   completeOnboarding: async () => {
     const { error } = await supabase.rpc('complete_onboarding');
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     set((state) => ({
       company: state.company ? { ...state.company, onboardingCompleted: true } : state.company,
     }));
@@ -477,6 +478,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   logout: async () => {
     // Riv ned Realtime-kanalene før state nullstilles (unngå lekkende abonnement).
     get().unsubscribeRealtime();
+    setSentryCompany(null);
     await supabase.auth.signOut();
     set({
       currentUser: null,
@@ -504,7 +506,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       .single();
 
     if (profileError || !profileData) {
-      if (profileError) get().showToast('Kunne ikke laste profilen din: ' + errText(profileError), 'error');
+      if (profileError) {
+        reportError(profileError, { action: 'loadData.profile' });
+        get().showToast('Kunne ikke laste profilen din: ' + errText(profileError), 'error');
+      }
       return;
     }
 
@@ -533,6 +538,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     set({ currentUser, companyId: profileData.company_id, company });
+    setSentryCompany(profileData.company_id ?? null);
 
     // Jobber (RLS filtrerer automatisk: admin ser alle, tekniker ser egne).
     // Aktive jobber lastes i sin helhet — de er arbeidssettet og må alltid vises
@@ -543,7 +549,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       .select('*, technician:profiles!assigned_technician_id(name)')
       .neq('status', 'completed')
       .order('scheduled_at', { ascending: true });
-    if (activeJobsError) get().showToast('Kunne ikke laste jobber: ' + errText(activeJobsError), 'error');
+    if (activeJobsError) {
+      reportError(activeJobsError, { action: 'loadData.activeJobs' });
+      get().showToast('Kunne ikke laste jobber: ' + errText(activeJobsError), 'error');
+    }
 
     const { data: completedJobsData, error: completedJobsError } = await supabase
       .from('jobs')
@@ -551,7 +560,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       .eq('status', 'completed')
       .order('updated_at', { ascending: false })
       .range(0, PAGE_SIZE - 1);
-    if (completedJobsError) get().showToast('Kunne ikke laste arkivet: ' + errText(completedJobsError), 'error');
+    if (completedJobsError) {
+      reportError(completedJobsError, { action: 'loadData.archive' });
+      get().showToast('Kunne ikke laste arkivet: ' + errText(completedJobsError), 'error');
+    }
 
     set({
       jobs: [...(activeJobsData ?? []).map(mapJob), ...(completedJobsData ?? []).map(mapJob)],
@@ -567,7 +579,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         .order('created_at', { ascending: false })
         .range(0, PAGE_SIZE - 1);
 
-      if (invoicesError) get().showToast('Kunne ikke laste fakturaer: ' + errText(invoicesError), 'error');
+      if (invoicesError) {
+        reportError(invoicesError, { action: 'loadData.invoices' });
+        get().showToast('Kunne ikke laste fakturaer: ' + errText(invoicesError), 'error');
+      }
       if (invoicesData) set({ invoices: invoicesData.map(mapInvoice) });
       set({ invoicesHasMore: (invoicesData?.length ?? 0) === PAGE_SIZE, invoicesLoadingMore: false });
 
@@ -622,6 +637,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .order('updated_at', { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
     if (error) {
+      reportError(error, { action: 'loadMoreArchive' });
       get().showToast('Kunne ikke laste flere arkiverte jobber: ' + errText(error), 'error');
       set({ archiveLoadingMore: false });
       return;
@@ -644,6 +660,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .order('created_at', { ascending: false })
       .range(invoices.length, invoices.length + PAGE_SIZE - 1);
     if (error) {
+      reportError(error, { action: 'loadMoreInvoices' });
       get().showToast('Kunne ikke laste flere fakturaer: ' + errText(error), 'error');
       set({ invoicesLoadingMore: false });
       return;
@@ -661,6 +678,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // server-side i RPC-en fra innlogget bruker — sendes aldri fra klienten.
     const { data, error } = await supabase.rpc('get_company_stats');
     if (error) {
+      reportError(error, { action: 'fetchCompanyStats' });
       get().showToast('Kunne ikke laste statistikk: ' + errText(error), 'error');
       return null;
     }
@@ -735,7 +753,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     const quote = mapQuote(row);
     set((state) => ({ quotes: [quote, ...state.quotes] }));
     return quote;
@@ -750,7 +768,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...(extra?.declinedReason !== undefined && { declined_reason: extra.declinedReason }),
       })
       .eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     set((state) => ({
       quotes: state.quotes.map((q) =>
         q.id === id ? {
@@ -767,7 +785,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateQuoteEmail: async (id, email) => {
     const trimmed = email.trim();
     const { error } = await supabase.from('quotes').update({ customer_email: trimmed }).eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     set((state) => ({
       quotes: state.quotes.map((q) => (q.id === id ? { ...q, customerEmail: trimmed } : q)),
     }));
@@ -835,7 +853,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     const customer = mapCustomer(data);
     set((state) => ({ customers: [...state.customers, customer].sort((a, b) => a.name.localeCompare(b.name)) }));
     return customer;
@@ -849,7 +867,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (updates.address !== undefined) patch.address = updates.address.trim() || null;
 
     const { error } = await supabase.from('customers').update(patch).eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
 
     set((state) => ({
       customers: state.customers
@@ -979,7 +997,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .update({ assigned_technician_id: technicianId })
       .eq('id', jobId);
 
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
 
     set((state) => ({
       jobs: state.jobs.map((j) =>
@@ -1039,7 +1057,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
 
     const invoice = mapInvoice(data);
     set((state) => ({ invoices: [invoice, ...state.invoices] }));
@@ -1113,7 +1131,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const { error } = await supabase.functions.invoke('send-invoice-email', {
         body: { invoiceId, pdfBase64 },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw reported(new Error(error.message));
 
       await supabase.from('invoices').update({ email_status: 'sent' }).eq('id', invoiceId);
       set((state) => ({
@@ -1137,7 +1155,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { data, error } = await supabase.functions.invoke('send-payment-reminder', {
       body: { invoiceId },
     });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     set((state) => ({
       invoices: state.invoices.map((inv) =>
         inv.id === invoiceId
@@ -1155,7 +1173,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Ingen body — edge-funksjonen utleder mottaker/bedrift fra JWT-en (sendes
     // automatisk av supabase.functions.invoke) server-side.
     const { error } = await supabase.functions.invoke('send-welcome-email', { body: {} });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
   },
 
   updateInvoiceStatus: async (invoiceId, status) => {
@@ -1200,7 +1218,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       p_invoice_id: invoiceId,
       p_reason: trimmedReason,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
 
     const creditNote = mapInvoice(data);
     // Prepend kreditnotaen og speil at originalen nå er kreditert (RPC gjorde det i DB).
@@ -1244,7 +1262,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
       .eq('id', companyId);
 
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
 
     set((state) => ({
       company: state.company ? { ...state.company, ...updates } : null,
@@ -1255,7 +1273,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Server-side RPC (v37): flytter telleren KUN fremover (radlåst mot samtidig
     // fakturagenerering). Feilmeldingen fra RPC-en er norsk og vises direkte.
     const { data, error } = await supabase.rpc('set_invoice_start_number', { p_start: start });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     set((state) => ({
       company: state.company ? { ...state.company, nextInvoiceSeq: Number(data) } : null,
     }));
@@ -1303,7 +1321,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       p_phone: phone,
       p_password: password,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     set((state) => ({ users: [...state.users, mapUser(data)] }));
   },
 
@@ -1312,12 +1330,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       p_user_id: userId,
       p_new_password: newPassword,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
   },
 
   updatePassword: async (newPassword) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
   },
 
   requestPasswordReset: async (email) => {
@@ -1328,7 +1346,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       email.toLowerCase().trim(),
       redirectTo ? { redirectTo } : undefined,
     );
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
   },
 
   removeTechnician: async (userId) => {
@@ -1337,7 +1355,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // profiles-delete svelget (FK-brudd hvis teknikeren hadde jobber) → raden ble
     // fjernet lokalt men ikke i DB, og teknikeren kom tilbake ved neste innlogging.
     const { error } = await supabase.rpc('remove_technician', { p_user_id: userId });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     // Frigjorte jobber speiles lokalt (ellers viser jobbtavlen fortsatt teknikeren).
     set((state) => ({
       users: state.users.filter((u) => u.id !== userId),
@@ -1398,7 +1416,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (settings.notifyOverdue1day !== undefined) dbFields.notify_overdue_1day = settings.notifyOverdue1day;
     if (settings.notifyOverdue7days !== undefined) dbFields.notify_overdue_7days = settings.notifyOverdue7days;
     const { error } = await supabase.from('companies').update(dbFields).eq('id', companyId);
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     set((state) => ({
       company: state.company ? { ...state.company, ...settings } : null,
     }));
@@ -1547,7 +1565,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         author_name: currentUser?.name ?? 'Ukjent',
         author_role: currentUser?.role ?? 'admin',
       });
-    if (error) throw new Error(error.message);
+    if (error) throw reported(new Error(error.message));
     // Last notater på nytt for korrekt rekkefølge og oppdatert store
     await get().loadJobNotes(jobId);
   },
