@@ -48,7 +48,6 @@ async function buildDoc(
   const gray = '#64748B';
   const lightGray = '#94A3B8';
   const navy = '#0A1B33';
-  const blue = '#2563FF';
   const purple = '#7C3AED';
   const lineGray = '#E2E8F0';
   const lightLine = '#F1F5F9';
@@ -292,11 +291,13 @@ async function buildDoc(
   doc.text(fmtNum(invoice.vat), vatR, y, { align: 'right' });
   doc.text(fmtNum(invoice.total), inclR, y, { align: 'right' });
 
-  // ── Bunnlinje: betalingslinje + NOK-total adskilt med strek ───────────────
-  const fy = 270;
+  // ── Bunnlinje: betalingslinje + NOK-total RETT under Sum-raden ────────────
+  // Følger innholdet (norsk standardoppsett), ikke arket — strek + litt luft.
+  y += 8;
   doc.setDrawColor(navy);
   doc.setLineWidth(0.5);
-  doc.line(lm, fy, rm, fy);
+  doc.line(lm, y, rm, y);
+  y += 7;
 
   // Kreditnota er ikke et betalingskrav → ingen betalingslinje.
   if (!isCreditNote && company?.accountNumber) {
@@ -305,18 +306,19 @@ async function buildDoc(
     doc.setTextColor(navy);
     doc.text(
       `Betales til bankkonto ${company.accountNumber}${showKid ? `, KID: ${invoice.kid}` : ''}`,
-      lm, fy + 7,
+      lm, y,
     );
   }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.setTextColor(blue);
-  doc.text(`NOK ${fmtNum(invoice.total)}`, rm, fy + 7, { align: 'right' });
+  doc.setTextColor(navy);
+  doc.text(`NOK ${fmtNum(invoice.total)}`, rm, y, { align: 'right' });
 
+  // Diskret signatur nederst på arket.
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(lightGray);
-  doc.text('Generert av Efero', rm, fy + 13, { align: 'right' });
+  doc.text('Generert av Efero', rm, 285, { align: 'right' });
 
   return doc;
 }

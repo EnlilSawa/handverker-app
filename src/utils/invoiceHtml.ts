@@ -160,18 +160,21 @@ export function generateInvoiceHtml(
 
     .note { font-size: 12px; font-style: italic; color: #64748B; margin: 6px 0 0; }
 
-    /* Bunnlinje: betalingslinje + NOK-total adskilt med strek */
+    /* Bunnlinje: betalingslinje + NOK-total RETT under Sum-raden (følger
+       innholdet, ikke arket), adskilt med strek og litt luft */
     .payline {
-      margin-top: 36px; padding-top: 12px; border-top: 1.5px solid #0A1B33;
+      margin-top: 14px; padding-top: 12px; border-top: 1.5px solid #0A1B33;
       display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
     }
     .payline-left { font-size: 13px; color: #0A1B33; }
-    .payline-total { font-size: 19px; font-weight: 700; color: #2563FF; white-space: nowrap; }
+    .payline-total { font-size: 19px; font-weight: 700; color: #0A1B33; white-space: nowrap; }
     .generated { margin-top: 10px; text-align: right; font-size: 10px; color: #CBD5E1; }
 
     @media print {
       body { padding: 0; }
       @page { margin: 1.8cm; size: A4; }
+      /* Diskret signatur nederst på arket */
+      .generated { position: fixed; bottom: 0; right: 0; margin: 0; }
     }
   </style>
 </head>
