@@ -83,7 +83,7 @@ export function SettingsScreen() {
   const [calloutFee, setCalloutFee] = useState(String(company?.calloutFee ?? 350));
   const [paymentTerms, setPaymentTerms] = useState(String(company?.paymentTermsDays ?? 14));
   const [accountNumber, setAccountNumber] = useState(company?.accountNumber ?? '');
-  const [kidEnabled, setKidEnabled] = useState(company?.kidEnabled ?? false);
+  const [kidEnabled, setKidEnabled] = useState(company?.kidEnabled ?? true);
   const [kidLength, setKidLength] = useState(String(company?.kidLength ?? 9));
   const [startNumber, setStartNumber] = useState('');
   const [startFeedback, setStartFeedback] = useState('');
@@ -109,7 +109,7 @@ export function SettingsScreen() {
     setCalloutFee(String(company.calloutFee ?? 350));
     setPaymentTerms(String(company.paymentTermsDays ?? 14));
     setAccountNumber(company.accountNumber ?? '');
-    setKidEnabled(company.kidEnabled ?? false);
+    setKidEnabled(company.kidEnabled ?? true);
     setKidLength(String(company.kidLength ?? 9));
     setNotif3days(company.notifyReminder3days ?? true);
     setNotifDueToday(company.notifyDueToday ?? true);
@@ -301,7 +301,7 @@ export function SettingsScreen() {
 
           <NotifToggle
             label="KID på fakturaer"
-            description="Krever KID-avtale (OCR) med banken. Uten KID bes kunden merke betalingen med fakturanummeret."
+            description="På som standard — hver ny faktura får automatisk unik KID. Slå av hvis firmaet mangler KID/OCR-avtale med banken; kunden bes da merke betalingen med fakturanummeret."
             value={kidEnabled}
             onChange={handleKidToggle}
           />

@@ -150,7 +150,7 @@ export interface Company {
   email?: string | null;
   logoUrl?: string | null;
   accountNumber?: string | null;
-  /** KID-generering på fakturaer (av til firmaet har bankavtale). */
+  /** KID-generering på fakturaer (på som standard fra v39; slås av uten bankavtale). */
   kidEnabled?: boolean;
   /** Total KID-lengde inkl. kontrollsiffer (4–25, default 9). */
   kidLength?: number;

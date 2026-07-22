@@ -107,7 +107,7 @@ function mapCompany(row: any): Company {
     email: row.email ?? null,
     logoUrl: row.logo_url ?? null,
     accountNumber: row.account_number ?? null,
-    kidEnabled: row.kid_enabled ?? false,
+    kidEnabled: row.kid_enabled ?? true,
     kidLength: row.kid_length != null ? Number(row.kid_length) : 9,
     nextInvoiceSeq: row.next_invoice_seq != null ? Number(row.next_invoice_seq) : undefined,
     trialEndsAt: row.trial_ends_at ?? undefined,
