@@ -46,7 +46,7 @@ function LockedImage({ image, thumbSize, onPress }: {
       {/* Note */}
       {image.note ? (
         <View style={cell.noteRow}>
-          <Ionicons name="lock-closed-outline" size={11} color="#94A3B8" />
+          <Ionicons name="lock-closed-outline" size={11} color="#878E97" />
           <Text style={cell.note} numberOfLines={2}>{image.note}</Text>
         </View>
       ) : null}
@@ -61,7 +61,7 @@ function LockedImage({ image, thumbSize, onPress }: {
 
 const cell = StyleSheet.create({
   wrap: { marginBottom: 4 },
-  imgWrap: { borderRadius: 10, overflow: 'hidden', backgroundColor: '#F1F5F9', position: 'relative' },
+  imgWrap: { borderRadius: 10, overflow: 'hidden', backgroundColor: '#ECECEC', position: 'relative' },
   img: { width: '100%', height: '100%' },
   badge: {
     position: 'absolute', top: 6, left: 6,
@@ -204,7 +204,7 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
 
           {/* Archived banner */}
           <View style={styles.archivedNoteBanner}>
-            <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
+            <Ionicons name="lock-closed-outline" size={13} color="#616A76" />
             <Text style={[styles.archivedNoteBannerText, { color: C.textSecondary }]}>Arkivert jobb — notater kan ikke endres</Text>
           </View>
 
@@ -220,7 +220,7 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
                   <View style={styles.noteItemHeader}>
                     <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
                     <View style={styles.noteDateRow}>
-                      <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
+                      <Ionicons name="lock-closed-outline" size={11} color="#616A76" />
                       <Text style={[styles.noteDateText, { color: C.textTertiary }]}>{dateStr}</Text>
                     </View>
                   </View>
@@ -239,13 +239,13 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
           </View>
 
           <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowUploadModal(true)}>
-            <Ionicons name="cloud-upload-outline" size={18} color="#2563FF" />
+            <Ionicons name="cloud-upload-outline" size={18} color="#000000" />
             <Text style={styles.uploadBtnText}>Last opp bilder</Text>
           </TouchableOpacity>
 
           {images.length === 0 ? (
             <View style={styles.noImages}>
-              <Ionicons name="images-outline" size={32} color="#CBD5E1" />
+              <Ionicons name="images-outline" size={32} color="#D4D4D4" />
               <Text style={styles.noImagesText}>Ingen bilder ennå</Text>
             </View>
           ) : (
@@ -262,7 +262,7 @@ export function ArchiveDetailScreen({ route, navigation }: any) {
           )}
 
           <View style={styles.lockHint}>
-            <Ionicons name="lock-closed-outline" size={12} color="#94A3B8" />
+            <Ionicons name="lock-closed-outline" size={12} color="#878E97" />
             <Text style={styles.lockHintText}>Bilder og notater kan ikke endres etter opplasting</Text>
           </View>
         </View>
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, gap: 12 },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: '600' },
-  archivedBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F1F5F9', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  archivedBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#ECECEC', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   archivedText: { fontSize: 12, fontWeight: '500' },
   content: { padding: 20, gap: 16, paddingBottom: 48 },
   card: { borderRadius: 12,
@@ -305,9 +305,9 @@ const styles = StyleSheet.create({
   imageCount: { fontSize: 13 },
   uploadBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1.5, borderColor: '#2563FF', borderStyle: 'dashed',
-    borderRadius: 10, paddingVertical: 14, backgroundColor: '#EEF4FF' },
-  uploadBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+    borderWidth: 1.5, borderColor: '#000000', borderStyle: 'dashed',
+    borderRadius: 10, paddingVertical: 14, backgroundColor: '#ECECEC' },
+  uploadBtnText: { fontSize: 14, color: '#000000', fontWeight: '600' },
   noImages: { alignItems: 'center', paddingVertical: 20, gap: 8 },
   noImagesText: { fontSize: 14 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -315,14 +315,14 @@ const styles = StyleSheet.create({
   lockHintText: { fontSize: 12, fontStyle: 'italic' },
   archivedNoteBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#F5F7FA', borderRadius: 8, padding: 10,
+    backgroundColor: '#FFFFFF', borderRadius: 8, padding: 10,
   },
-  archivedNoteBannerText: { fontSize: 13, color: '#64748B', fontStyle: 'italic' },
+  archivedNoteBannerText: { fontSize: 13, color: '#616A76', fontStyle: 'italic' },
   emptyNotes: { fontSize: 14, textAlign: 'center', paddingVertical: 4 },
   noteItem: { borderRadius: 10, padding: 14, paddingHorizontal: 16, borderWidth: 1 },
   noteItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   noteAuthor: { fontSize: 13, fontWeight: '600' },
   noteDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  noteDateText: { fontSize: 12, color: '#64748B' },
+  noteDateText: { fontSize: 12, color: '#616A76' },
   noteBody: { fontSize: 14, lineHeight: 22 },
 });

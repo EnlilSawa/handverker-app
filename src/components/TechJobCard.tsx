@@ -42,7 +42,7 @@ export function TechJobCard({ job, onPress }: { job: Job; onPress: () => void })
       <View style={styles.footer}>
         {job.status === 'new' && (
           <View style={styles.statusPill}>
-            <View style={[styles.dot, { backgroundColor: '#2563FF' }]} />
+            <View style={[styles.dot, { backgroundColor: '#000000' }]} />
             <Text style={[styles.statusText, { color: '#2563FF' }]}>Ny jobb</Text>
           </View>
         )}

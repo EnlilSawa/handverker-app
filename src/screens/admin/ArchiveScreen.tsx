@@ -50,11 +50,11 @@ function TableRow({ job, index, invoice, imageCount, onPress }: {
       <View style={[table.cell, { flex: 0.8, justifyContent: 'flex-end' }]}>
         {imageCount > 0 ? (
           <View style={table.imagesPill}>
-            <Ionicons name="image-outline" size={12} color="#64748B" />
+            <Ionicons name="image-outline" size={12} color="#616A76" />
             <Text style={table.imagesPillText}>{imageCount}</Text>
           </View>
         ) : (
-          <Text style={[table.td, { color: '#CBD5E1' }]}>—</Text>
+          <Text style={[table.td, { color: '#D4D4D4' }]}>—</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -75,7 +75,7 @@ const table = StyleSheet.create({
   td: { fontSize: 14 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   badgeText: { fontSize: 11, fontWeight: '600' },
-  imagesPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+  imagesPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ECECEC', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
   imagesPillText: { fontSize: 11, fontWeight: '600' },
 });
 
@@ -100,7 +100,7 @@ function MobileCard({ job, invoice, imageCount, onPress }: { job: Job; invoice: 
         <Text style={[card.meta, { color: C.textTertiary }]}>Fullført {formatShortDate(job.updatedAt)}</Text>
         {imageCount > 0 && (
           <View style={card.imagesPill}>
-            <Ionicons name="image-outline" size={11} color="#64748B" />
+            <Ionicons name="image-outline" size={11} color="#616A76" />
             <Text style={card.imagesPillText}>{imageCount}</Text>
           </View>
         )}
@@ -110,16 +110,16 @@ function MobileCard({ job, invoice, imageCount, onPress }: { job: Job; invoice: 
 }
 
 const card = StyleSheet.create({
-  container: { borderRadius: 12, borderWidth: 1, borderLeftWidth: 4, borderLeftColor: '#64748B', padding: 16, marginBottom: 10 },
+  container: { borderRadius: 12, borderWidth: 1, borderLeftWidth: 4, borderLeftColor: '#616A76', padding: 16, marginBottom: 10 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  name: { fontSize: 15, fontWeight: '600', color: '#1F2937', flex: 1 },
+  name: { fontSize: 15, fontWeight: '600', color: '#000000', flex: 1 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   badgeText: { fontSize: 11, fontWeight: '600' },
-  desc: { fontSize: 13, color: '#64748B', marginBottom: 8 },
+  desc: { fontSize: 13, color: '#616A76', marginBottom: 8 },
   bottom: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  meta: { fontSize: 12, color: '#94A3B8' },
-  imagesPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#F1F5F9', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
-  imagesPillText: { fontSize: 11, color: '#64748B', fontWeight: '600' },
+  meta: { fontSize: 12, color: '#878E97' },
+  imagesPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#ECECEC', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
+  imagesPillText: { fontSize: 11, color: '#616A76', fontWeight: '600' },
 });
 
 
@@ -190,7 +190,7 @@ export function ArchiveScreen({ navigation }: any) {
       activeOpacity={0.7}
     >
       {archiveLoadingMore ? (
-        <ActivityIndicator size="small" color="#2563FF" />
+        <ActivityIndicator size="small" color="#000000" />
       ) : (
         <Text style={styles.loadMoreText}>Last inn flere</Text>
       )}
@@ -211,13 +211,13 @@ export function ArchiveScreen({ navigation }: any) {
             <TextInput
               style={[styles.searchInput, { color: C.textPrimary }]}
               placeholder="Søk på kunde eller beskrivelse…"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#878E97"
               value={search}
               onChangeText={setSearch}
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch('')}>
-                <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                <Ionicons name="close-circle" size={16} color="#878E97" />
               </TouchableOpacity>
             )}
           </View>
@@ -226,9 +226,9 @@ export function ArchiveScreen({ navigation }: any) {
               style={[styles.monthBtn, { backgroundColor: C.cardAlt, borderColor: C.border }, showMonthPicker && styles.monthBtnOpen]}
               onPress={() => setShowMonthPicker((v) => !v)}
             >
-              <Ionicons name="calendar-outline" size={15} color="#64748B" />
+              <Ionicons name="calendar-outline" size={15} color="#616A76" />
               <Text style={[styles.monthBtnText, { color: C.textSecondary }]}>{selectedMonth || 'Alle måneder'}</Text>
-              <Ionicons name={showMonthPicker ? 'chevron-up' : 'chevron-down'} size={14} color="#64748B" />
+              <Ionicons name={showMonthPicker ? 'chevron-up' : 'chevron-down'} size={14} color="#616A76" />
             </TouchableOpacity>
 
             {showMonthPicker && (
@@ -236,14 +236,14 @@ export function ArchiveScreen({ navigation }: any) {
                 {(['', ...months] as string[]).map((m) => (
                   <TouchableOpacity
                     key={m || '__all'}
-                    style={[styles.monthOption, { borderBottomColor: C.border, backgroundColor: C.cardBg }, selectedMonth === m && { backgroundColor: '#EEF4FF' }]}
+                    style={[styles.monthOption, { borderBottomColor: C.border, backgroundColor: C.cardBg }, selectedMonth === m && { backgroundColor: '#ECECEC' }]}
                     onPress={() => { setSelectedMonth(m); setShowMonthPicker(false); }}
                   >
                     <Text style={[styles.monthOptionText, { color: C.textPrimary }, selectedMonth === m && styles.monthOptionTextActive]}>
                       {m || 'Alle måneder'}
                     </Text>
                     {selectedMonth === m && (
-                      <Ionicons name="checkmark" size={14} color="#2563FF" />
+                      <Ionicons name="checkmark" size={14} color="#000000" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -331,7 +331,7 @@ export function ArchiveScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -371,8 +371,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  monthBtnOpen: { borderColor: '#2563FF', backgroundColor: '#EEF4FF' },
-  monthBtnText: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  monthBtnOpen: { borderColor: '#000000', backgroundColor: '#ECECEC' },
+  monthBtnText: { fontSize: 13, color: '#616A76', fontWeight: '500' },
   monthDropdown: {
     position: 'absolute',
     top: 42,
@@ -396,9 +396,9 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderBottomWidth: 1,
   },
-  monthOptionActive: { backgroundColor: '#EEF4FF' },
+  monthOptionActive: { backgroundColor: '#ECECEC' },
   monthOptionText: { fontSize: 14 },
-  monthOptionTextActive: { color: '#2563FF', fontWeight: '600' },
+  monthOptionTextActive: { color: '#000000', fontWeight: '600' },
   tableWrap: { padding: 24 },
   loadMore: {
     marginTop: 16,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#2563FF' },
+  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#000000' },
   tableCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
   th: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   mobileList: { padding: 16, paddingBottom: 40 },

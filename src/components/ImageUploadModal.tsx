@@ -125,7 +125,7 @@ export function ImageUploadModal({ visible, jobId, onClose }: Props) {
           <View style={styles.header}>
             <Text style={styles.title}>Last opp bilder</Text>
             <TouchableOpacity onPress={onClose} disabled={uploading}>
-              <Ionicons name="close" size={22} color="#64748B" />
+              <Ionicons name="close" size={22} color="#616A76" />
             </TouchableOpacity>
           </View>
 
@@ -139,7 +139,7 @@ export function ImageUploadModal({ visible, jobId, onClose }: Props) {
             {pending.length === 0 && (
               <TouchableOpacity style={styles.pickZone} onPress={openPicker}>
                 <View style={styles.pickIcon}>
-                  <Ionicons name="images-outline" size={32} color="#2563FF" />
+                  <Ionicons name="images-outline" size={32} color="#000000" />
                 </View>
                 <Text style={styles.pickTitle}>Velg bilder fra enheten</Text>
                 <Text style={styles.pickSub}>Trykk for å åpne bildebiblioteket</Text>
@@ -186,7 +186,7 @@ export function ImageUploadModal({ visible, jobId, onClose }: Props) {
                         if (t.length <= NOTE_LIMIT) updatePending(img.key, { note: t });
                       }}
                       placeholder="Notat til dette bildet…"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#878E97"
                       multiline
                       maxLength={NOTE_LIMIT}
                     />
@@ -213,7 +213,7 @@ export function ImageUploadModal({ visible, jobId, onClose }: Props) {
                 onPress={openPicker}
                 disabled={uploading}
               >
-                <Ionicons name="add" size={16} color="#2563FF" />
+                <Ionicons name="add" size={16} color="#000000" />
                 <Text style={styles.addMoreText}>Legg til flere bilder</Text>
               </TouchableOpacity>
             )}
@@ -264,9 +264,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E5E5E5',
   },
-  title: { fontSize: 17, fontWeight: '600', color: '#0A1B33' },
+  title: { fontSize: 17, fontWeight: '600', color: '#000000' },
 
   body: { maxHeight: 440 },
   bodyContent: { padding: 16, gap: 12 },
@@ -277,39 +277,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 40,
     borderWidth: 1.5,
-    borderColor: '#2563FF',
+    borderColor: '#000000',
     borderStyle: 'dashed',
     borderRadius: 12,
-    backgroundColor: '#EEF4FF',
+    backgroundColor: '#ECECEC',
     gap: 8,
   },
   pickIcon: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#ECECEC',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
   },
-  pickTitle: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
-  pickSub: { fontSize: 13, color: '#64748B' },
+  pickTitle: { fontSize: 15, fontWeight: '600', color: '#000000' },
+  pickSub: { fontSize: 13, color: '#616A76' },
 
   // Image row
   row: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F5F5F5',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
   },
   thumbnail: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E5E5E5',
     flexShrink: 0,
   },
   controls: { flex: 1, gap: 8 },
@@ -320,24 +320,24 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
   },
-  labelBtnActive: { backgroundColor: '#2563FF', borderColor: '#2563FF' },
-  labelBtnText: { fontSize: 12, fontWeight: '600', color: '#64748B' },
+  labelBtnActive: { backgroundColor: '#000000', borderColor: '#000000' },
+  labelBtnText: { fontSize: 12, fontWeight: '600', color: '#616A76' },
   labelBtnTextActive: { color: '#FFFFFF' },
 
   noteWrap: { position: 'relative' },
   noteInput: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingTop: 8,
     paddingBottom: 22,
     fontSize: 13,
-    color: '#1F2937',
+    color: '#000000',
     backgroundColor: '#FFFFFF',
     minHeight: 64,
     textAlignVertical: 'top',
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     bottom: 6,
     right: 10,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#878E97',
   },
 
   errorBox: {
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#E5E5E5',
   },
   addMoreBtn: {
     flexDirection: 'row',
@@ -376,10 +376,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#2563FF',
-    backgroundColor: '#EEF4FF',
+    borderColor: '#000000',
+    backgroundColor: '#ECECEC',
   },
-  addMoreText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+  addMoreText: { fontSize: 14, color: '#000000', fontWeight: '600' },
 
   uploadBtn: {
     flexDirection: 'row',
@@ -388,8 +388,8 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 52,
     borderRadius: 10,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
   },
-  uploadBtnDisabled: { backgroundColor: '#CBD5E1' },
+  uploadBtnDisabled: { backgroundColor: '#D4D4D4' },
   uploadBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

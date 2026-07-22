@@ -28,7 +28,7 @@ function CustomerCard({ customer, jobCount, lastJobDate, onPress }: {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={[styles.avatar, { backgroundColor: '#0A1B33' }]}>
+      <View style={[styles.avatar, { backgroundColor: '#000000' }]}>
         <Text style={styles.avatarText}>{initials(customer.name)}</Text>
       </View>
       <View style={styles.info}>
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '600' },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#2563FF', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
+    backgroundColor: '#000000', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
   },
   addBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   searchWrap: { paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1 },
@@ -234,10 +234,10 @@ const styles = StyleSheet.create({
   phone: { fontSize: 13 },
   right: { alignItems: 'flex-end', gap: 4 },
   jobPill: {
-    backgroundColor: '#EEF4FF', borderRadius: 20,
+    backgroundColor: '#ECECEC', borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  jobPillText: { fontSize: 12, fontWeight: '600', color: '#2563FF' },
+  jobPillText: { fontSize: 12, fontWeight: '600', color: '#000000' },
   lastJob: { fontSize: 11 },
   empty: { alignItems: 'center', paddingTop: 80, gap: 10 },
   emptyTitle: { fontSize: 16, fontWeight: '600' },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: '#DC2626' },
   createBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, height: 52, backgroundColor: '#2563FF', borderRadius: 10,
+    gap: 8, height: 52, backgroundColor: '#000000', borderRadius: 10,
   },
   createBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });

@@ -56,7 +56,7 @@ export function TechJobsScreen({ navigation }: any) {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="sunny-outline" size={40} color="#E2E8F0" />
+            <Ionicons name="sunny-outline" size={40} color="#E5E5E5" />
             <Text style={[styles.emptyTitle, { color: C.textPrimary }]}>Ingen jobber i dag</Text>
             <Text style={[styles.emptyText, { color: C.textSecondary }]}>Nye jobber vises her automatisk når de tildeles deg</Text>
           </View>
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: '600' },
   subtitle: { fontSize: 13, marginTop: 2 },
-  avatarCircle: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#0A1B33', justifyContent: 'center', alignItems: 'center' },
+  avatarCircle: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
   avatarText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   list: { padding: 20, paddingBottom: 40 },
   empty: { alignItems: 'center', paddingTop: 80, gap: 8 },

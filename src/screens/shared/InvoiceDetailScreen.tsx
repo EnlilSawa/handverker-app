@@ -12,7 +12,7 @@ const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: stri
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF' },
   paid: { label: 'Betalt', color: '#15803D', bg: '#F0FDF4' },
   overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' },
-  credited: { label: 'Kreditert', color: '#64748B', bg: '#F1F5F9' } };
+  credited: { label: 'Kreditert', color: '#616A76', bg: '#ECECEC' } };
 
 export function InvoiceDetailScreen({ route, navigation }: any) {
   const { colors: C } = useTheme();
@@ -80,7 +80,7 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
       <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         {navigation && (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={20} color="#1F2937" />
+            <Ionicons name="arrow-back" size={20} color="#000000" />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>Faktura</Text>
@@ -188,8 +188,8 @@ export function InvoiceDetailScreen({ route, navigation }: any) {
                 disabled={sending}
               >
                 {sending
-                  ? <ActivityIndicator size="small" color="#2563FF" />
-                  : <Ionicons name="mail-outline" size={17} color="#2563FF" />}
+                  ? <ActivityIndicator size="small" color="#000000" />
+                  : <Ionicons name="mail-outline" size={17} color="#000000" />}
                 <Text style={styles.smsBtnText}>
                   {invoice.emailStatus === 'failed'
                     ? 'Send på nytt'
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   logo: { width: 120, height: 44 },
   invoiceNumber: { fontSize: 18, fontWeight: '700' },
   invoiceMeta: { fontSize: 13, marginTop: 4 },
-  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 16 },
+  divider: { height: 1, backgroundColor: '#E5E5E5', marginVertical: 16 },
   partyRow: { flexDirection: 'row', gap: 12 },
   party: { flex: 1, gap: 2 },
   partyLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
@@ -322,8 +322,8 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#2563FF' },
-  smsBtnText: { color: '#2563FF', fontSize: 15, fontWeight: '600' },
+    borderColor: '#000000' },
+  smsBtnText: { color: '#000000', fontSize: 15, fontWeight: '600' },
   paidBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#C2410C' },
   reminderBtnText: { color: '#C2410C', fontSize: 15, fontWeight: '600' },
-  reminderSentText: { fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: -4 },
+  reminderSentText: { fontSize: 13, color: '#616A76', textAlign: 'center', marginTop: -4 },
   confirmOverlay: { flex: 1, backgroundColor: 'rgba(10,27,51,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   confirmCard: { width: '100%', maxWidth: 380, borderRadius: 16, padding: 24, gap: 12, alignItems: 'center' },
   confirmIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF7ED' },

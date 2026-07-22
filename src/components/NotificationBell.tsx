@@ -30,7 +30,7 @@ function NotifItem({
 }) {
   const { colors: C } = useTheme();
   const icon = TYPE_ICON[notif.type] ?? 'notifications-outline';
-  const color = TYPE_COLOR[notif.type] ?? '#2563FF';
+  const color = TYPE_COLOR[notif.type] ?? '#000000';
   const isUnread = !notif.readAt;
 
   return (
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   dropTitle: { fontSize: 14, fontWeight: '700' },
-  markAll: { fontSize: 12, color: '#2563FF', fontWeight: '500' },
+  markAll: { fontSize: 12, color: '#000000', fontWeight: '500' },
   item: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     marginTop: 5,
     flexShrink: 0,
   },

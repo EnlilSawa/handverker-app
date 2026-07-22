@@ -125,7 +125,7 @@ export function InvoicesScreen({ navigation }: any) {
               activeOpacity={0.7}
             >
               {invoicesLoadingMore ? (
-                <ActivityIndicator size="small" color="#2563FF" />
+                <ActivityIndicator size="small" color="#000000" />
               ) : (
                 <Text style={styles.loadMoreText}>Last inn flere</Text>
               )}
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1 },
-  filterBtnActive: { backgroundColor: '#0A1B33', borderColor: '#0A1B33' },
+  filterBtnActive: { backgroundColor: '#000000', borderColor: '#000000' },
   filterText: { fontSize: 13, fontWeight: '500' },
   filterTextActive: { color: '#FFFFFF', fontWeight: '600' },
   list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
@@ -179,4 +179,4 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center' },
-  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#2563FF' } });
+  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#000000' } });

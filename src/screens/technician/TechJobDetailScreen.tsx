@@ -135,7 +135,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
           <Text style={[styles.customerName, { color: C.textPrimary }]}>{job.customerName}</Text>
           {job.address ? (
             <TouchableOpacity style={styles.infoRow} onPress={openMaps}>
-              <Ionicons name="location-outline" size={15} color="#2563FF" />
+              <Ionicons name="location-outline" size={15} color="#000000" />
               <Text style={styles.infoLink} numberOfLines={2}>{job.address}</Text>
             </TouchableOpacity>
           ) : null}
@@ -152,7 +152,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
 
         {isCompleted ? (
           <View style={[styles.lockedBanner, { backgroundColor: C.cardBg, borderColor: C.border }]}>
-            <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
+            <Ionicons name="lock-closed-outline" size={13} color="#616A76" />
             <Text style={[styles.lockedText, { color: C.textSecondary }]}>Jobben er fullført — notater kan ikke endres</Text>
           </View>
         ) : (
@@ -161,7 +161,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
               <TextInput
                 style={[styles.noteTextarea, {
                   backgroundColor: C.cardAlt, color: C.textPrimary,
-                  borderColor: noteText.length > 0 ? '#2563FF' : C.border,
+                  borderColor: noteText.length > 0 ? '#000000' : C.border,
                 }]}
                 value={noteText}
                 onChangeText={(t) => { if (t.length <= 500) setNoteText(t); }}
@@ -198,7 +198,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
               <View style={styles.noteItemHeader}>
                 <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
                 <View style={styles.noteDateRow}>
-                  <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
+                  <Ionicons name="lock-closed-outline" size={11} color="#616A76" />
                   <Text style={[styles.noteDateText, { color: C.textTertiary }]}>{formatNoteDate(note.createdAt)}</Text>
                 </View>
               </View>
@@ -212,18 +212,18 @@ export function TechJobDetailScreen({ route, navigation }: any) {
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           {isCompleted ? (
             <View style={styles.lockedHint}>
-              <Ionicons name="lock-closed-outline" size={12} color="#64748B" />
+              <Ionicons name="lock-closed-outline" size={12} color="#616A76" />
               <Text style={[styles.lockedText, { color: C.textSecondary }]}>Jobben er fullført — bilder kan ikke lastes opp</Text>
             </View>
           ) : (
             <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowUploadModal(true)}>
-              <Ionicons name="cloud-upload-outline" size={18} color="#2563FF" />
+              <Ionicons name="cloud-upload-outline" size={18} color="#000000" />
               <Text style={styles.uploadBtnText}>Last opp bilder</Text>
             </TouchableOpacity>
           )}
           {images.length === 0 ? (
             <View style={styles.noImages}>
-              <Ionicons name="images-outline" size={32} color="#CBD5E1" />
+              <Ionicons name="images-outline" size={32} color="#D4D4D4" />
               <Text style={[styles.noImagesText, { color: C.textTertiary }]}>Ingen bilder ennå</Text>
             </View>
           ) : (
@@ -325,7 +325,7 @@ export function TechJobDetailScreen({ route, navigation }: any) {
               ) : null}
 
               <View style={[styles.infoBox, { backgroundColor: C.cardAlt }]}>
-                <Ionicons name="document-text-outline" size={15} color="#2563FF" />
+                <Ionicons name="document-text-outline" size={15} color="#000000" />
                 <Text style={styles.modalInfoText}>Faktura genereres automatisk og sendes til kunden</Text>
               </View>
 
@@ -377,39 +377,39 @@ const styles = StyleSheet.create({
   card: { borderRadius: 12, borderWidth: 1, padding: 16, gap: 12 },
   customerName: { fontSize: 20, fontWeight: '700' },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  infoLink: { fontSize: 14, color: '#2563FF', textDecorationLine: 'underline', flex: 1, lineHeight: 20 },
+  infoLink: { fontSize: 14, color: '#000000', textDecorationLine: 'underline', flex: 1, lineHeight: 20 },
   infoText: { fontSize: 14, flex: 1, lineHeight: 20 },
   // Notes
   noteTextareaWrap: { position: 'relative' },
   noteTextarea: { height: 80, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 24, fontSize: 14, textAlignVertical: 'top' },
-  noteCounter: { position: 'absolute', bottom: 7, right: 10, fontSize: 11, color: '#94A3B8' },
-  noteAddBtn: { alignSelf: 'flex-end', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2563FF' },
-  noteAddBtnDisabled: { backgroundColor: '#CBD5E1' },
+  noteCounter: { position: 'absolute', bottom: 7, right: 10, fontSize: 11, color: '#878E97' },
+  noteAddBtn: { alignSelf: 'flex-end', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, backgroundColor: '#000000' },
+  noteAddBtnDisabled: { backgroundColor: '#D4D4D4' },
   noteAddBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   lockedBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, padding: 12, paddingHorizontal: 14 },
   lockedHint: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  lockedText: { fontSize: 13, color: '#64748B', fontStyle: 'italic', flex: 1 },
+  lockedText: { fontSize: 13, color: '#616A76', fontStyle: 'italic', flex: 1 },
   emptyNotes: { fontSize: 14, textAlign: 'center', paddingVertical: 8 },
   noteItem: { borderRadius: 10, padding: 14, paddingHorizontal: 16, borderWidth: 1, marginTop: 0 },
   noteItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   noteAuthor: { fontSize: 13, fontWeight: '600' },
   noteDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  noteDateText: { fontSize: 12, color: '#64748B' },
+  noteDateText: { fontSize: 12, color: '#616A76' },
   noteBody: { fontSize: 14, lineHeight: 22 },
   // Images
-  uploadBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: '#2563FF', borderStyle: 'dashed', borderRadius: 10, paddingVertical: 14, backgroundColor: '#EEF4FF' },
-  uploadBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+  uploadBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: '#000000', borderStyle: 'dashed', borderRadius: 10, paddingVertical: 14, backgroundColor: '#ECECEC' },
+  uploadBtnText: { fontSize: 14, color: '#000000', fontWeight: '600' },
   noImages: { alignItems: 'center', paddingVertical: 20, gap: 8 },
   noImagesText: { fontSize: 14 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   lockHint: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   lockHintText: { fontSize: 12, fontStyle: 'italic' },
   // Actions
-  startBtn: { height: 52, borderRadius: 10, backgroundColor: '#2563FF', alignItems: 'center', justifyContent: 'center' },
+  startBtn: { height: 52, borderRadius: 10, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' },
   startBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   navBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderRadius: 10, borderWidth: 1.5 },
   navBtnText: { fontSize: 14, fontWeight: '600' },
-  doneBtn: { height: 52, borderRadius: 10, backgroundColor: '#2563FF', alignItems: 'center', justifyContent: 'center' },
+  doneBtn: { height: 52, borderRadius: 10, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' },
   doneBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   // Modal
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 },
   errorText: { fontSize: 13, color: '#DC2626' },
   infoBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, padding: 12 },
-  modalInfoText: { fontSize: 13, color: '#2563FF', flex: 1 },
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, backgroundColor: '#2563FF', borderRadius: 10 },
+  modalInfoText: { fontSize: 13, color: '#000000', flex: 1 },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, backgroundColor: '#000000', borderRadius: 10 },
   confirmBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });

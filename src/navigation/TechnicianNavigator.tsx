@@ -50,7 +50,7 @@ function TechSidebar({ activeTab, onNavigate, containerStyle }: { activeTab: str
     <View style={[sidebar.container, containerStyle]}>
       {/* Logo */}
       <View style={sidebar.logoArea}>
-        <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={20} />
+        <EferoLogo textColor="#FFFFFF" lineColor="#FFFFFF" size={20} />
       </View>
 
       {/* Nav items */}
@@ -64,7 +64,7 @@ function TechSidebar({ activeTab, onNavigate, containerStyle }: { activeTab: str
               onPress={() => onNavigate(item.name)}
               activeOpacity={0.8}
             >
-              <Ionicons name={item.icon} size={18} color={isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)'} />
+              <Ionicons name={item.icon} size={18} color={isActive ? '#000000' : 'rgba(255,255,255,0.6)'} />
               <Text style={[sidebar.navLabel, isActive && sidebar.navLabelActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
@@ -87,16 +87,17 @@ function TechSidebar({ activeTab, onNavigate, containerStyle }: { activeTab: str
 }
 
 const sidebar = StyleSheet.create({
-  container: { width: 220, backgroundColor: '#0A1B33', paddingTop: 24, paddingBottom: 24, flexDirection: 'column' },
+  container: { width: 220, backgroundColor: '#000000', paddingTop: 24, paddingBottom: 24, flexDirection: 'column' },
   logoArea: {
     paddingHorizontal: 20, paddingBottom: 32,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)', marginBottom: 12,
   },
   nav: { flex: 1, paddingHorizontal: 12 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 11, borderRadius: 8, marginBottom: 2 },
-  navItemActive: { backgroundColor: '#2563FF' },
+  // Aktivt element: hvit pille med sort tekst/ikon — mono-temaets invertering.
+  navItemActive: { backgroundColor: '#FFFFFF' },
   navLabel: { fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
-  navLabelActive: { color: '#FFFFFF', fontWeight: '600' },
+  navLabelActive: { color: '#000000', fontWeight: '600' },
   themeBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 24, paddingVertical: 13 },
   themeLabel: { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingTop: 13, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
@@ -122,7 +123,7 @@ function TechWebLayout() {
   const [activeTab, setActiveTab] = useState('Jobber');
   const { pageBg } = useTheme();
   return (
-    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#0A1B33' }}>
+    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#000000' }}>
       <TechSidebar activeTab={activeTab} onNavigate={setActiveTab} />
       <View style={{ flex: 1, backgroundColor: pageBg, overflow: 'hidden' }}>
         <TechContent activeTab={activeTab} />
@@ -162,7 +163,7 @@ function TechMobileLayout() {
         <TouchableOpacity onPress={() => setDrawerOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Åpne meny">
           <Ionicons name="menu" size={26} color={C.textPrimary} />
         </TouchableOpacity>
-        <EferoLogo textColor={C.textPrimary} lineColor="#2563FF" size={18} />
+        <EferoLogo textColor={C.textPrimary} lineColor={C.textPrimary} size={18} />
         <View style={{ width: 26 }} />
       </View>
 

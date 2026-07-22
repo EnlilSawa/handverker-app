@@ -13,15 +13,16 @@ export interface ThemeColors {
   headerBg: string;
 }
 
+// Mono-tema (svart/hvitt): hvit side, grå kort, sort tekst.
 const light: ThemeColors = {
-  pageBg: '#F5F7FA',
-  cardBg: '#FFFFFF',
-  cardAlt: '#F8FAFC',
-  textPrimary: '#1F2937',
-  textSecondary: '#64748B',
-  textTertiary: '#94A3B8',
-  border: '#E2E8F0',
-  inputBg: '#F8FAFC',
+  pageBg: '#FFFFFF',
+  cardBg: '#F5F5F5',
+  cardAlt: '#ECECEC',
+  textPrimary: '#000000',
+  textSecondary: '#616A76',
+  textTertiary: '#878E97',
+  border: '#E5E5E5',
+  inputBg: '#FFFFFF',
   headerBg: '#FFFFFF',
 };
 

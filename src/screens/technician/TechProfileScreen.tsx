@@ -96,7 +96,7 @@ export function TechProfileScreen() {
           {items.map(({ icon, label, value }) => (
             <View key={label} style={[styles.infoRow, { borderBottomColor: C.border }]}>
               <View style={[styles.iconWrap, { backgroundColor: 'rgba(37,99,255,0.10)' }]}>
-                <Ionicons name={icon} size={18} color="#2563FF" />
+                <Ionicons name={icon} size={18} color="#000000" />
               </View>
               <View style={styles.infoContent}>
                 <Text style={[styles.infoLabel, { color: C.textSecondary }]}>{label}</Text>
@@ -109,10 +109,10 @@ export function TechProfileScreen() {
         {/* Knapper */}
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.changePasswordBtn, { borderColor: '#2563FF' }]}
+            style={[styles.changePasswordBtn, { borderColor: '#000000' }]}
             onPress={() => { setPwError(''); setShowPasswordModal(true); }}
           >
-            <Ionicons name="key-outline" size={18} color="#2563FF" />
+            <Ionicons name="key-outline" size={18} color="#000000" />
             <Text style={styles.changePasswordText}>Endre passord</Text>
           </TouchableOpacity>
 
@@ -191,15 +191,15 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title: { fontSize: 22, fontWeight: '700' },
   profileCard: { alignItems: 'center', paddingVertical: 28, borderBottomWidth: 1, gap: 8 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#0A1B33', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   avatarText: { fontSize: 28, fontWeight: '800', color: '#FFFFFF' },
   name: { fontSize: 20, fontWeight: '700' },
   roleBadge: { paddingHorizontal: 14, paddingVertical: 4, borderRadius: 20 },
-  roleText: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
+  roleText: { fontSize: 13, color: '#000000', fontWeight: '600' },
   statsRow: { flexDirection: 'row', borderBottomWidth: 1 },
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 16 },
   statBorder: { borderLeftWidth: 1, borderRightWidth: 1 },
-  statValue: { fontSize: 24, fontWeight: '800', color: '#2563FF' },
+  statValue: { fontSize: 24, fontWeight: '800', color: '#000000' },
   statLabel: { fontSize: 11, marginTop: 3, textAlign: 'center' },
   section: { borderTopWidth: 1, borderBottomWidth: 1 },
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, gap: 14 },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 15, marginTop: 1 },
   footer: { padding: 24, gap: 12 },
   changePasswordBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingVertical: 14 },
-  changePasswordText: { fontSize: 16, color: '#2563FF', fontWeight: '600' },
+  changePasswordText: { fontSize: 16, color: '#000000', fontWeight: '600' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: '#DC2626', borderRadius: 12, paddingVertical: 14 },
   logoutText: { fontSize: 16, color: '#DC2626', fontWeight: '600' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
@@ -226,6 +226,6 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: '#DC2626' },
   successBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F0FDF4', borderRadius: 10, padding: 12 },
   successText: { fontSize: 13, color: '#15803D', fontWeight: '600' },
-  saveBtn: { height: 52, backgroundColor: '#2563FF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  saveBtn: { height: 52, backgroundColor: '#000000', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });

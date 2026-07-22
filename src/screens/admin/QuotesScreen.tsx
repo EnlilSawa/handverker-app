@@ -11,7 +11,7 @@ const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string
   pending:  { label: 'Venter',   color: '#C2410C', bg: '#FFF7ED' },
   accepted: { label: 'Godkjent', color: '#15803D', bg: '#F0FDF4' },
   declined: { label: 'Avslått',  color: '#DC2626', bg: '#FEF2F2' },
-  expired:  { label: 'Utgått',   color: '#64748B', bg: '#F8FAFC' },
+  expired:  { label: 'Utgått',   color: '#616A76', bg: '#F5F5F5' },
 };
 
 function QuoteRow({ quote, onPress, C }: { quote: Quote; onPress: () => void; C: any }) {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '600' },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#2563FF', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
+    backgroundColor: '#000000', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
   },
   addBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   list: { padding: 16, gap: 10, paddingBottom: 40 },

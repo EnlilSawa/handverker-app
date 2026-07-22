@@ -1,12 +1,13 @@
 export const colors = {
-  // Brand palette
-  navy: '#0A1B33',
-  electricBlue: '#2563FF',
-  lightGray: '#F5F7FA',
-  slate: '#64748B',
-  charcoal: '#1F2937',
+  // Brand palette — mono (svart/hvitt-tema). Gjelder KUN app-UI;
+  // faktura-PDF/e-postmaler har egne hardkodede farger og beholder gammelt uttrykk.
+  navy: '#000000',
+  electricBlue: '#000000',
+  lightGray: '#F5F5F5',
+  slate: '#616A76',
+  charcoal: '#000000',
   white: '#FFFFFF',
-  border: '#E2E8F0',
+  border: '#E5E5E5',
 
   // States
   success: '#15803D',
@@ -16,20 +17,20 @@ export const colors = {
   danger: '#DC2626',
   dangerBg: '#FEF2F2',
 
-  // Status badge bg
+  // Status badge bg (semantiske — beholdes i mono-temaet)
   badgeNewBg: '#EEF4FF',
   badgeInProgressBg: '#FFF7ED',
   badgeCompletedBg: '#F0FDF4',
   badgeOverdueBg: '#FEF2F2',
 
   // Aliases (backward compat with existing screens)
-  primary: '#2563FF',
-  background: '#F5F7FA',
-  backgroundSecondary: '#F5F7FA',
-  surface: '#FFFFFF',
-  textDark: '#1F2937',
-  textGray: '#64748B',
-  textLight: '#94A3B8',
+  primary: '#000000',
+  background: '#FFFFFF',
+  backgroundSecondary: '#F5F5F5',
+  surface: '#F5F5F5',
+  textDark: '#000000',
+  textGray: '#616A76',
+  textLight: '#878E97',
   statusNew: '#2563FF',
   statusInProgress: '#C2410C',
   statusCompleted: '#15803D',

@@ -53,7 +53,7 @@ export function ForgotPasswordScreen({ onGoToLogin }: Props) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={24} />
+            <EferoLogo textColor="#FFFFFF" lineColor="#FFFFFF" size={24} />
             <Text style={styles.tagline}>Tilbakestill passordet ditt</Text>
           </View>
 
@@ -61,7 +61,7 @@ export function ForgotPasswordScreen({ onGoToLogin }: Props) {
             {sent ? (
               <>
                 <View style={styles.successIcon}>
-                  <Ionicons name="mail-outline" size={32} color="#2563FF" />
+                  <Ionicons name="mail-outline" size={32} color="#000000" />
                 </View>
                 <Text style={styles.cardTitle}>Sjekk e-posten din</Text>
                 <Text style={styles.body}>
@@ -84,7 +84,7 @@ export function ForgotPasswordScreen({ onGoToLogin }: Props) {
                 <TextInput
                   style={[styles.input, emailFocused && styles.inputFocused]}
                   placeholder="din@epost.no"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#878E97"
                   value={email}
                   onChangeText={(t) => { setEmail(t); setError(''); }}
                   onFocus={() => setEmailFocused(true)}
@@ -127,12 +127,12 @@ export function ForgotPasswordScreen({ onGoToLogin }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0A1B33' },
+  safe: { flex: 1, backgroundColor: '#000000' },
   avoid: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { flexGrow: 1 },
 
   header: {
-    backgroundColor: '#0A1B33',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 64,
@@ -153,23 +153,23 @@ const styles = StyleSheet.create({
   },
   successIcon: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#EEF4FF',
+    backgroundColor: '#ECECEC',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 20,
   },
-  cardTitle: { fontSize: 22, fontWeight: '600', color: '#0A1B33', marginBottom: 12 },
-  body: { fontSize: 15, color: '#64748B', lineHeight: 22 },
-  bodyStrong: { color: '#1F2937', fontWeight: '600' },
+  cardTitle: { fontSize: 22, fontWeight: '600', color: '#000000', marginBottom: 12 },
+  body: { fontSize: 15, color: '#616A76', lineHeight: 22 },
+  bodyStrong: { color: '#000000', fontWeight: '600' },
 
   fieldLabel: {
-    fontSize: 12, fontWeight: '600', color: '#64748B',
+    fontSize: 12, fontWeight: '600', color: '#616A76',
     textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8,
   },
   input: {
-    height: 52, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10,
-    paddingHorizontal: 16, fontSize: 15, color: '#1F2937', backgroundColor: '#F8FAFC',
+    height: 52, borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 10,
+    paddingHorizontal: 16, fontSize: 15, color: '#000000', backgroundColor: '#F5F5F5',
   },
-  inputFocused: { borderColor: '#2563FF', borderWidth: 1.5, backgroundColor: '#FFFFFF' },
+  inputFocused: { borderColor: '#000000', borderWidth: 1.5, backgroundColor: '#FFFFFF' },
 
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -178,12 +178,12 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: '#DC2626', flex: 1 },
 
   primaryBtn: {
-    height: 52, borderRadius: 10, backgroundColor: '#2563FF',
+    height: 52, borderRadius: 10, backgroundColor: '#000000',
     alignItems: 'center', justifyContent: 'center', marginTop: 24,
   },
   primaryBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
 
   footer: { alignItems: 'center', paddingTop: 28, paddingBottom: 8 },
-  footerText: { fontSize: 14, color: '#64748B' },
-  footerLink: { color: '#2563FF', fontWeight: '600', textDecorationLine: 'underline' },
+  footerText: { fontSize: 14, color: '#616A76' },
+  footerLink: { color: '#000000', fontWeight: '600', textDecorationLine: 'underline' },
 });
