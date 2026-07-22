@@ -21,7 +21,8 @@
     "plugins": [
       "expo-font",
       "expo-sharing",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@sentry/react-native"
     ],
     "web": {
       "bundler": "metro",

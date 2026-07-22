@@ -20,6 +20,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.3.8",
     "@react-navigation/native-stack": "^7.17.10",
+    "@sentry/react-native": "~7.11.0",
     "@supabase/supabase-js": "^2.39.3",
     "expo": "~57.0.7",
     "expo-font": "~57.0.0",

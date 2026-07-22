@@ -11,3 +11,5 @@ test-reminders.sh
 
 # Lokale forretningsdokumenter
 *.pdf
+.vercel
+.env*
