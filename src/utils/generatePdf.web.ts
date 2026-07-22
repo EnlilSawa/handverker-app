@@ -3,7 +3,8 @@ import { jsPDF } from 'jspdf';
 import { Invoice, Company } from '../types';
 // Delt pdf-trygg beløpsformatter — jsPDF-fontene mangler U+2212 (typografisk minus),
 // så negative beløp (kreditnota) MÅ formateres med vanlig bindestrek. Se formatters.ts.
-import { formatInvoiceAmount as fmt } from './formatters';
+import { formatPlainAmount as fmtNum } from './formatters';
+import { InvoicePdfExtras } from './invoiceHtml';
 
 function fmtDate(s: string): string {
   return new Date(s).toLocaleDateString('nb-NO', {
@@ -28,261 +29,294 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
   } catch { return null; }
 }
 
+// Norsk standardoppsett: kunde øverst til venstre (vinduskonvolutt), logo +
+// firmainfo øverst til høyre, dokumentblokk (FAKTURA/KREDITNOTA + nøkkelfelt +
+// betalingsinformasjon) på høyre side, linjetabell med mva-kolonner, og
+// bunnlinje «Betales til bankkonto …» / «NOK <total>» adskilt med strek.
 async function buildDoc(
   invoice: Invoice,
   company: Company | null,
   linkedInvoiceNumber?: string,
+  extras?: InvoicePdfExtras,
 ): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
   const pageW = 210;
   const lm = 20;
   const rm = pageW - 20;
-  const colMid = pageW / 2;
-  let y = 22;
 
   const gray = '#64748B';
+  const lightGray = '#94A3B8';
   const navy = '#0A1B33';
   const blue = '#2563FF';
   const purple = '#7C3AED';
   const lineGray = '#E2E8F0';
   const lightLine = '#F1F5F9';
 
-  // Kreditnota (credits_invoice_id satt): eget dokumenthode, ingen betalingsfrist.
+  // Kreditnota (credits_invoice_id satt): eget dokumenthode, ingen betalingsinfo.
   const isCreditNote = !!invoice.creditsInvoiceId;
+  const showKid = !isCreditNote && !!invoice.kid;
 
-  // ── Header ────────────────────────────────────────────────────────────────
-
-  // Invoice number — right side, top-aligned
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(navy);
-  doc.text(invoice.invoiceNumber, rm, y, { align: 'right' });
-  const numberY = y; // posisjon for fakturanummeret — status legges alltid UNDER dette
-
-  // Left side: logo (if any) then company name
+  // ── Høyre kolonne: logo + firmainfo ───────────────────────────────────────
+  let ry = 16;
   if (company?.logoUrl) {
     const base64 = await loadImageAsBase64(company.logoUrl);
     if (base64) {
       const imgType = base64.includes('png') ? 'PNG' : 'JPEG';
-      doc.addImage(base64, imgType, lm, y - 8, 40, 14);
-      y += 8 + 8; // logo visual bottom + marginBottom: 8
+      doc.addImage(base64, imgType, rm - 40, ry, 40, 14);
+      ry += 18;
     }
   }
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
+  doc.setFontSize(10.5);
   doc.setTextColor(navy);
-  doc.text(company?.name ?? 'Efero', lm, y);
+  doc.text(company?.name ?? 'Efero', rm, ry + 4, { align: 'right' });
+  ry += 8.5;
 
-  // Status badge — right side, ALLTID under fakturanummeret (unngår overlapp når firma mangler logo).
-  // Kreditnota: dokumenttypen ERSTATTER status («KREDITNOTA» i stedet for f.eks. «Sendt»).
-  if (isCreditNote) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(purple);
-    doc.text('KREDITNOTA', rm, numberY + 6, { align: 'right' });
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(gray);
-    doc.text(STATUS_LABEL[invoice.status] ?? invoice.status, rm, numberY + 6, { align: 'right' });
-  }
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(gray);
+  if (company?.address)   { doc.text(company.address, rm, ry, { align: 'right' }); ry += 4.5; }
+  if (company?.orgNumber) { doc.text(`Org.nr: NO ${company.orgNumber} MVA`, rm, ry, { align: 'right' }); ry += 4.5; }
+  if (company?.email)     { doc.text(company.email, rm, ry, { align: 'right' }); ry += 4.5; }
 
-  // Org.nr and address — same spacing as between other lines.
-  // jsPDF-state er sticky: nullstill eksplisitt så linjene ikke arver
-  // KREDITNOTA-merkets lilla/bold fra kreditnota-grenen over.
+  // ── Venstre kolonne: kunde (vinduskonvolutt-posisjon) ─────────────────────
+  let ly = 45;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(navy);
+  doc.text(invoice.customerName, lm, ly);
+  ly += 5;
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.setTextColor(gray);
-  y += 6;
-  if (company?.orgNumber) { doc.text(`Org.nr: ${company.orgNumber}`, lm, y); y += 4; }
-  if (company?.address)   { doc.text(company.address, lm, y); y += 4; }
+  doc.setTextColor('#1F2937');
+  if (invoice.customerAddress) {
+    const addrLines = doc.splitTextToSize(invoice.customerAddress, 80);
+    doc.text(addrLines, lm, ly);
+    ly += addrLines.length * 4.5;
+  }
 
-  // Total padding under header block: 24px
-  y += 24;
+  // Venstre midtblokk: leveringsadresse (jobbadressen) + vår kontakt — når data finnes.
+  const midBlock = (label: string, value: string) => {
+    ly += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(lightGray);
+    doc.text(label.toUpperCase(), lm, ly);
+    ly += 4;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor('#1F2937');
+    const lines = doc.splitTextToSize(value, 80);
+    doc.text(lines, lm, ly);
+    ly += lines.length * 4.5;
+  };
+  if (extras?.deliveryAddress) midBlock('Leveringsadresse', extras.deliveryAddress);
+  if (extras?.ourContact)      midBlock('Vår kontakt', extras.ourContact);
+
+  // ── Høyre dokumentblokk: tittel + nøkkelfelt + betalingsinformasjon ───────
+  ry += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(isCreditNote ? purple : navy);
+  doc.text(isCreditNote ? 'KREDITNOTA' : 'FAKTURA', rm, ry, { align: 'right' });
+  ry += 4;
+
+  // Status (kun vanlige fakturaer — kreditnotaens tittel sier alt).
+  if (!isCreditNote) {
+    ry += 4;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(gray);
+    doc.text(STATUS_LABEL[invoice.status] ?? invoice.status, rm, ry, { align: 'right' });
+  }
+  ry += 6;
+
+  // Label/verdi-par, høyrestilt blokk.
+  const labelX = 126;
+  const kvRow = (label: string, value: string, bold = false) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(gray);
+    doc.text(label, labelX, ry);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setTextColor(navy);
+    doc.text(value, rm, ry, { align: 'right' });
+    ry += 5;
+  };
+
+  kvRow(isCreditNote ? 'Kreditnotanr.' : 'Fakturanr.', invoice.invoiceNumber, true);
+  kvRow(isCreditNote ? 'Dato' : 'Fakturadato', fmtDate(invoice.createdAt));
+
+  if (!isCreditNote) {
+    // Betalingsinformasjon-blokk med skillelinje.
+    ry += 2;
+    doc.setDrawColor(lineGray);
+    doc.setLineWidth(0.3);
+    doc.line(labelX, ry, rm, ry);
+    ry += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(navy);
+    doc.text('Betalingsinformasjon', labelX, ry);
+    ry += 5.5;
+
+    kvRow('Forfallsdato', fmtDate(invoice.dueDate));
+    if (company?.accountNumber) kvRow('Kontonummer', company.accountNumber, true);
+    if (showKid) kvRow('KID', invoice.kid!, true);
+
+    ry += 1;
+    if (showKid) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(navy);
+      const nbLines = doc.splitTextToSize('NB! Oppgi alltid KID ved elektronisk betaling.', rm - labelX);
+      doc.text(nbLines, rm, ry, { align: 'right' });
+      ry += nbLines.length * 4;
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(gray);
+      const markLines = doc.splitTextToSize(`Merk betalingen med fakturanummer ${invoice.invoiceNumber}`, rm - labelX);
+      doc.text(markLines, rm, ry, { align: 'right' });
+      ry += markLines.length * 4;
+    }
+
+    // Kreditert original: referanse til kreditnotaen.
+    if (invoice.status === 'credited' && linkedInvoiceNumber) {
+      ry += 2;
+      doc.setFont('helvetica', 'bolditalic');
+      doc.setFontSize(9);
+      doc.setTextColor(gray);
+      doc.text(`Kreditert av ${linkedInvoiceNumber}`, rm, ry, { align: 'right' });
+      ry += 4.5;
+    }
+  } else {
+    // Kreditnota: referanse + obligatorisk årsak (v36) i stedet for betalingsinfo.
+    ry += 2;
+    doc.setFont('helvetica', 'bolditalic');
+    doc.setFontSize(9.5);
+    doc.setTextColor(purple);
+    doc.text(
+      linkedInvoiceNumber ? `Krediterer faktura ${linkedInvoiceNumber}` : 'Krediterer originalfakturaen',
+      rm, ry, { align: 'right' },
+    );
+    ry += 5;
+    if (invoice.creditReason) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(gray);
+      const reasonLines = doc.splitTextToSize(`Årsak: ${invoice.creditReason}`, rm - labelX);
+      doc.text(reasonLines, rm, ry, { align: 'right' });
+      ry += reasonLines.length * 4.5;
+    }
+  }
+
+  // ── Linjetabell ───────────────────────────────────────────────────────────
+  let y = Math.max(ly, ry) + 12;
+
+  // Kolonner: beskrivelse venstre, fire høyrestilte tallkolonner.
+  const unitR = 120;
+  const exR = 144;
+  const vatR = 166;
+  const inclR = rm;
+  const descW = 82;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(gray);
+  doc.text('BESKRIVELSE', lm, y);
+  doc.text('ENH.PRIS', unitR, y, { align: 'right' });
+  doc.text('BELØP', exR, y, { align: 'right' });
+  doc.text('MVA', vatR, y, { align: 'right' });
+  doc.text('BELØP', inclR, y, { align: 'right' });
+  y += 3;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(lightGray);
+  doc.text('(ekskl. mva)', unitR, y, { align: 'right' });
+  doc.text('(ekskl. mva)', exR, y, { align: 'right' });
+  doc.text('(25 %)', vatR, y, { align: 'right' });
+  doc.text('(inkl. mva)', inclR, y, { align: 'right' });
+  y += 2.5;
   doc.setDrawColor(lineGray);
   doc.setLineWidth(0.3);
   doc.line(lm, y, rm, y);
-  y += 7;
+  y += 5.5;
 
-  // ── From / To ─────────────────────────────────────────────────────────────
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(gray);
-  doc.text('FRA', lm, y);
-  doc.text('TIL', colMid + 5, y);
-  y += 4;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(navy);
-  doc.text(company?.name ?? '', lm, y);
-  doc.text(invoice.customerName, colMid + 5, y);
-  y += 5;
-
+  // Mva/inkl. beregnes per linje (25 %); sum-raden bruker fakturaens totaler.
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(gray);
-  if (company?.orgNumber)      doc.text(`Org.nr: ${company.orgNumber}`, lm, y);
-  if (invoice.customerAddress) doc.text(invoice.customerAddress, colMid + 5, y);
-  y += 10;
-
-  // ── Dates ─────────────────────────────────────────────────────────────────
-  doc.setDrawColor(lineGray);
-  doc.line(lm, y, rm, y);
-  y += 5;
-
-  // KID vises kun på vanlige fakturaer (aldri kreditnota — ikke et betalingskrav).
-  const showKid = !isCreditNote && !!invoice.kid;
-  // Med KID: fire kolonner (dato, forfall, KID, kontonummer); ellers som før.
-  const dueX = showKid ? 75 : colMid + 5;
-  const kidX = 125;
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(gray);
-  doc.text(isCreditNote ? 'DATO' : 'FAKTURADATO', lm, y);
-  // Kreditnota har ingen betalingsfrist → ingen FORFALL-kolonne.
-  if (!isCreditNote) doc.text('FORFALL', dueX, y);
-  if (showKid) doc.text('KID', kidX, y);
-  if (company?.accountNumber) doc.text('KONTONUMMER', rm, y, { align: 'right' });
-  y += 4;
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(navy);
-  doc.text(fmtDate(invoice.createdAt), lm, y);
-  if (!isCreditNote) doc.text(fmtDate(invoice.dueDate), dueX, y);
-  if (showKid) {
-    doc.setFont('helvetica', 'bold');
-    doc.text(invoice.kid!, kidX, y);
-    doc.setFont('helvetica', 'normal');
-  }
-  if (company?.accountNumber) {
-    doc.setFont('helvetica', 'bold');
-    doc.text(company.accountNumber, rm, y, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-  }
-  y += 7;
-
-  doc.setDrawColor(lineGray);
-  doc.line(lm, y, rm, y);
-  y += 7;
-
-  // Kobling kreditnota↔original: «Krediterer faktura X» / «Kreditert av X».
-  const refLine = isCreditNote
-    ? linkedInvoiceNumber
-      ? `Krediterer faktura ${linkedInvoiceNumber}`
-      : 'Krediterer originalfakturaen'
-    : invoice.status === 'credited' && linkedInvoiceNumber
-      ? `Kreditert av ${linkedInvoiceNumber}`
-      : null;
-  if (refLine) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bolditalic');
-    doc.setTextColor(isCreditNote ? purple : gray);
-    doc.text(refLine, lm, y);
-    y += 7;
-  }
-
-  // Årsak — obligatorisk på kreditnotaer (v36), rett under referanselinjen.
-  if (isCreditNote && invoice.creditReason) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(gray);
-    const reasonLines = doc.splitTextToSize(`Årsak: ${invoice.creditReason}`, rm - lm);
-    doc.text(reasonLines, lm, y);
-    y += reasonLines.length * 5 + 2;
-  }
-
-  // ── Line items ────────────────────────────────────────────────────────────
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(gray);
-  doc.text('SPESIFIKASJON', lm, y);
-  doc.text('BELØP', rm, y, { align: 'right' });
-  y += 3;
-  doc.setDrawColor(lineGray);
-  doc.line(lm, y, rm, y);
-  y += 6;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
+  doc.setFontSize(9.5);
   doc.setTextColor('#1F2937');
   for (const item of invoice.lineItems) {
-    doc.text(item.description, lm, y);
-    doc.text(fmt(item.amount), rm, y, { align: 'right' });
-    y += 5;
+    const descLines = doc.splitTextToSize(item.description, descW);
+    doc.text(descLines, lm, y);
+    if (item.unitPrice != null) doc.text(fmtNum(item.unitPrice), unitR, y, { align: 'right' });
+    doc.text(fmtNum(item.amount), exR, y, { align: 'right' });
+    doc.text(fmtNum(item.amount * 0.25), vatR, y, { align: 'right' });
+    doc.text(fmtNum(item.amount * 1.25), inclR, y, { align: 'right' });
+    y += descLines.length * 4.5 + 1;
     doc.setDrawColor(lightLine);
     doc.setLineWidth(0.2);
     doc.line(lm, y, rm, y);
-    y += 3;
+    y += 4.5;
   }
 
   // Note — rett under linjepostene
   if (invoice.note) {
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(gray);
     const noteLines = doc.splitTextToSize(invoice.note, rm - lm);
     doc.text(noteLines, lm, y);
-    y += noteLines.length * 5;
+    y += noteLines.length * 4.5 + 1;
     doc.setDrawColor(lightLine);
     doc.setLineWidth(0.2);
     doc.line(lm, y, rm, y);
-    y += 3;
+    y += 4.5;
   }
 
-  y += 4;
-
-  // ── Totals ────────────────────────────────────────────────────────────────
-  const tx = rm - 65;
-
-  // Nullstill font — note-blokken over kan ha satt italic (sticky state).
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(gray);
-  doc.text('Sum eks. MVA', tx, y);
-  doc.text(fmt(invoice.subtotalExVat), rm, y, { align: 'right' });
-  y += 6;
-
-  doc.text('MVA 25%', tx, y);
-  doc.text(fmt(invoice.vat), rm, y, { align: 'right' });
-  y += 3;
-
+  // Sum-rad: Sum ekskl. mva / MVA / totalsum under sine kolonner.
+  y += 1;
   doc.setDrawColor(navy);
   doc.setLineWidth(0.5);
-  doc.line(tx, y, rm, y);
-  y += 6;
-
-  doc.setFontSize(13);
+  doc.line(lm, y, rm, y);
+  y += 5.5;
+  // Nullstill font — note-blokken over kan ha satt italic (sticky jsPDF-state).
   doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
   doc.setTextColor(navy);
-  doc.text('Totalt inkl. MVA', tx, y);
-  doc.setTextColor(blue);
-  doc.text(fmt(invoice.total), rm, y, { align: 'right' });
+  doc.text('Sum', lm, y);
+  doc.text(fmtNum(invoice.subtotalExVat), exR, y, { align: 'right' });
+  doc.text(fmtNum(invoice.vat), vatR, y, { align: 'right' });
+  doc.text(fmtNum(invoice.total), inclR, y, { align: 'right' });
 
-  // ── Footer ────────────────────────────────────────────────────────────────
-  const fy = 265;
-  doc.setDrawColor(lineGray);
-  doc.setLineWidth(0.3);
+  // ── Bunnlinje: betalingslinje + NOK-total adskilt med strek ───────────────
+  const fy = 270;
+  doc.setDrawColor(navy);
+  doc.setLineWidth(0.5);
   doc.line(lm, fy, rm, fy);
 
-  // Kontonummer ved siden av Forfall (høyre side i header) — allerede håndtert der
-  // Footer: kun "Generert av Efero"
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(gray);
-  doc.text('Generert av Efero', rm, fy + 6, { align: 'right' });
-  // Kreditnota er ikke et betalingskrav → ingen betalingsfrist.
-  if (!isCreditNote) {
-    doc.text(`Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto`, lm, fy + 6);
-    // Uten KID: be kunden merke betalingen så den kan identifiseres.
-    if (!invoice.kid) {
-      doc.text(`Merk betalingen med fakturanummer ${invoice.invoiceNumber}`, lm, fy + 11);
-    }
+  // Kreditnota er ikke et betalingskrav → ingen betalingslinje.
+  if (!isCreditNote && company?.accountNumber) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(navy);
+    doc.text(
+      `Betales til bankkonto ${company.accountNumber}${showKid ? `, KID: ${invoice.kid}` : ''}`,
+      lm, fy + 7,
+    );
   }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(blue);
+  doc.text(`NOK ${fmtNum(invoice.total)}`, rm, fy + 7, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(lightGray);
+  doc.text('Generert av Efero', rm, fy + 13, { align: 'right' });
 
   return doc;
 }
@@ -291,12 +325,13 @@ export async function viewInvoicePdf(
   invoice: Invoice,
   company: Company | null,
   linkedInvoiceNumber?: string,
+  extras?: InvoicePdfExtras,
 ): Promise<void> {
   // Open blank window synchronously (before any async work) to avoid popup blocker
   const win = window.open('', '_blank');
   if (!win) throw new Error('Popup ble blokkert av nettleseren. Tillat popups for denne siden.');
 
-  const doc = await buildDoc(invoice, company, linkedInvoiceNumber);
+  const doc = await buildDoc(invoice, company, linkedInvoiceNumber, extras);
   const blob = doc.output('blob');
   const url = URL.createObjectURL(blob);
   win.location.href = url;
@@ -307,8 +342,9 @@ export async function downloadInvoicePdf(
   invoice: Invoice,
   company: Company | null,
   linkedInvoiceNumber?: string,
+  extras?: InvoicePdfExtras,
 ): Promise<void> {
-  const doc = await buildDoc(invoice, company, linkedInvoiceNumber);
+  const doc = await buildDoc(invoice, company, linkedInvoiceNumber, extras);
   const blob = doc.output('blob');
   const url = URL.createObjectURL(blob);
   // Use anchor click — works after async operations, no popup blocker
@@ -326,8 +362,9 @@ export async function generateInvoicePdfBase64(
   invoice: Invoice,
   company: Company | null,
   linkedInvoiceNumber?: string,
+  extras?: InvoicePdfExtras,
 ): Promise<string> {
-  const doc = await buildDoc(invoice, company, linkedInvoiceNumber);
+  const doc = await buildDoc(invoice, company, linkedInvoiceNumber, extras);
   const dataUri = doc.output('datauristring'); // data:application/pdf;...;base64,XXXX
   return dataUri.substring(dataUri.indexOf('base64,') + 'base64,'.length);
 }

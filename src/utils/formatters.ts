@@ -19,6 +19,10 @@ export const formatCurrency = (amount: number): string =>
 export const formatInvoiceAmount = (amount: number): string =>
   toPdfSafeNumber(NOK.format(amount)) + ' kr';
 
+// Tabellceller og «NOK <beløp>»-linjen på fakturaen: to desimaler, uten «kr»-suffiks.
+export const formatPlainAmount = (amount: number): string =>
+  toPdfSafeNumber(NOK.format(amount));
+
 export const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
   return date.toLocaleDateString('nb-NO', {

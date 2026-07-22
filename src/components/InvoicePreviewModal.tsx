@@ -48,11 +48,17 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
       : invoices.find((i) => i.creditsInvoiceId === invoice.id)?.invoiceNumber
     : undefined;
 
+  // Jobbdata til PDF-ens venstre midtblokk (leveringsadresse + vår kontakt).
+  const job = useAppStore((s) => s.jobs.find((j) => j.id === invoice?.jobId));
+  const pdfExtras = job
+    ? { deliveryAddress: job.address, ourContact: job.assignedTechnicianName }
+    : undefined;
+
   const handleViewPdf = async () => {
     setPdfLoading(true);
     setFeedback('');
     try {
-      await viewInvoicePdf(invoice!, company, linkedNumber);
+      await viewInvoicePdf(invoice!, company, linkedNumber, pdfExtras);
     } catch (e: any) {
       setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
@@ -64,7 +70,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
     setPdfLoading(true);
     setFeedback('');
     try {
-      await downloadInvoicePdf(invoice!, company, linkedNumber);
+      await downloadInvoicePdf(invoice!, company, linkedNumber, pdfExtras);
     } catch (e: any) {
       setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {

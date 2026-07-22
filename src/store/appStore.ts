@@ -1100,10 +1100,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     try {
+      // Jobbdata til PDF-ens venstre midtblokk (leveringsadresse + vår kontakt).
+      const invoiceJob = get().jobs.find((j) => j.id === invoice.jobId);
       const pdfBase64 = await generateInvoicePdfBase64(
         { ...invoice, customerEmail: to },
         company,
         linkedNumber,
+        invoiceJob
+          ? { deliveryAddress: invoiceJob.address, ourContact: invoiceJob.assignedTechnicianName }
+          : undefined,
       );
       const { error } = await supabase.functions.invoke('send-invoice-email', {
         body: { invoiceId, pdfBase64 },
