@@ -30,7 +30,7 @@ const bar = StyleSheet.create({
   jobs: { fontSize: 13, marginRight: 12 },
   amount: { fontSize: 14, fontWeight: '600' },
   track: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  fill: { height: 6, borderRadius: 3, backgroundColor: '#2563FF' } });
+  fill: { height: 6, borderRadius: 3, backgroundColor: '#000000' } });
 
 const MINI_STATS = (jobsByStatus: { new: number; in_progress: number; completed: number }, totalJobs: number) => [
   { label: 'Nye', count: jobsByStatus.new, color: '#2563FF', bg: '#EEF4FF' },
@@ -103,7 +103,7 @@ export function StatisticsScreen() {
           <Text style={[styles.subtitle, { color: C.textSecondary }]}>{monthName}</Text>
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#2563FF" />
+          <ActivityIndicator size="large" color="#000000" />
         </View>
       </ThemedScreen>
     );
@@ -161,13 +161,13 @@ export function StatisticsScreen() {
           {[
             {
               label: 'Betalt',
-              color: '#2563FF',
-              bg: '#EEF4FF',
+              color: '#000000',
+              bg: '#ECECEC',
               count: stats.invoiceStatus.paid.count,
               amount: stats.invoiceStatus.paid.amount },
             {
               label: 'Utestående',
-              bg: '#F1F5F9',
+              bg: '#ECECEC',
               count: stats.invoiceStatus.sent.count,
               amount: stats.invoiceStatus.sent.amount },
             {

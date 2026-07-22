@@ -75,20 +75,20 @@ export function NewJobScreen({ navigation, route }: any) {
           <Text style={[styles.cardTitle, { color: C.textSecondary }]}>KUNDEINFORMASJON</Text>
           <View style={styles.field}>
             <FieldLabel>Kundenavn *</FieldLabel>
-            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="Per Hansen" placeholderTextColor="#94A3B8" value={customerName} onChangeText={setCustomerName} />
+            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="Per Hansen" placeholderTextColor="#878E97" value={customerName} onChangeText={setCustomerName} />
           </View>
           <View style={styles.field}>
             <FieldLabel>Telefonnummer</FieldLabel>
-            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="92345678" placeholderTextColor="#94A3B8" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" />
+            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="92345678" placeholderTextColor="#878E97" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" />
           </View>
           <View style={styles.field}>
             <FieldLabel>E-post</FieldLabel>
-            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="per@epost.no" placeholderTextColor="#94A3B8" value={customerEmail} onChangeText={setCustomerEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="per@epost.no" placeholderTextColor="#878E97" value={customerEmail} onChangeText={setCustomerEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
             <Text style={[styles.hint, { color: C.textTertiary }]}>Brukes til å sende faktura på e-post</Text>
           </View>
           <View style={styles.field}>
             <FieldLabel>Adresse *</FieldLabel>
-            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="Gateveien 1, 0150 Oslo" placeholderTextColor="#94A3B8" value={address} onChangeText={setAddress} />
+            <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="Gateveien 1, 0150 Oslo" placeholderTextColor="#878E97" value={address} onChangeText={setAddress} />
           </View>
         </View>
 
@@ -99,7 +99,7 @@ export function NewJobScreen({ navigation, route }: any) {
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]}
               placeholder="Beskriv problemet eller arbeidet..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#878E97"
               value={description}
               onChangeText={setDescription}
               multiline
@@ -118,12 +118,12 @@ export function NewJobScreen({ navigation, route }: any) {
           <View style={styles.dateRow}>
             <View style={[styles.field, { flex: 1 }]}>
               <FieldLabel>Dato</FieldLabel>
-              <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="2024-05-15" placeholderTextColor="#94A3B8" value={date} onChangeText={setDate} />
+              <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="2024-05-15" placeholderTextColor="#878E97" value={date} onChangeText={setDate} />
             </View>
             <View style={{ width: 12 }} />
             <View style={[styles.field, { width: 90 }]}>
               <FieldLabel>Kl.</FieldLabel>
-              <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="09:00" placeholderTextColor="#94A3B8" value={time} onChangeText={setTime} />
+              <TextInput style={[styles.input, { backgroundColor: C.inputBg, color: C.textPrimary, borderColor: C.border }]} placeholder="09:00" placeholderTextColor="#878E97" value={time} onChangeText={setTime} />
             </View>
           </View>
         </View>
@@ -167,7 +167,7 @@ export function NewJobScreen({ navigation, route }: any) {
                     <Text style={styles.techAvatarText}>{item.name[0]}</Text>
                   </View>
                   <Text style={[styles.techItemText, { color: C.textPrimary }]}>{item.name}</Text>
-                  {selectedTech?.id === item.id && <Ionicons name="checkmark" size={18} color="#2563FF" />}
+                  {selectedTech?.id === item.id && <Ionicons name="checkmark" size={18} color="#000000" />}
                 </TouchableOpacity>
               )}
             />
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: '#DC2626' },
   saveBtn: {
     height: 52,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center' },
@@ -243,8 +243,8 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EEF4FF',
+    backgroundColor: '#ECECEC',
     justifyContent: 'center',
     alignItems: 'center' },
-  techAvatarText: { color: '#2563FF', fontWeight: '700', fontSize: 13 },
+  techAvatarText: { color: '#000000', fontWeight: '700', fontSize: 13 },
   techItemText: { flex: 1, fontSize: 15 } });

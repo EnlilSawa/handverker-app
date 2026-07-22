@@ -28,11 +28,11 @@ import {
 } from '../../lib/superadminApi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
-const NAVY = '#0A1B33';
-const EBLUE = '#2563FF';
+const NAVY = '#000000';
+const EBLUE = '#000000';
 const GREEN = '#15803D';
 const RED = '#DC2626';
-const GRAY = '#64748B';
+const GRAY = '#616A76';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   const { colors: C } = useTheme();
@@ -191,13 +191,13 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
         {/* Tittel */}
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: C.textPrimary }]}>{company.name}</Text>
-          <View style={[styles.subBadge, { backgroundColor: isActive ? '#F0FDF4' : '#F1F5F9' }]}>
+          <View style={[styles.subBadge, { backgroundColor: isActive ? '#F0FDF4' : '#ECECEC' }]}>
             <Text style={[styles.subBadgeText, { color: isActive ? GREEN : GRAY }]}>
               {SUB_STATUS_LABELS[company.subscriptionStatus]}
             </Text>
           </View>
           {isArchived && (
-            <View style={[styles.subBadge, { backgroundColor: '#F1F5F9' }]}>
+            <View style={[styles.subBadge, { backgroundColor: '#ECECEC' }]}>
               <Text style={[styles.subBadgeText, { color: GRAY }]}>Arkivert</Text>
             </View>
           )}
@@ -266,7 +266,7 @@ export function SuperadminCompanyDetailScreen({ route, navigation }: any) {
                   <TouchableOpacity
                     key={p}
                     disabled={busy}
-                    style={[styles.outlineBtn, { borderColor: selected ? EBLUE : C.border }, selected && { backgroundColor: '#EEF4FF' }]}
+                    style={[styles.outlineBtn, { borderColor: selected ? EBLUE : C.border }, selected && { backgroundColor: '#ECECEC' }]}
                     onPress={() => run(() => updateCompany(company.id, { plan: p, monthlyAmount: PLAN_PRICES[p] }), `Pakke endret til ${PLAN_LABELS[p]}`)}
                   >
                     <Text style={[styles.outlineBtnText, { color: selected ? EBLUE : C.textPrimary }]}>

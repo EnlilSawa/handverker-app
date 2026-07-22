@@ -8,7 +8,7 @@ import { useAppStore } from '../store/appStore';
 // `if (error) return`). Auto-lukkes etter noen sekunder, kan også lukkes manuelt.
 const COLORS = {
   error: { bg: '#FEF2F2', border: '#FCA5A5', text: '#991B1B', icon: '#DC2626', name: 'alert-circle' as const },
-  info: { bg: '#EEF4FF', border: '#BFD3FF', text: '#1E3A8A', icon: '#2563FF', name: 'information-circle' as const },
+  info: { bg: '#ECECEC', border: '#D4D4D4', text: '#000000', icon: '#000000', name: 'information-circle' as const },
 };
 
 export function Toast() {

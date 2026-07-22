@@ -9,7 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { User } from '../../types';
 
-const AVATAR_COLORS = ['#0A1B33', '#2563FF', '#15803D', '#C2410C', '#7C3AED', '#0891B2'];
+// Mono-tema: grånyanser (alle mørke nok for hvite initialer, WCAG AA)
+const AVATAR_COLORS = ['#000000', '#374151', '#52525B', '#616A76', '#333333', '#4D4D4D'];
 
 function initials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
@@ -34,8 +35,8 @@ function TechCard({ user, index, onRemove, onResetPassword }: {
           <Text style={[styles.name, { color: C.textPrimary }]}>{user.name}</Text>
           <Text style={[styles.phone, { color: C.textSecondary }]}>{user.phone}</Text>
         </View>
-        <View style={[styles.jobsPill, { backgroundColor: '#EEF4FF' }]}>
-          <Text style={[styles.jobsPillText, { color: '#2563FF' }]}>{completed} jobber</Text>
+        <View style={[styles.jobsPill, { backgroundColor: '#ECECEC' }]}>
+          <Text style={[styles.jobsPillText, { color: '#000000' }]}>{completed} jobber</Text>
         </View>
         <TouchableOpacity style={styles.removeBtn} onPress={onRemove}>
           <Ionicons name="trash-outline" size={17} color="#DC2626" />
@@ -44,7 +45,7 @@ function TechCard({ user, index, onRemove, onResetPassword }: {
       {/* Reset password row */}
       <View style={[styles.cardDivider, { borderTopColor: C.border }]}>
         <TouchableOpacity onPress={onResetPassword} style={styles.resetBtn}>
-          <Ionicons name="key-outline" size={13} color="#64748B" />
+          <Ionicons name="key-outline" size={13} color="#616A76" />
           <Text style={[styles.resetBtnText, { color: C.textSecondary }]}>Tilbakestill passord</Text>
         </TouchableOpacity>
       </View>
@@ -155,7 +156,7 @@ export function TeamScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: C.cardAlt }]}>
-              <Ionicons name="people-outline" size={32} color="#64748B" />
+              <Ionicons name="people-outline" size={32} color="#616A76" />
             </View>
             <Text style={[styles.emptyTitle, { color: C.textPrimary }]}>Ingen teknikere ennå</Text>
             <Text style={[styles.emptyText, { color: C.textSecondary }]}>Legg til teknikere for å tildele jobber</Text>
@@ -177,7 +178,7 @@ export function TeamScreen() {
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: C.textPrimary }]}>Legg til tekniker</Text>
               <TouchableOpacity onPress={() => { resetForm(); setShowModal(false); }}>
-                <Ionicons name="close" size={22} color="#64748B" />
+                <Ionicons name="close" size={22} color="#616A76" />
               </TouchableOpacity>
             </View>
 
@@ -193,7 +194,7 @@ export function TeamScreen() {
                   value={value}
                   onChangeText={setter}
                   placeholder={placeholder}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#878E97"
                   autoCapitalize={cap}
                   keyboardType={label === 'TELEFON' ? 'phone-pad' : 'default'}
                 />
@@ -209,12 +210,12 @@ export function TeamScreen() {
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Minst 8 tegn"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#878E97"
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
                 <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword((v) => !v)}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#94A3B8" />
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#878E97" />
                 </TouchableOpacity>
               </View>
               <Text style={[styles.passwordHint, { color: C.textTertiary }]}>
@@ -251,7 +252,7 @@ export function TeamScreen() {
                 Nytt passord for {resetTarget?.name}
               </Text>
               <TouchableOpacity onPress={() => setResetTarget(null)}>
-                <Ionicons name="close" size={22} color="#64748B" />
+                <Ionicons name="close" size={22} color="#616A76" />
               </TouchableOpacity>
             </View>
 
@@ -263,12 +264,12 @@ export function TeamScreen() {
                   value={resetPw}
                   onChangeText={setResetPw}
                   placeholder="Minst 8 tegn"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#878E97"
                   secureTextEntry={!showResetPw}
                   autoCapitalize="none"
                 />
                 <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowResetPw((v) => !v)}>
-                  <Ionicons name={showResetPw ? 'eye-off-outline' : 'eye-outline'} size={20} color="#94A3B8" />
+                  <Ionicons name={showResetPw ? 'eye-off-outline' : 'eye-outline'} size={20} color="#878E97" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -361,7 +362,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 9 },
@@ -376,7 +377,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, paddingHorizontal: 16, paddingVertical: 8,
   },
   resetBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  resetBtnText: { fontSize: 13, color: '#64748B' },
+  resetBtnText: { fontSize: 13, color: '#616A76' },
   successBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#F0FDF4', borderRadius: 10, padding: 12,
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '600' },
   emptyText: { fontSize: 14 },
   emptyBtn: {
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     borderRadius: 10,
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -431,7 +432,7 @@ const styles = StyleSheet.create({
      },
   saveBtn: {
     height: 52,
-    backgroundColor: '#0A1B33',
+    backgroundColor: '#000000',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',

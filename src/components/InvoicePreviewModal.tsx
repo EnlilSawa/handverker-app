@@ -13,7 +13,7 @@ const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: stri
   sent: { label: 'Sendt', color: '#2563FF', bg: '#EEF4FF' },
   paid: { label: 'Betalt', color: '#15803D', bg: '#F0FDF4' },
   overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2' },
-  credited: { label: 'Kreditert', color: '#64748B', bg: '#F1F5F9' },
+  credited: { label: 'Kreditert', color: '#616A76', bg: '#ECECEC' },
 };
 const CREDIT_NOTE_CFG = { label: 'Kreditnota', color: '#7C3AED', bg: '#F5F3FF' };
 
@@ -150,7 +150,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
               </View>
             </View>
             <TouchableOpacity onPress={() => { setFeedback(''); onClose(); }}>
-              <Ionicons name="close" size={22} color="#64748B" />
+              <Ionicons name="close" size={22} color="#616A76" />
             </TouchableOpacity>
           </View>
 
@@ -282,8 +282,8 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                 disabled={pdfLoading}
               >
                 {pdfLoading
-                  ? <ActivityIndicator size="small" color="#2563FF" />
-                  : <Ionicons name="document-outline" size={16} color="#2563FF" />
+                  ? <ActivityIndicator size="small" color="#000000" />
+                  : <Ionicons name="document-outline" size={16} color="#000000" />
                 }
                 <Text style={styles.pdfBtnText}>Se som PDF</Text>
               </TouchableOpacity>
@@ -293,7 +293,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                 onPress={handleDownloadPdf}
                 disabled={pdfLoading}
               >
-                <Ionicons name="download-outline" size={16} color="#2563FF" />
+                <Ionicons name="download-outline" size={16} color="#000000" />
                 <Text style={styles.pdfBtnText}>Last ned PDF</Text>
               </TouchableOpacity>
             </View>
@@ -307,8 +307,8 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                 {(isCreditNote || invoice.status !== 'credited') && (
                   <TouchableOpacity style={styles.smsBtn} onPress={handleSendEmail} disabled={sending}>
                     {sending
-                      ? <ActivityIndicator size="small" color="#2563FF" />
-                      : <Ionicons name="mail-outline" size={16} color="#2563FF" />}
+                      ? <ActivityIndicator size="small" color="#000000" />
+                      : <Ionicons name="mail-outline" size={16} color="#000000" />}
                     <Text style={styles.smsBtnText}>
                       {invoice.emailStatus === 'failed'
                         ? 'Send på nytt'
@@ -354,7 +354,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                     <TextInput
                       style={[styles.reasonInput, creditError ? styles.reasonInputError : null]}
                       placeholder="Årsak (påkrevd)"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#878E97"
                       value={creditReason}
                       onChangeText={(t) => { setCreditReason(t); if (creditError) setCreditError(''); }}
                       multiline
@@ -412,10 +412,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E5E5E5',
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  invoiceNumber: { fontSize: 16, fontWeight: '700', color: '#0A1B33' },
+  invoiceNumber: { fontSize: 16, fontWeight: '700', color: '#000000' },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusText: { fontSize: 12, fontWeight: '600' },
 
@@ -451,22 +451,22 @@ const styles = StyleSheet.create({
   creditBtnText: { color: '#7C3AED', fontSize: 14, fontWeight: '600' },
 
   confirmPanel: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F5F5F5',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     padding: 16,
     gap: 10,
   },
-  confirmTitle: { fontSize: 15, fontWeight: '700', color: '#0A1B33' },
-  confirmBody: { fontSize: 13, color: '#64748B', lineHeight: 19 },
+  confirmTitle: { fontSize: 15, fontWeight: '700', color: '#000000' },
+  confirmBody: { fontSize: 13, color: '#616A76', lineHeight: 19 },
   reasonInput: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     borderRadius: 10,
     padding: 12,
     fontSize: 14,
-    color: '#1F2937',
+    color: '#000000',
     backgroundColor: '#FFFFFF',
     minHeight: 60,
     textAlignVertical: 'top',
@@ -476,9 +476,9 @@ const styles = StyleSheet.create({
   confirmRow: { flexDirection: 'row', gap: 10 },
   cancelBtn: {
     flex: 1, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#E2E8F0',
+    borderWidth: 1, borderColor: '#E5E5E5',
   },
-  cancelBtnText: { color: '#64748B', fontSize: 14, fontWeight: '600' },
+  cancelBtnText: { color: '#616A76', fontSize: 14, fontWeight: '600' },
   confirmBtn: {
     flex: 1.4, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#7C3AED',
@@ -487,10 +487,10 @@ const styles = StyleSheet.create({
 
   document: {
     margin: 20,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F5F5F5',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     padding: 18,
     gap: 10,
   },
@@ -499,21 +499,21 @@ const styles = StyleSheet.create({
   partyRow: { flexDirection: 'row', gap: 12 },
   party: { flex: 1, gap: 2 },
   partyLabel: {
-    fontSize: 10, fontWeight: '700', color: '#94A3B8',
+    fontSize: 10, fontWeight: '700', color: '#878E97',
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2,
   },
-  partyName: { fontSize: 14, fontWeight: '600', color: '#0A1B33' },
-  partyDetail: { fontSize: 12, color: '#64748B' },
+  partyName: { fontSize: 14, fontWeight: '600', color: '#000000' },
+  partyDetail: { fontSize: 12, color: '#616A76' },
 
-  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 8 },
+  divider: { height: 1, backgroundColor: '#E5E5E5', marginVertical: 8 },
 
   datesRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  markPaymentText: { fontSize: 12, color: '#64748B', fontStyle: 'italic' },
-  dateLabel: { fontSize: 10, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  dateValue: { fontSize: 14, color: '#1F2937', fontWeight: '500' },
+  markPaymentText: { fontSize: 12, color: '#616A76', fontStyle: 'italic' },
+  dateLabel: { fontSize: 10, fontWeight: '700', color: '#878E97', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  dateValue: { fontSize: 14, color: '#000000', fontWeight: '500' },
 
   sectionTitle: {
-    fontSize: 10, fontWeight: '700', color: '#94A3B8',
+    fontSize: 10, fontWeight: '700', color: '#878E97',
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginBottom: 4,
   },
@@ -521,29 +521,29 @@ const styles = StyleSheet.create({
   lineItem: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: '#E2E8F0',
+    borderBottomWidth: 1, borderBottomColor: '#E5E5E5',
   },
-  lineDesc: { fontSize: 15, color: '#1F2937', flex: 1, marginRight: 12 },
-  lineAmount: { fontSize: 15, color: '#1F2937', fontWeight: '600' },
-  inlineNoteText: { fontSize: 13, color: '#64748B', fontStyle: 'italic', lineHeight: 19, flex: 1 },
+  lineDesc: { fontSize: 15, color: '#000000', flex: 1, marginRight: 12 },
+  lineAmount: { fontSize: 15, color: '#000000', fontWeight: '600' },
+  inlineNoteText: { fontSize: 13, color: '#616A76', fontStyle: 'italic', lineHeight: 19, flex: 1 },
 
   totalsBlock: {
-    borderTopWidth: 2, borderTopColor: '#E2E8F0',
+    borderTopWidth: 2, borderTopColor: '#E5E5E5',
     paddingTop: 4, gap: 0,
   },
   totalRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    borderBottomWidth: 1, borderBottomColor: '#ECECEC',
   },
-  totalLabel: { fontSize: 14, color: '#64748B' },
-  totalValue: { fontSize: 14, color: '#64748B' },
+  totalLabel: { fontSize: 14, color: '#616A76' },
+  totalValue: { fontSize: 14, color: '#616A76' },
   grandRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 16,
   },
-  grandLabel: { fontSize: 15, fontWeight: '600', color: '#0A1B33' },
-  grandValue: { fontSize: 18, fontWeight: '600', color: '#0A1B33' },
+  grandLabel: { fontSize: 15, fontWeight: '600', color: '#000000' },
+  grandValue: { fontSize: 18, fontWeight: '600', color: '#000000' },
 
   pdfRow: {
     flexDirection: 'row',
@@ -560,17 +560,17 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#2563FF',
-    backgroundColor: '#EEF4FF',
+    borderColor: '#000000',
+    backgroundColor: '#ECECEC',
   },
-  pdfBtnText: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
+  pdfBtnText: { fontSize: 13, color: '#000000', fontWeight: '600' },
   actions: { paddingHorizontal: 20, gap: 10 },
   smsBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, height: 52, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#2563FF',
+    borderWidth: 1.5, borderColor: '#000000',
   },
-  smsBtnText: { color: '#2563FF', fontSize: 14, fontWeight: '600' },
+  smsBtnText: { color: '#000000', fontSize: 14, fontWeight: '600' },
   paidBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 14,
@@ -578,14 +578,14 @@ const styles = StyleSheet.create({
   paidBtnText: { color: '#15803D', fontSize: 14, fontWeight: '600' },
 
   paymentBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F5F5F5',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     padding: 14,
     marginHorizontal: 20,
     marginBottom: 8,
   },
   paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  accountNumber: { fontSize: 14, color: '#0A1B33', fontWeight: '700', letterSpacing: 0.5 },
+  accountNumber: { fontSize: 14, color: '#000000', fontWeight: '700', letterSpacing: 0.5 },
 });

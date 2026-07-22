@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 15, fontWeight: '600', flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  avatar: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#0A1B33', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
+  avatar: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
   avatarText: { fontSize: 8, fontWeight: '700', color: '#FFFFFF' },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   badgeText: { fontSize: 11, fontWeight: '600' },

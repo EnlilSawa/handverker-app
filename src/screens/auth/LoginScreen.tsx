@@ -47,7 +47,7 @@ export function LoginScreen({ onGoToRegister, onGoToForgot }: Props) {
         >
           {/* Navy header — 35% of screen */}
           <View style={styles.header}>
-            <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={24} />
+            <EferoLogo textColor="#FFFFFF" lineColor="#FFFFFF" size={24} />
             <Text style={styles.tagline}>Jobb enkelt. Fakturer raskt.</Text>
           </View>
 
@@ -59,7 +59,7 @@ export function LoginScreen({ onGoToRegister, onGoToForgot }: Props) {
             <TextInput
               style={[styles.input, emailFocused && styles.inputFocused]}
               placeholder="din@epost.no"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#878E97"
               value={email}
               onChangeText={(t) => { setEmail(t); setError(''); }}
               onFocus={() => setEmailFocused(true)}
@@ -74,7 +74,7 @@ export function LoginScreen({ onGoToRegister, onGoToForgot }: Props) {
               <TextInput
                 style={[styles.input, styles.passwordInput, passwordFocused && styles.inputFocused]}
                 placeholder="••••••••"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#878E97"
                 value={password}
                 onChangeText={(t) => { setPassword(t); setError(''); }}
                 onFocus={() => setPasswordFocused(true)}
@@ -85,7 +85,7 @@ export function LoginScreen({ onGoToRegister, onGoToForgot }: Props) {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#94A3B8"
+                  color="#878E97"
                 />
               </TouchableOpacity>
             </View>
@@ -130,12 +130,12 @@ export function LoginScreen({ onGoToRegister, onGoToForgot }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0A1B33' },
+  safe: { flex: 1, backgroundColor: '#000000' },
   avoid: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { flexGrow: 1 },
 
   header: {
-    backgroundColor: '#0A1B33',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 64,
@@ -161,14 +161,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#0A1B33',
+    color: '#000000',
     marginBottom: 28,
   },
 
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#616A76',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 8,
@@ -176,15 +176,15 @@ const styles = StyleSheet.create({
   input: {
     height: 52,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     borderRadius: 10,
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#1F2937',
-    backgroundColor: '#F8FAFC',
+    color: '#000000',
+    backgroundColor: '#F5F5F5',
   },
   inputFocused: {
-    borderColor: '#2563FF',
+    borderColor: '#000000',
     borderWidth: 1.5,
     backgroundColor: '#FFFFFF',
   },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   eyeBtn: { position: 'absolute', right: 14, top: 16 },
 
   forgotBtn: { alignSelf: 'flex-end', marginTop: 12 },
-  forgotText: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
+  forgotText: { fontSize: 13, color: '#000000', fontWeight: '600' },
 
   errorBox: {
     flexDirection: 'row',
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   loginBtn: {
     height: 52,
     borderRadius: 10,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 24,
@@ -225,9 +225,9 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 8,
   },
-  footerText: { fontSize: 14, color: '#64748B' },
+  footerText: { fontSize: 14, color: '#616A76' },
   footerLink: {
-    color: '#2563FF',
+    color: '#000000',
     fontWeight: '600',
     textDecorationLine: 'underline',
   },

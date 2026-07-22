@@ -10,7 +10,7 @@ const STATUS_CFG: Record<InvoiceStatus, { label: string; color: string; bg: stri
   paid: { label: 'Betalt', color: '#15803D', bg: '#F0FDF4', border: '#15803D' },
   overdue: { label: 'Forfalt', color: '#DC2626', bg: '#FEF2F2', border: '#DC2626' },
   // Kreditert original — motpostert, nøytral grå.
-  credited: { label: 'Kreditert', color: '#64748B', bg: '#F1F5F9', border: '#94A3B8' },
+  credited: { label: 'Kreditert', color: '#616A76', bg: '#ECECEC', border: '#878E97' },
 };
 
 // Selve kreditnotaen (credits_invoice_id satt) — egen lilla merkelapp så den skilles

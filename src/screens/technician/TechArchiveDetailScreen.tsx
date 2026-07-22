@@ -22,7 +22,7 @@ function LockedImage({ image, thumbSize, onPress }: {
   return (
     <View style={{ width: thumbSize, marginBottom: 4 }}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
-        <View style={{ height: thumbSize, borderRadius: 10, overflow: 'hidden', backgroundColor: '#F1F5F9' }}>
+        <View style={{ height: thumbSize, borderRadius: 10, overflow: 'hidden', backgroundColor: '#ECECEC' }}>
           <Image source={{ uri: image.imageUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
           {lc && (
             <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: lc.bg, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
@@ -115,7 +115,7 @@ export function TechArchiveDetailScreen({ route, navigation }: any) {
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <Text style={[styles.cardLabel, { color: C.textSecondary }]}>NOTATER</Text>
           <View style={styles.archivedBanner}>
-            <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
+            <Ionicons name="lock-closed-outline" size={13} color="#616A76" />
             <Text style={[styles.archivedBannerText, { color: C.textSecondary }]}>Arkivert jobb — notater kan ikke endres</Text>
           </View>
           {notes.length === 0 ? (
@@ -130,7 +130,7 @@ export function TechArchiveDetailScreen({ route, navigation }: any) {
                   <View style={styles.noteHeader}>
                     <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
+                      <Ionicons name="lock-closed-outline" size={11} color="#616A76" />
                       <Text style={[styles.noteDate, { color: C.textTertiary }]}>{dateStr}</Text>
                     </View>
                   </View>
@@ -190,14 +190,14 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 14, marginTop: 1, lineHeight: 20 },
   archivedBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#F5F7FA', borderRadius: 8, padding: 10,
+    backgroundColor: '#FFFFFF', borderRadius: 8, padding: 10,
   },
-  archivedBannerText: { fontSize: 13, color: '#64748B', fontStyle: 'italic', flex: 1 },
+  archivedBannerText: { fontSize: 13, color: '#616A76', fontStyle: 'italic', flex: 1 },
   emptyText: { fontSize: 14, textAlign: 'center', paddingVertical: 4 },
   noteItem: { borderRadius: 10, padding: 14, paddingHorizontal: 16, borderWidth: 1 },
   noteHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   noteAuthor: { fontSize: 13, fontWeight: '600' },
-  noteDate: { fontSize: 12, color: '#64748B' },
+  noteDate: { fontSize: 12, color: '#616A76' },
   noteBody: { fontSize: 14, lineHeight: 22 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   imageCount: { fontSize: 13 },

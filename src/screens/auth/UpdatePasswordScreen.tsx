@@ -50,7 +50,7 @@ export function UpdatePasswordScreen({ onDone }: Props) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={24} />
+            <EferoLogo textColor="#FFFFFF" lineColor="#FFFFFF" size={24} />
             <Text style={styles.tagline}>Lag et nytt passord</Text>
           </View>
 
@@ -63,7 +63,7 @@ export function UpdatePasswordScreen({ onDone }: Props) {
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="••••••••"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#878E97"
                 value={password}
                 onChangeText={(t) => { setPassword(t); setError(''); }}
                 secureTextEntry={!showPassword}
@@ -73,7 +73,7 @@ export function UpdatePasswordScreen({ onDone }: Props) {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#94A3B8"
+                  color="#878E97"
                 />
               </TouchableOpacity>
             </View>
@@ -82,7 +82,7 @@ export function UpdatePasswordScreen({ onDone }: Props) {
             <TextInput
               style={styles.input}
               placeholder="••••••••"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#878E97"
               value={confirm}
               onChangeText={(t) => { setConfirm(t); setError(''); }}
               secureTextEntry={!showPassword}
@@ -113,12 +113,12 @@ export function UpdatePasswordScreen({ onDone }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0A1B33' },
+  safe: { flex: 1, backgroundColor: '#000000' },
   avoid: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { flexGrow: 1 },
 
   header: {
-    backgroundColor: '#0A1B33',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 64,
@@ -137,16 +137,16 @@ const styles = StyleSheet.create({
     paddingTop: 36,
     paddingBottom: 40,
   },
-  cardTitle: { fontSize: 22, fontWeight: '600', color: '#0A1B33', marginBottom: 12 },
-  body: { fontSize: 15, color: '#64748B', lineHeight: 22 },
+  cardTitle: { fontSize: 22, fontWeight: '600', color: '#000000', marginBottom: 12 },
+  body: { fontSize: 15, color: '#616A76', lineHeight: 22 },
 
   fieldLabel: {
-    fontSize: 12, fontWeight: '600', color: '#64748B',
+    fontSize: 12, fontWeight: '600', color: '#616A76',
     textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8,
   },
   input: {
-    height: 52, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10,
-    paddingHorizontal: 16, fontSize: 15, color: '#1F2937', backgroundColor: '#F8FAFC',
+    height: 52, borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 10,
+    paddingHorizontal: 16, fontSize: 15, color: '#000000', backgroundColor: '#F5F5F5',
   },
   passwordRow: { position: 'relative' },
   passwordInput: { paddingRight: 48 },
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: '#DC2626', flex: 1 },
 
   primaryBtn: {
-    height: 52, borderRadius: 10, backgroundColor: '#2563FF',
+    height: 52, borderRadius: 10, backgroundColor: '#000000',
     alignItems: 'center', justifyContent: 'center', marginTop: 24,
   },
   primaryBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },

@@ -84,7 +84,7 @@ export function TechArchiveScreen({ navigation }: any) {
               activeOpacity={0.7}
             >
               {archiveLoadingMore ? (
-                <ActivityIndicator size="small" color="#2563FF" />
+                <ActivityIndicator size="small" color="#000000" />
               ) : (
                 <Text style={styles.loadMoreText}>Last inn flere</Text>
               )}
@@ -116,7 +116,7 @@ export function TechArchiveScreen({ navigation }: any) {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="archive-outline" size={44} color="#E2E8F0" />
+            <Ionicons name="archive-outline" size={44} color="#E5E5E5" />
             <Text style={[styles.emptyTitle, { color: C.textSecondary }]}>
               {search.trim() ? 'Ingen treff' : 'Ingen fullførte jobber ennå'}
             </Text>
@@ -159,5 +159,5 @@ const styles = StyleSheet.create({
     marginTop: 6, borderWidth: 1, borderRadius: 10,
     paddingVertical: 13, minHeight: 48, alignItems: 'center', justifyContent: 'center',
   },
-  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#2563FF' },
+  loadMoreText: { fontSize: 14, fontWeight: '600', color: '#000000' },
 });

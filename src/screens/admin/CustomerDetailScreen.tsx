@@ -95,7 +95,7 @@ export function CustomerDetailScreen({ route, navigation }: any) {
           {customer.name}
         </Text>
         <TouchableOpacity onPress={openEdit} accessibilityLabel="Rediger kunde">
-          <Ionicons name="create-outline" size={22} color="#2563FF" />
+          <Ionicons name="create-outline" size={22} color="#000000" />
         </TouchableOpacity>
       </View>
 
@@ -138,7 +138,7 @@ export function CustomerDetailScreen({ route, navigation }: any) {
         {/* Stats */}
         <View style={styles.statsRow}>
           {[
-            { label: 'Jobber', value: String(stats.totalJobs), color: '#2563FF', bg: '#EEF4FF' },
+            { label: 'Jobber', value: String(stats.totalJobs), color: '#000000', bg: '#ECECEC' },
             { label: 'Fullført', value: String(stats.completedJobs), color: '#15803D', bg: '#F0FDF4' },
             { label: 'Omsetning', value: formatCurrency(stats.totalRevenue), color: '#C2410C', bg: '#FFF7ED' },
           ].map(({ label, value, color, bg }) => (
@@ -274,16 +274,16 @@ const styles = StyleSheet.create({
   },
   avatarLarge: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#0A1B33', justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+    backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center', marginBottom: 4,
   },
   avatarText: { fontSize: 28, fontWeight: '700', color: '#FFFFFF' },
   heroName: { fontSize: 22, fontWeight: '600' },
-  heroPhone: { fontSize: 15, color: '#2563FF', textDecorationLine: 'underline' },
-  heroAddress: { fontSize: 14, color: '#2563FF', textDecorationLine: 'underline' },
+  heroPhone: { fontSize: 15, color: '#000000', textDecorationLine: 'underline' },
+  heroAddress: { fontSize: 14, color: '#000000', textDecorationLine: 'underline' },
   heroSince: { fontSize: 12 },
   newJobBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, height: 48, backgroundColor: '#2563FF', borderRadius: 10,
+    gap: 8, height: 48, backgroundColor: '#000000', borderRadius: 10,
     width: '100%', marginTop: 8,
   },
   newJobBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: '#DC2626' },
   saveBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, height: 52, backgroundColor: '#2563FF', borderRadius: 10,
+    gap: 8, height: 52, backgroundColor: '#000000', borderRadius: 10,
   },
   saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });

@@ -23,17 +23,17 @@ function isLightColor(color: string): boolean {
 }
 
 interface EferoLogoProps {
-  /** Color of the "Efero" wordmark. Default: navy #0A1B33 */
+  /** Color of the "Efero" wordmark. Default: navy #000000 */
   textColor?: string;
-  /** Color of the 3-line E icon. Default: Electric Blue #2563FF */
+  /** Color of the 3-line E icon. Default: Electric Blue #000000 */
   lineColor?: string;
   /** Visual height-scale of the logo. Default: 20 */
   size?: number;
 }
 
 export function EferoLogo({
-  textColor = '#0A1B33',
-  lineColor = '#2563FF',
+  textColor = '#000000',
+  lineColor = '#000000',
   size = 20,
 }: EferoLogoProps) {
   const h = Math.round(size * 1.05); // felles bildehøyde

@@ -45,7 +45,7 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
     style: [styles.input, focused === id && styles.inputFocused] as any,
     onFocus: () => setFocused(id),
     onBlur: () => setFocused(null),
-    placeholderTextColor: '#94A3B8' as const,
+    placeholderTextColor: '#878E97' as const,
   });
 
   return (
@@ -67,7 +67,7 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
               <Text style={styles.backText}>Tilbake</Text>
             </TouchableOpacity>
 
-            <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={24} />
+            <EferoLogo textColor="#FFFFFF" lineColor="#FFFFFF" size={24} />
             <Text style={styles.tagline}>30 dager gratis — ingen kredittkort</Text>
           </View>
 
@@ -121,7 +121,7 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#94A3B8"
+                  color="#878E97"
                 />
               </TouchableOpacity>
             </View>
@@ -187,12 +187,12 @@ export function RegisterScreen({ onGoToLogin, onEmailSent }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0A1B33' },
+  safe: { flex: 1, backgroundColor: '#000000' },
   avoid: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { flexGrow: 1 },
 
   header: {
-    backgroundColor: '#0A1B33',
+    backgroundColor: '#000000',
     alignItems: 'center',
     paddingTop: 20,
     paddingBottom: 80,
@@ -226,14 +226,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#0A1B33',
+    color: '#000000',
     marginBottom: 28,
   },
 
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#616A76',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 8,
@@ -244,20 +244,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textTransform: 'none',
     letterSpacing: 0,
-    color: '#94A3B8',
+    color: '#878E97',
   },
   input: {
     height: 52,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     borderRadius: 10,
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#1F2937',
-    backgroundColor: '#F8FAFC',
+    color: '#000000',
+    backgroundColor: '#F5F5F5',
   },
   inputFocused: {
-    borderColor: '#2563FF',
+    borderColor: '#000000',
     borderWidth: 1.5,
     backgroundColor: '#FFFFFF',
   },
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   registerBtn: {
     height: 52,
     borderRadius: 10,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 24,
@@ -301,25 +301,25 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
+    borderColor: '#D4D4D4',
+    backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
     marginTop: 1,
   },
   checkboxChecked: {
-    backgroundColor: '#2563FF',
-    borderColor: '#2563FF',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   checkboxText: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#616A76',
     lineHeight: 20,
     flex: 1,
   },
   checkboxLink: {
-    color: '#2563FF',
+    color: '#000000',
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
@@ -329,9 +329,9 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 8,
   },
-  footerText: { fontSize: 14, color: '#64748B' },
+  footerText: { fontSize: 14, color: '#616A76' },
   footerLink: {
-    color: '#2563FF',
+    color: '#000000',
     fontWeight: '600',
     textDecorationLine: 'underline',
   },

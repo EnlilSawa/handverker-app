@@ -267,7 +267,7 @@ export function NewQuoteScreen({ navigation }: any) {
           ))}
 
           <TouchableOpacity style={styles.addLineBtn} onPress={addLine}>
-            <Ionicons name="add" size={16} color="#2563FF" />
+            <Ionicons name="add" size={16} color="#000000" />
             <Text style={styles.addLineBtnText}>Legg til linje</Text>
           </TouchableOpacity>
 
@@ -345,19 +345,19 @@ const styles = StyleSheet.create({
   lineInput: { fontSize: 13, paddingVertical: 4, minWidth: 20 },
   lineAmount: { flex: 1.5, fontSize: 13, fontWeight: '500', textAlign: 'right' },
   addLineBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10 },
-  addLineBtnText: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
+  addLineBtnText: { fontSize: 13, color: '#000000', fontWeight: '600' },
   totalsSection: { borderTopWidth: 2, paddingTop: 12, marginTop: 4, gap: 6 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  grandRow: { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E2E8F0', marginTop: 4 },
+  grandRow: { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E5E5', marginTop: 4 },
   totalLabel: { fontSize: 13 },
   totalValue: { fontSize: 13 },
   grandLabel: { fontSize: 15, fontWeight: '700' },
-  grandValue: { fontSize: 20, fontWeight: '700', color: '#2563FF' },
+  grandValue: { fontSize: 20, fontWeight: '700', color: '#000000' },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12 },
   errorText: { fontSize: 13, color: '#DC2626', flex: 1 },
   saveBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, height: 52, backgroundColor: '#2563FF', borderRadius: 10,
+    gap: 8, height: 52, backgroundColor: '#000000', borderRadius: 10,
   },
   saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });

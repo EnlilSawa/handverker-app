@@ -112,7 +112,7 @@ function AdminSidebar({ activeTab, onNavigate, showSuperadmin, showBell = true, 
     <View style={[sidebar.container, containerStyle]}>
       {/* Logo + bjelle */}
       <View style={[sidebar.logoArea, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-        <EferoLogo textColor="#FFFFFF" lineColor="#2563FF" size={20} />
+        <EferoLogo textColor="#FFFFFF" lineColor="#FFFFFF" size={20} />
         {showBell && <NotificationBell onNavigateToInvoice={handleBellNavigate} />}
       </View>
 
@@ -130,7 +130,7 @@ function AdminSidebar({ activeTab, onNavigate, showSuperadmin, showBell = true, 
               <Ionicons
                 name={item.icon}
                 size={18}
-                color={isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)'}
+                color={isActive ? '#000000' : 'rgba(255,255,255,0.6)'}
               />
               <Text style={[sidebar.navLabel, isActive && sidebar.navLabelActive]}>
                 {item.label}
@@ -162,7 +162,7 @@ function AdminSidebar({ activeTab, onNavigate, showSuperadmin, showBell = true, 
 const sidebar = StyleSheet.create({
   container: {
     width: 220,
-    backgroundColor: '#0A1B33',
+    backgroundColor: '#000000',
     paddingTop: 24,
     paddingBottom: 24,
     flexDirection: 'column',
@@ -184,9 +184,10 @@ const sidebar = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 2,
   },
-  navItemActive: { backgroundColor: '#2563FF' },
+  // Aktivt element: hvit pille med sort tekst/ikon — mono-temaets invertering.
+  navItemActive: { backgroundColor: '#FFFFFF' },
   navLabel: { fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
-  navLabelActive: { color: '#FFFFFF', fontWeight: '600' },
+  navLabelActive: { color: '#000000', fontWeight: '600' },
   themeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -221,7 +222,7 @@ function AdminWebLayout() {
   }, [activeTab, isSuper]);
 
   return (
-    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#0A1B33' }}>
+    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: '#000000' }}>
       <AdminSidebar activeTab={activeTab} onNavigate={setActiveTab} showSuperadmin={isSuper} />
       <View style={{ flex: 1, backgroundColor: pageBg, overflow: 'hidden' }}>
         <AdminContent activeTab={activeTab} isSuper={isSuper} />
@@ -289,7 +290,7 @@ function AdminMobileLayout() {
         <TouchableOpacity onPress={() => setDrawerOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Åpne meny">
           <Ionicons name="menu" size={26} color={C.textPrimary} />
         </TouchableOpacity>
-        <EferoLogo textColor={C.textPrimary} lineColor="#2563FF" size={18} />
+        <EferoLogo textColor={C.textPrimary} lineColor={C.textPrimary} size={18} />
         <NotificationBell onNavigateToInvoice={handleBellNavigate} iconColor={C.textPrimary} />
       </View>
 

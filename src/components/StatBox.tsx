@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
-export function StatBox({ label, value, color = '#2563FF' }: { label: string; value: string; color?: string }) {
+export function StatBox({ label, value, color = '#000000' }: { label: string; value: string; color?: string }) {
   const { colors: C } = useTheme();
   return (
     <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border, borderLeftColor: color }]}>

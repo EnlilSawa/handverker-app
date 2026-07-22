@@ -15,7 +15,7 @@ const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string
   pending:  { label: 'Venter',   color: '#C2410C', bg: '#FFF7ED' },
   accepted: { label: 'Godkjent', color: '#15803D', bg: '#F0FDF4' },
   declined: { label: 'Avslått',  color: '#DC2626', bg: '#FEF2F2' },
-  expired:  { label: 'Utgått',   color: '#64748B', bg: '#F8FAFC' },
+  expired:  { label: 'Utgått',   color: '#616A76', bg: '#F5F5F5' },
 };
 
 export function QuoteDetailScreen({ route, navigation }: any) {
@@ -141,7 +141,7 @@ export function QuoteDetailScreen({ route, navigation }: any) {
                 >
                   <Ionicons name="mail-outline" size={13} color={C.textTertiary} />
                   <Text style={[styles.quoteMeta, { color: C.textSecondary, marginTop: 0 }]}>{quote.customerEmail}</Text>
-                  <Ionicons name="pencil" size={12} color="#2563FF" />
+                  <Ionicons name="pencil" size={12} color="#000000" />
                 </TouchableOpacity>
               )}
               <Text style={[styles.quoteMeta, { color: C.textTertiary }]}>
@@ -206,7 +206,7 @@ export function QuoteDetailScreen({ route, navigation }: any) {
             onPress={handleViewPdf}
             disabled={pdfLoading}
           >
-            {pdfLoading ? <ActivityIndicator size="small" color="#2563FF" /> : <Ionicons name="document-outline" size={18} color="#2563FF" />}
+            {pdfLoading ? <ActivityIndicator size="small" color="#000000" /> : <Ionicons name="document-outline" size={18} color="#000000" />}
             <Text style={styles.actionBtnText}>Se som PDF</Text>
           </TouchableOpacity>
 
@@ -216,7 +216,7 @@ export function QuoteDetailScreen({ route, navigation }: any) {
             onPress={handleSendEmail}
             disabled={actionLoading}
           >
-            <Ionicons name="mail-outline" size={18} color="#2563FF" />
+            <Ionicons name="mail-outline" size={18} color="#000000" />
             <Text style={styles.actionBtnText}>Send på e-post</Text>
           </TouchableOpacity>
 
@@ -276,11 +276,11 @@ const styles = StyleSheet.create({
   emailRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
   emailInput: { height: 44, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, fontSize: 14 },
   emailErrText: { fontSize: 12, color: '#DC2626' },
-  emailSaveBtn: { backgroundColor: '#2563FF', borderRadius: 8, paddingHorizontal: 18, height: 40, alignItems: 'center', justifyContent: 'center' },
+  emailSaveBtn: { backgroundColor: '#000000', borderRadius: 8, paddingHorizontal: 18, height: 40, alignItems: 'center', justifyContent: 'center' },
   emailSaveText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   emailCancelBtn: { paddingHorizontal: 14, height: 40, alignItems: 'center', justifyContent: 'center' },
   emailCancelText: { fontSize: 14, fontWeight: '500' },
-  totalBig: { fontSize: 22, fontWeight: '700', color: '#2563FF' },
+  totalBig: { fontSize: 22, fontWeight: '700', color: '#000000' },
   lineRow: { paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
   lineDesc: { fontSize: 14, fontWeight: '500' },
   lineMeta: { fontSize: 12, marginTop: 2 },
@@ -290,13 +290,13 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 13 },
   totalValue: { fontSize: 13 },
   grandLabel: { fontSize: 15, fontWeight: '700' },
-  grandValue: { fontSize: 20, fontWeight: '700', color: '#2563FF' },
+  grandValue: { fontSize: 20, fontWeight: '700', color: '#000000' },
   actions: { gap: 10 },
   actionBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, height: 48, borderRadius: 10, borderWidth: 1,
   },
-  actionBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+  actionBtnText: { fontSize: 14, color: '#000000', fontWeight: '600' },
   acceptBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, height: 52, backgroundColor: '#15803D', borderRadius: 10,

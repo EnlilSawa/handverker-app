@@ -37,7 +37,7 @@ function FieldInput({ label, value, onChangeText, keyboardType = 'default', plac
         autoCapitalize={keyboardType === 'email-address' ? 'none' : 'sentences'}
         autoCorrect={keyboardType !== 'email-address'}
         placeholder={placeholder}
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor="#878E97"
       />
     </View>
   );
@@ -59,8 +59,10 @@ function NotifToggle({ label, description, value, onChange }: {
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: '#E2E8F0', true: '#2563FF' }}
+        trackColor={{ false: '#E5E5E5', true: '#000000' }}
         thumbColor="#FFFFFF"
+        // RN Web bruker egen thumb-farge i på-tilstand (default teal) — hold den hvit.
+        {...({ activeThumbColor: '#FFFFFF' } as any)}
       />
     </View>
   );
@@ -249,8 +251,8 @@ export function SettingsScreen() {
             disabled={logoUploading}
           >
             {logoUploading
-              ? <ActivityIndicator size="small" color="#2563FF" />
-              : <Ionicons name="cloud-upload-outline" size={18} color="#2563FF" />
+              ? <ActivityIndicator size="small" color="#000000" />
+              : <Ionicons name="cloud-upload-outline" size={18} color="#000000" />
             }
             <Text style={styles.uploadLogoBtnText}>
               {logoUploading ? 'Laster opp…' : company?.logoUrl ? 'Bytt logo' : 'Last opp logo'}
@@ -393,13 +395,13 @@ const styles = StyleSheet.create({
   uploadLogoBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, paddingVertical: 12, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#2563FF', backgroundColor: '#EEF4FF' },
-  uploadLogoBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+    borderWidth: 1.5, borderColor: '#000000', backgroundColor: '#ECECEC' },
+  uploadLogoBtnText: { fontSize: 14, color: '#000000', fontWeight: '600' },
   startNumBtn: {
     alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 16,
-    borderRadius: 8, borderWidth: 1, borderColor: '#2563FF', backgroundColor: '#EEF4FF',
+    borderRadius: 8, borderWidth: 1, borderColor: '#000000', backgroundColor: '#ECECEC',
   },
-  startNumBtnText: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
+  startNumBtnText: { fontSize: 13, color: '#000000', fontWeight: '600' },
   kidErrorText: { fontSize: 13, color: '#DC2626' },
   kidOkText: { fontSize: 13, color: '#15803D' },
   header: {
@@ -428,10 +430,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 15,
      },
-  inputFocused: { borderColor: '#2563FF', borderWidth: 1.5 },
+  inputFocused: { borderColor: '#000000', borderWidth: 1.5 },
   saveBtn: {
     height: 52,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center' },

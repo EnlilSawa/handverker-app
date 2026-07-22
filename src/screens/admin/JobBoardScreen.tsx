@@ -204,7 +204,7 @@ const web = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -291,8 +291,8 @@ function MobileJobBoard({ navigation }: { navigation: any }) {
               <Text style={[mobile.tabText, isActive && mobile.tabTextActive]}>
                 {col.label}
               </Text>
-              <View style={[mobile.tabBadge, { backgroundColor: isActive ? '#EEF4FF' : '#F1F5F9' }]}>
-                <Text style={[mobile.tabBadgeText, { color: isActive ? '#2563FF' : '#94A3B8' }]}>
+              <View style={[mobile.tabBadge, { backgroundColor: isActive ? '#ECECEC' : '#ECECEC' }]}>
+                <Text style={[mobile.tabBadgeText, { color: isActive ? '#000000' : '#878E97' }]}>
                   {col.jobs.length}
                 </Text>
               </View>
@@ -318,7 +318,7 @@ function MobileJobBoard({ navigation }: { navigation: any }) {
           <View key={col.status} style={{ width: COLUMN_WIDTH }}>
             {col.jobs.length === 0 ? (
               <View style={mobile.emptyCol}>
-                <Ionicons name="checkmark-circle-outline" size={28} color="#E2E8F0" />
+                <Ionicons name="checkmark-circle-outline" size={28} color="#E5E5E5" />
                 <Text style={mobile.emptyText}>Ingen jobber</Text>
               </View>
             ) : (
@@ -355,7 +355,7 @@ const mobile = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2563FF',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -380,9 +380,9 @@ const mobile = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: '#2563FF' },
+  tabActive: { borderBottomColor: '#000000' },
   tabText: { fontSize: 14, fontWeight: '500' },
-  tabTextActive: { color: '#2563FF', fontWeight: '600' },
+  tabTextActive: { color: '#000000', fontWeight: '600' },
   tabBadge: { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   tabBadgeText: { fontSize: 11, fontWeight: '700' },
   swipeKanban: { paddingVertical: 16, gap: 16 },

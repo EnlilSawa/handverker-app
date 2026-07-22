@@ -79,13 +79,13 @@ function LockedImage({ image, thumbSize, onPress }: {
 
 const lockedCell = StyleSheet.create({
   wrap: { marginBottom: 4 },
-  imgWrap: { borderRadius: 10, overflow: 'hidden', backgroundColor: '#F1F5F9', position: 'relative' },
+  imgWrap: { borderRadius: 10, overflow: 'hidden', backgroundColor: '#ECECEC', position: 'relative' },
   img: { width: '100%', height: '100%' },
   badge: { position: 'absolute', top: 6, left: 6, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
   badgeText: { fontSize: 10, fontWeight: '700' },
   noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 5 },
-  note: { fontSize: 12, color: '#64748B', fontStyle: 'italic', flex: 1, lineHeight: 16 },
-  meta: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
+  note: { fontSize: 12, color: '#616A76', fontStyle: 'italic', flex: 1, lineHeight: 16 },
+  meta: { fontSize: 11, color: '#878E97', marginTop: 2 },
 });
 
 // ─── Fullscreen image viewer ──────────────────────────────────────────────────
@@ -145,7 +145,7 @@ function TechPickerModal({ visible, technicians, selectedId, onSelect, onClose }
           </View>
           <TouchableOpacity style={tp.item} onPress={() => { onSelect(null, null); onClose(); }}>
             <Text style={tp.itemText}>Ikke tildelt</Text>
-            {!selectedId && <Ionicons name="checkmark" size={18} color="#2563FF" />}
+            {!selectedId && <Ionicons name="checkmark" size={18} color="#000000" />}
           </TouchableOpacity>
           <FlatList
             data={technicians}
@@ -156,7 +156,7 @@ function TechPickerModal({ visible, technicians, selectedId, onSelect, onClose }
                   <Text style={tp.avatarText}>{initials(item.name)}</Text>
                 </View>
                 <Text style={tp.itemText}>{item.name}</Text>
-                {selectedId === item.id && <Ionicons name="checkmark" size={18} color="#2563FF" />}
+                {selectedId === item.id && <Ionicons name="checkmark" size={18} color="#000000" />}
               </TouchableOpacity>
             )}
           />
@@ -170,10 +170,10 @@ const tp = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 17, fontWeight: '600', color: '#1F2937' },
-  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#E2E8F0', gap: 12 },
-  itemText: { flex: 1, fontSize: 15, color: '#1F2937' },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#0A1B33', justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 17, fontWeight: '600', color: '#000000' },
+  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#E5E5E5', gap: 12 },
+  itemText: { flex: 1, fontSize: 15, color: '#000000' },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
   avatarText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
 });
 
@@ -281,7 +281,7 @@ function GenerateInvoiceModal({ visible, jobId, onClose }: {
 
               {/* Note */}
               <View style={{ gap: 6 }}>
-                <Text style={inv.fieldLabel}>NOTAT TIL KUNDEN <Text style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0, color: '#94A3B8' }}>(valgfritt)</Text></Text>
+                <Text style={inv.fieldLabel}>NOTAT TIL KUNDEN <Text style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0, color: '#878E97' }}>(valgfritt)</Text></Text>
                 <View style={{ position: 'relative' }}>
                   <TextInput
                     style={[inv.input, { height: 80, textAlignVertical: 'top', paddingTop: 10, paddingBottom: 22 }]}
@@ -321,7 +321,7 @@ function GenerateInvoiceModal({ visible, jobId, onClose }: {
               {/* Fixed header */}
               <View style={[inv.header, { marginBottom: 12 }]}>
                 <TouchableOpacity style={inv.backBtn} onPress={() => setStep('input')}>
-                  <Ionicons name="arrow-back" size={18} color="#2563FF" />
+                  <Ionicons name="arrow-back" size={18} color="#000000" />
                   <Text style={inv.backText}>Endre</Text>
                 </TouchableOpacity>
                 <View style={inv.previewBadge}>
@@ -472,40 +472,40 @@ const inv = StyleSheet.create({
     paddingBottom: 28,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 17, fontWeight: '600', color: '#0A1B33' },
-  subtitle: { fontSize: 14, color: '#64748B', marginTop: -6 },
+  title: { fontSize: 17, fontWeight: '600', color: '#000000' },
+  subtitle: { fontSize: 14, color: '#616A76', marginTop: -6 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  backText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
-  previewBadge: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  previewBadgeText: { fontSize: 10, fontWeight: '700', color: '#64748B', letterSpacing: 0.5 },
+  backText: { fontSize: 14, color: '#000000', fontWeight: '600' },
+  previewBadge: { backgroundColor: '#ECECEC', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  previewBadgeText: { fontSize: 10, fontWeight: '700', color: '#616A76', letterSpacing: 0.5 },
   row: { flexDirection: 'row' },
   field: { flex: 1 },
-  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  input: { height: 48, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 14, fontSize: 15, color: '#1F2937', backgroundColor: '#F8FAFC' },
-  hintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F8FAFC', borderRadius: 8, padding: 10 },
-  hintText: { fontSize: 13, color: '#64748B' },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#616A76', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  input: { height: 48, borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 10, paddingHorizontal: 14, fontSize: 15, color: '#000000', backgroundColor: '#F5F5F5' },
+  hintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F5F5F5', borderRadius: 8, padding: 10 },
+  hintText: { fontSize: 13, color: '#616A76' },
   err: { fontSize: 13, color: '#DC2626' },
-  previewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, backgroundColor: '#2563FF', borderRadius: 10 },
+  previewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 52, backgroundColor: '#000000', borderRadius: 10 },
   previewBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   // Document preview
-  document: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', padding: 16, gap: 8 },
-  docCustomer: { fontSize: 16, fontWeight: '700', color: '#0A1B33' },
-  docAddress: { fontSize: 13, color: '#64748B', marginTop: -4 },
-  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 4 },
+  document: { backgroundColor: '#F5F5F5', borderRadius: 12, borderWidth: 1, borderColor: '#E5E5E5', padding: 16, gap: 8 },
+  docCustomer: { fontSize: 16, fontWeight: '700', color: '#000000' },
+  docAddress: { fontSize: 13, color: '#616A76', marginTop: -4 },
+  divider: { height: 1, backgroundColor: '#E5E5E5', marginVertical: 4 },
   lineItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  lineDesc: { fontSize: 14, color: '#1F2937', flex: 1, marginRight: 8 },
-  lineAmount: { fontSize: 14, color: '#1F2937', fontWeight: '500' },
+  lineDesc: { fontSize: 14, color: '#000000', flex: 1, marginRight: 8 },
+  lineAmount: { fontSize: 14, color: '#000000', fontWeight: '500' },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  totalLabel: { fontSize: 13, color: '#64748B' },
-  totalValue: { fontSize: 13, color: '#64748B' },
+  totalLabel: { fontSize: 13, color: '#616A76' },
+  totalValue: { fontSize: 13, color: '#616A76' },
   grandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  grandLabel: { fontSize: 14, fontWeight: '700', color: '#0A1B33' },
-  grandValue: { fontSize: 22, fontWeight: '700', color: '#2563FF' },
-  dueDate: { fontSize: 12, color: '#94A3B8', textAlign: 'right', marginTop: 2 },
-  noteDivider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 4 },
-  noteLabel: { fontSize: 10, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
-  noteText: { fontSize: 13, color: '#1F2937', fontStyle: 'italic', lineHeight: 18 },
-  noteCounter: { position: 'absolute', bottom: 6, right: 10, fontSize: 11, color: '#94A3B8' },
+  grandLabel: { fontSize: 14, fontWeight: '700', color: '#000000' },
+  grandValue: { fontSize: 22, fontWeight: '700', color: '#000000' },
+  dueDate: { fontSize: 12, color: '#878E97', textAlign: 'right', marginTop: 2 },
+  noteDivider: { height: 1, backgroundColor: '#E5E5E5', marginVertical: 4 },
+  noteLabel: { fontSize: 10, fontWeight: '700', color: '#878E97', textTransform: 'uppercase', letterSpacing: 0.5 },
+  noteText: { fontSize: 13, color: '#000000', fontStyle: 'italic', lineHeight: 18 },
+  noteCounter: { position: 'absolute', bottom: 6, right: 10, fontSize: 11, color: '#878E97' },
   previewScroll: { maxHeight: 380 },
 
   // Paper document
@@ -513,31 +513,31 @@ const inv = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     padding: 18,
     gap: 10,
   },
   paperHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  paperCompany: { fontSize: 15, fontWeight: '700', color: '#0A1B33' },
-  paperMeta: { fontSize: 11, color: '#64748B', marginTop: 1 },
-  paperInvNum: { fontSize: 14, fontWeight: '700', color: '#0A1B33' },
-  draftBadge: { backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, marginTop: 4 },
-  draftBadgeText: { fontSize: 9, fontWeight: '700', color: '#64748B', letterSpacing: 0.5 },
-  paperDivider: { height: 1, backgroundColor: '#E2E8F0' },
+  paperCompany: { fontSize: 15, fontWeight: '700', color: '#000000' },
+  paperMeta: { fontSize: 11, color: '#616A76', marginTop: 1 },
+  paperInvNum: { fontSize: 14, fontWeight: '700', color: '#000000' },
+  draftBadge: { backgroundColor: '#ECECEC', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, marginTop: 4 },
+  draftBadgeText: { fontSize: 9, fontWeight: '700', color: '#616A76', letterSpacing: 0.5 },
+  paperDivider: { height: 1, backgroundColor: '#E5E5E5' },
   partiesRow: { flexDirection: 'row', gap: 12 },
-  partyLabel: { fontSize: 9, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  partyName: { fontSize: 13, fontWeight: '600', color: '#0A1B33' },
-  partyDetail: { fontSize: 11, color: '#64748B' },
+  partyLabel: { fontSize: 9, fontWeight: '700', color: '#878E97', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  partyName: { fontSize: 13, fontWeight: '600', color: '#000000' },
+  partyDetail: { fontSize: 11, color: '#616A76' },
   datesRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  dateLabel: { fontSize: 9, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  dateValue: { fontSize: 12, color: '#1F2937', fontWeight: '500' },
+  dateLabel: { fontSize: 9, fontWeight: '700', color: '#878E97', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  dateValue: { fontSize: 12, color: '#000000', fontWeight: '500' },
   tableHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  tableHeaderText: { fontSize: 9, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
-  tableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
-  tableDesc: { fontSize: 13, color: '#1F2937', flex: 1, marginRight: 8 },
-  tableAmount: { fontSize: 13, color: '#1F2937', fontWeight: '500' },
+  tableHeaderText: { fontSize: 9, fontWeight: '700', color: '#878E97', textTransform: 'uppercase', letterSpacing: 0.5 },
+  tableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
+  tableDesc: { fontSize: 13, color: '#000000', flex: 1, marginRight: 8 },
+  tableAmount: { fontSize: 13, color: '#000000', fontWeight: '500' },
   totalsBlock: { gap: 4, alignSelf: 'flex-end', minWidth: '55%' },
-  paperFooter: { fontSize: 11, color: '#94A3B8' },
+  paperFooter: { fontSize: 11, color: '#878E97' },
   generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, backgroundColor: '#15803D', borderRadius: 10 },
   generateBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });
@@ -700,7 +700,7 @@ export function JobDetailScreen({ route, navigation }: any) {
           style={[styles.editToggleBtn, isEditing && styles.editToggleBtnActive]}
           onPress={isEditing ? cancelEditing : startEditing}
         >
-          <Ionicons name={isEditing ? 'close-outline' : 'create-outline'} size={16} color={isEditing ? '#DC2626' : '#2563FF'} />
+          <Ionicons name={isEditing ? 'close-outline' : 'create-outline'} size={16} color={isEditing ? '#DC2626' : '#000000'} />
           <Text style={[styles.editToggleText, isEditing && { color: '#DC2626' }]}>
             {isEditing ? 'Avbryt' : 'Rediger'}
           </Text>
@@ -713,7 +713,7 @@ export function JobDetailScreen({ route, navigation }: any) {
         <View style={[styles.heroCard, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           {isEditing ? (
             <TextInput
-              style={[styles.heroNameInput, { color: C.textPrimary, borderBottomColor: '#2563FF' }]}
+              style={[styles.heroNameInput, { color: C.textPrimary, borderBottomColor: '#000000' }]}
               value={editName}
               onChangeText={setEditName}
               placeholder="Kundenavn"
@@ -770,14 +770,14 @@ export function JobDetailScreen({ route, navigation }: any) {
               </View>
               {job.customerPhone ? (
                 <TouchableOpacity style={styles.infoRow} onPress={() => Linking.openURL(`tel:${job.customerPhone}`)}>
-                  <Ionicons name="call-outline" size={16} color="#2563FF" />
-                  <Text style={[styles.infoValue, styles.infoLink, { color: '#2563FF' }]}>{job.customerPhone}</Text>
+                  <Ionicons name="call-outline" size={16} color="#000000" />
+                  <Text style={[styles.infoValue, styles.infoLink, { color: '#000000' }]}>{job.customerPhone}</Text>
                 </TouchableOpacity>
               ) : null}
               {customerEmail ? (
                 <TouchableOpacity style={styles.infoRow} onPress={() => Linking.openURL(`mailto:${customerEmail}`)}>
-                  <Ionicons name="mail-outline" size={16} color="#2563FF" />
-                  <Text style={[styles.infoValue, styles.infoLink, { color: '#2563FF' }]}>{customerEmail}</Text>
+                  <Ionicons name="mail-outline" size={16} color="#000000" />
+                  <Text style={[styles.infoValue, styles.infoLink, { color: '#000000' }]}>{customerEmail}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={styles.infoRow} onPress={startEditing}>
@@ -792,8 +792,8 @@ export function JobDetailScreen({ route, navigation }: any) {
                   style={styles.infoRow}
                   onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(job.address)}`)}
                 >
-                  <Ionicons name="location-outline" size={16} color="#2563FF" />
-                  <Text style={[styles.infoValue, styles.infoLink, { color: '#2563FF' }]}>{job.address}</Text>
+                  <Ionicons name="location-outline" size={16} color="#000000" />
+                  <Text style={[styles.infoValue, styles.infoLink, { color: '#000000' }]}>{job.address}</Text>
                 </TouchableOpacity>
               ) : null}
             </>
@@ -844,7 +844,7 @@ export function JobDetailScreen({ route, navigation }: any) {
 
           {/* Tekniker — always visible */}
           <TouchableOpacity style={styles.techRow} onPress={() => setShowTechPicker(true)}>
-            <View style={[styles.techAvatarCircle, { backgroundColor: "#0A1B33" }]}>
+            <View style={[styles.techAvatarCircle, { backgroundColor: "#000000" }]}>
               {job.assignedTechnicianName
                 ? <Text style={styles.techAvatarText}>{initials(job.assignedTechnicianName)}</Text>
                 : <Ionicons name="person-outline" size={14} color={C.textSecondary} />
@@ -853,7 +853,7 @@ export function JobDetailScreen({ route, navigation }: any) {
             <Text style={[styles.infoValue, { flex: 1 }]}>
               {job.assignedTechnicianName ?? 'Ikke tildelt'}
             </Text>
-            <Text style={[styles.changeLink, { color: '#2563FF' }]}>Endre</Text>
+            <Text style={[styles.changeLink, { color: '#000000' }]}>Endre</Text>
           </TouchableOpacity>
         </View>
 
@@ -877,7 +877,7 @@ export function JobDetailScreen({ route, navigation }: any) {
         {job.status === 'completed' ? (
           /* Completed: info banner only — no input */
           <View style={[styles.noteCompletedBanner, { backgroundColor: C.cardBg, borderColor: C.border }]}>
-            <Ionicons name="lock-closed-outline" size={13} color="#64748B" />
+            <Ionicons name="lock-closed-outline" size={13} color="#616A76" />
             <Text style={[styles.noteCompletedText, { color: C.textSecondary }]}>Jobben er fullført — nye notater kan ikke legges til</Text>
           </View>
         ) : (
@@ -885,7 +885,7 @@ export function JobDetailScreen({ route, navigation }: any) {
           <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border, gap: 10 }]}>
             <View style={styles.noteTextareaWrap}>
               <TextInput
-                style={[styles.noteTextarea, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: noteText.length > 0 ? '#2563FF' : C.border }]}
+                style={[styles.noteTextarea, { backgroundColor: C.cardAlt, color: C.textPrimary, borderColor: noteText.length > 0 ? '#000000' : C.border }]}
                 value={noteText}
                 onChangeText={(t) => { if (t.length <= 500) setNoteText(t); }}
                 placeholder="Legg til et notat..."
@@ -917,7 +917,7 @@ export function JobDetailScreen({ route, navigation }: any) {
               <View style={styles.noteItemHeader}>
                 <Text style={[styles.noteAuthor, { color: C.textPrimary }]}>{note.authorName}</Text>
                 <View style={styles.noteDateRow}>
-                  <Ionicons name="lock-closed-outline" size={11} color="#64748B" />
+                  <Ionicons name="lock-closed-outline" size={11} color="#616A76" />
                   <Text style={[styles.noteDateText, { color: C.textTertiary }]}>{formatNoteDate(note.createdAt)}</Text>
                 </View>
               </View>
@@ -951,7 +951,7 @@ export function JobDetailScreen({ route, navigation }: any) {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.generateBtn} onPress={() => setShowInvoiceModal(true)}>
-              <Ionicons name="document-text-outline" size={18} color="#2563FF" />
+              <Ionicons name="document-text-outline" size={18} color="#000000" />
               <Text style={styles.generateBtnText}>Generer faktura</Text>
             </TouchableOpacity>
           )}
@@ -965,13 +965,13 @@ export function JobDetailScreen({ route, navigation }: any) {
           </View>
 
           <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowUploadModal(true)}>
-            <Ionicons name="cloud-upload-outline" size={18} color="#2563FF" />
+            <Ionicons name="cloud-upload-outline" size={18} color="#000000" />
             <Text style={styles.uploadBtnText}>Last opp bilder</Text>
           </TouchableOpacity>
 
           {images.length === 0 ? (
             <View style={styles.noImages}>
-              <Ionicons name="images-outline" size={32} color="#CBD5E1" />
+              <Ionicons name="images-outline" size={32} color="#D4D4D4" />
               <Text style={[styles.noImagesText, { color: C.textTertiary }]}>Ingen bilder ennå</Text>
             </View>
           ) : (
@@ -1049,7 +1049,7 @@ export function JobDetailScreen({ route, navigation }: any) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F7FA' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
 
   topBar: {
     flexDirection: 'row',
@@ -1058,11 +1058,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E5E5E5',
     gap: 12,
   },
   backBtn: {},
-  topBarTitle: { flex: 1, fontSize: 17, fontWeight: '600', color: '#1F2937' },
+  topBarTitle: { flex: 1, fontSize: 17, fontWeight: '600', color: '#000000' },
   editToggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1071,15 +1071,15 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#2563FF',
-    backgroundColor: '#EEF4FF',
+    borderColor: '#000000',
+    backgroundColor: '#ECECEC',
   },
   editToggleBtnActive: { borderColor: '#DC2626', backgroundColor: '#FEF2F2' },
-  editToggleText: { fontSize: 13, fontWeight: '600', color: '#2563FF' },
+  editToggleText: { fontSize: 13, fontWeight: '600', color: '#000000' },
 
   content: { padding: 20, gap: 0, paddingBottom: 48 },
   sectionLabel: {
-    fontSize: 11, fontWeight: '600', color: '#64748B',
+    fontSize: 11, fontWeight: '600', color: '#616A76',
     textTransform: 'uppercase', letterSpacing: 0.6,
     marginTop: 20, marginBottom: 8,
   },
@@ -1087,7 +1087,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     padding: 16,
     gap: 12,
   },
@@ -1097,17 +1097,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     padding: 20,
     gap: 8,
     marginBottom: 0,
   },
-  heroName: { fontSize: 24, fontWeight: '700', color: '#0A1B33' },
+  heroName: { fontSize: 24, fontWeight: '700', color: '#000000' },
   heroNameInput: {
-    fontSize: 22, fontWeight: '700', color: '#0A1B33',
-    borderBottomWidth: 1.5, borderBottomColor: '#2563FF', paddingBottom: 4,
+    fontSize: 22, fontWeight: '700', color: '#000000',
+    borderBottomWidth: 1.5, borderBottomColor: '#000000', paddingBottom: 4,
   },
-  heroMeta: { fontSize: 13, color: '#94A3B8' },
+  heroMeta: { fontSize: 13, color: '#878E97' },
   heroActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
 
   // Status dropdown
@@ -1129,45 +1129,45 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12, shadowRadius: 24, elevation: 12,
   },
   statusSheetTitle: {
-    fontSize: 13, fontWeight: '600', color: '#64748B',
+    fontSize: 13, fontWeight: '600', color: '#616A76',
     textTransform: 'uppercase', letterSpacing: 0.5,
     paddingHorizontal: 20, paddingTop: 18, paddingBottom: 10,
   },
   statusSheetOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 20, paddingVertical: 16,
-    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    borderTopWidth: 1, borderTopColor: '#ECECEC',
   },
   statusSheetText: { flex: 1, fontSize: 15, fontWeight: '600' },
 
   // Info rows
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  infoValue: { fontSize: 15, color: '#1F2937', flex: 1, lineHeight: 22 },
-  infoLink: { color: '#2563FF', textDecorationLine: 'underline' },
+  infoValue: { fontSize: 15, color: '#000000', flex: 1, lineHeight: 22 },
+  infoLink: { color: '#000000', textDecorationLine: 'underline' },
 
   // Technician row
   techRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   techAvatarCircle: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#0A1B33', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center',
   },
   techAvatarText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-  changeLink: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
+  changeLink: { fontSize: 13, color: '#000000', fontWeight: '600' },
 
   // Edit fields
   editField: { gap: 6 },
-  editLabel: { fontSize: 11, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
+  editLabel: { fontSize: 11, fontWeight: '600', color: '#616A76', textTransform: 'uppercase', letterSpacing: 0.5 },
   editInput: {
-    height: 48, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10,
-    paddingHorizontal: 14, fontSize: 15, color: '#1F2937', backgroundColor: '#F8FAFC',
+    height: 48, borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 10,
+    paddingHorizontal: 14, fontSize: 15, color: '#000000', backgroundColor: '#F5F5F5',
   },
   editTextArea: { height: 80, textAlignVertical: 'top', paddingTop: 12 },
-  editHint: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
+  editHint: { fontSize: 12, color: '#878E97', marginTop: 2 },
   editErrorText: { fontSize: 13, color: '#DC2626' },
   dateRow: { flexDirection: 'row', alignItems: 'flex-end' },
 
   saveEditsBtn: {
-    height: 52, backgroundColor: '#2563FF', borderRadius: 10,
+    height: 52, backgroundColor: '#000000', borderRadius: 10,
     alignItems: 'center', justifyContent: 'center', marginTop: 12,
   },
   saveEditsBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
@@ -1177,59 +1177,59 @@ const styles = StyleSheet.create({
   noteTextarea: {
     height: 80,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingTop: 12,
     paddingBottom: 24,
     fontSize: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F5F5F5',
     textAlignVertical: 'top',
   },
   noteCounter: {
     position: 'absolute', bottom: 7, right: 10,
-    fontSize: 11, color: '#94A3B8',
+    fontSize: 11, color: '#878E97',
   },
   noteAddBtn: {
     alignSelf: 'flex-end',
     paddingHorizontal: 20, paddingVertical: 8,
-    borderRadius: 8, backgroundColor: '#2563FF',
+    borderRadius: 8, backgroundColor: '#000000',
   },
-  noteAddBtnDisabled: { backgroundColor: '#CBD5E1' },
+  noteAddBtnDisabled: { backgroundColor: '#D4D4D4' },
   noteAddBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   noteCompletedBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     borderWidth: 1, borderRadius: 10, padding: 12, paddingHorizontal: 14,
   },
-  noteCompletedText: { fontSize: 13, color: '#64748B', fontStyle: 'italic', flex: 1 },
+  noteCompletedText: { fontSize: 13, color: '#616A76', fontStyle: 'italic', flex: 1 },
   emptyNotes: { fontSize: 14, textAlign: 'center', paddingVertical: 8 },
   noteItem: {
     borderRadius: 10, padding: 14, paddingHorizontal: 16,
     borderWidth: 1, marginTop: 0,
   },
   noteItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  noteAuthor: { fontSize: 13, fontWeight: '600', color: '#0A1B33' },
+  noteAuthor: { fontSize: 13, fontWeight: '600', color: '#000000' },
   noteDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  noteDateText: { fontSize: 12, color: '#64748B' },
-  noteBody: { fontSize: 14, color: '#1F2937', lineHeight: 22 },
+  noteDateText: { fontSize: 12, color: '#616A76' },
+  noteBody: { fontSize: 14, color: '#000000', lineHeight: 22 },
 
   // Invoice
   invoiceRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  invoiceNumber: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
-  invoiceMeta: { fontSize: 13, color: '#64748B' },
-  invoiceAmount: { fontSize: 18, fontWeight: '700', color: '#0A1B33' },
+  invoiceNumber: { fontSize: 15, fontWeight: '600', color: '#000000' },
+  invoiceMeta: { fontSize: 13, color: '#616A76' },
+  invoiceAmount: { fontSize: 18, fontWeight: '700', color: '#000000' },
   invBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   invBadgeText: { fontSize: 12, fontWeight: '600' },
   generateBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingVertical: 14, justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#2563FF', borderRadius: 10, backgroundColor: '#EEF4FF',
+    borderWidth: 1.5, borderColor: '#000000', borderRadius: 10, backgroundColor: '#ECECEC',
   },
-  generateBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+  generateBtnText: { fontSize: 14, color: '#000000', fontWeight: '600' },
 
   // Images
   imagesHeader: { flexDirection: 'row', justifyContent: 'flex-end' },
-  imageCount: { fontSize: 13, color: '#64748B' },
+  imageCount: { fontSize: 13, color: '#616A76' },
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12,
@@ -1237,13 +1237,13 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: '#DC2626', flex: 1 },
   uploadBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1.5, borderColor: '#2563FF', borderStyle: 'dashed',
-    borderRadius: 10, paddingVertical: 14, backgroundColor: '#EEF4FF',
+    borderWidth: 1.5, borderColor: '#000000', borderStyle: 'dashed',
+    borderRadius: 10, paddingVertical: 14, backgroundColor: '#ECECEC',
   },
-  uploadBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+  uploadBtnText: { fontSize: 14, color: '#000000', fontWeight: '600' },
   noImages: { alignItems: 'center', paddingVertical: 20, gap: 8 },
-  noImagesText: { fontSize: 14, color: '#94A3B8' },
+  noImagesText: { fontSize: 14, color: '#878E97' },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   lockHint: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4 },
-  lockHintText: { fontSize: 12, color: '#94A3B8', fontStyle: 'italic' },
+  lockHintText: { fontSize: 12, color: '#878E97', fontStyle: 'italic' },
 });

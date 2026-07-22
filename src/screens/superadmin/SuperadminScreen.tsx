@@ -29,10 +29,10 @@ import {
 } from '../../lib/superadminApi';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
-const NAVY = '#0A1B33';
-const EBLUE = '#2563FF';
+const NAVY = '#000000';
+const EBLUE = '#000000';
 const GREEN = '#15803D';
-const GRAY = '#64748B';
+const GRAY = '#616A76';
 const RED = '#DC2626';
 
 // ── Status-badge (abonnement) ────────────────────────────────────────────────
@@ -41,9 +41,9 @@ function statusColors(status: SubStatus): { fg: string; bg: string } {
     case 'active':
       return { fg: GREEN, bg: '#F0FDF4' };
     case 'trial':
-      return { fg: EBLUE, bg: '#EEF4FF' };
+      return { fg: EBLUE, bg: '#ECECEC' };
     case 'canceled':
-      return { fg: GRAY, bg: '#F1F5F9' };
+      return { fg: GRAY, bg: '#ECECEC' };
     case 'expired':
       return { fg: RED, bg: '#FEF2F2' };
   }
@@ -65,7 +65,7 @@ function billingColors(status: BillingStatus): { fg: string; bg: string } {
     case 'fakturert':
       return { fg: '#C2410C', bg: '#FFF7ED' };
     case 'ikke_fakturert':
-      return { fg: GRAY, bg: '#F1F5F9' };
+      return { fg: GRAY, bg: '#ECECEC' };
   }
 }
 
@@ -577,7 +577,7 @@ function CreateCompanyModal({ visible, onClose }: { visible: boolean; onClose: (
                       <TouchableOpacity
                         key={p}
                         onPress={() => setPlan(sel ? null : p)}
-                        style={[create.planBtn, { borderColor: sel ? EBLUE : C.border }, sel && { backgroundColor: '#EEF4FF' }]}
+                        style={[create.planBtn, { borderColor: sel ? EBLUE : C.border }, sel && { backgroundColor: '#ECECEC' }]}
                       >
                         <Text style={[create.planText, { color: sel ? EBLUE : C.textPrimary }]}>
                           {PLAN_LABELS[p]} ({PLAN_PRICES[p]})
