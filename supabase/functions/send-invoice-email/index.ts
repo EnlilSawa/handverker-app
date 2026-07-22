@@ -22,7 +22,7 @@ const corsHeaders = {
 // U+2212 (typografisk minus fra Intl) → vanlig bindestrek, NBSP/NNBSP → mellomrom,
 // så negative beløp (kreditnota) vises likt i e-post og PDF.
 const fmt = (n: number) =>
-  new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 0 })
+  new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     .format(Number(n))
     .replace(/\u2212/g, '-')
     .replace(/[\u00A0\u202F]/g, ' ') + ' kr';
@@ -30,76 +30,46 @@ const fmt = (n: number) =>
 const fmtDate = (s: string) =>
   new Date(s).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' });
 
-interface LineItem { description: string; amount: number }
-
 // Ren tekst-versjon. Multipart (tekst + HTML) gir lavere spam-score hos Outlook/Gmail.
+// Kort og ren (2026-07-22): all spesifikasjon og betalingsinfo (KID/kontonummer)
+// bor i PDF-vedlegget — e-posten er kun et følgebrev.
 function invoiceText(invoice: any, company: any): string {
-  const lines = ((invoice.line_items as LineItem[]) ?? [])
-    .map((li) => `- ${li.description}: ${fmt(li.amount)}`)
-    .join('\n');
   return [
-    `Faktura ${invoice.invoice_number} fra ${company.name}`,
-    '',
     `Hei ${invoice.customer_name},`,
-    `Her er faktura ${invoice.invoice_number} fra ${company.name}.`,
     '',
-    'Spesifikasjon:',
-    lines,
+    `Du har mottatt en faktura fra ${company.name}. Fakturaen ligger vedlagt som PDF.`,
     '',
-    `Sum eks. MVA: ${fmt(invoice.subtotal_ex_vat)}`,
-    `MVA 25%: ${fmt(invoice.vat)}`,
-    `Totalt inkl. MVA: ${fmt(invoice.total)}`,
+    `Beløp: ${fmt(invoice.total)} — forfall ${fmtDate(invoice.due_date)}.`,
     '',
-    `Forfallsdato: ${fmtDate(invoice.due_date)}`,
-    company.account_number ? `Kontonummer: ${company.account_number}` : '',
-    '',
-    'Fakturaen er også vedlagt som PDF.',
+    'Har du spørsmål? Svar på denne e-posten.',
     '',
     'Med vennlig hilsen',
     company.name,
-    company.email || 'kontakt@efero.no',
   ].join('\n');
 }
 
 // ── Kreditnota (credits_invoice_id satt) ─────────────────────────────────────
-// Eget innhold: forklarer at den krediterer originalfakturaen med årsak.
-// INGEN betalingsinformasjon, forfallsdato eller beløp-å-betale — en kreditnota
-// er ikke et betalingskrav.
+// Eget følgebrev: forklarer at den krediterer originalfakturaen med årsak.
+// INGEN betalingsinformasjon/forfall — en kreditnota er ikke et betalingskrav.
+// Kort og ren (2026-07-22): spesifikasjonen bor i PDF-vedlegget.
 function creditNoteText(invoice: any, company: any, originalNumber: string | null): string {
-  const lines = ((invoice.line_items as LineItem[]) ?? [])
-    .map((li) => `- ${li.description}: ${fmt(li.amount)}`)
-    .join('\n');
   const credits = originalNumber ? `faktura ${originalNumber}` : 'originalfakturaen';
   return [
-    `Kreditnota ${invoice.invoice_number} fra ${company.name}`,
-    '',
     `Hei ${invoice.customer_name},`,
-    `${company.name} har opprettet kreditnota ${invoice.invoice_number} som krediterer ${credits}. Fakturaen er dermed nullet ut og skal ikke betales.`,
+    '',
+    `${company.name} har opprettet kreditnota ${invoice.invoice_number} som krediterer ${credits}. Fakturaen er dermed nullet ut og skal ikke betales. Kreditnotaen ligger vedlagt som PDF.`,
     invoice.credit_reason ? `Årsak: ${invoice.credit_reason}` : '',
     '',
-    'Spesifikasjon:',
-    lines,
+    `Beløp: ${fmt(invoice.total)}.`,
     '',
-    `Sum eks. MVA: ${fmt(invoice.subtotal_ex_vat)}`,
-    `MVA 25%: ${fmt(invoice.vat)}`,
-    `Totalt inkl. MVA: ${fmt(invoice.total)}`,
-    '',
-    'Kreditnotaen er også vedlagt som PDF.',
+    'Har du spørsmål? Svar på denne e-posten.',
     '',
     'Med vennlig hilsen',
     company.name,
-    company.email || 'kontakt@efero.no',
   ].join('\n');
 }
 
 function creditNoteHtml(invoice: any, company: any, originalNumber: string | null): string {
-  const lineRows = ((invoice.line_items as LineItem[]) ?? [])
-    .map(
-      (item) => `
-      <div class="info-row"><span>${item.description}</span><span>${fmt(item.amount)}</span></div>`,
-    )
-    .join('');
-
   const credits = originalNumber ? `faktura <strong>${originalNumber}</strong>` : 'originalfakturaen';
 
   return `
@@ -115,12 +85,7 @@ function creditNoteHtml(invoice: any, company: any, originalNumber: string | nul
   .greeting { font-size: 16px; margin: 0 0 8px; }
   p { font-size: 16px; line-height: 1.6; margin: 0 0 16px; color: #1F2937; }
   .reason-box { background: #F5F3FF; border-radius: 12px; padding: 14px 18px; margin: 0 0 16px; font-size: 15px; color: #5B21B6; }
-  .section-label { font-size: 12px; font-weight: 700; color: #64748B; letter-spacing: 0.5px; margin: 28px 0 8px; }
-  .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #F1F5F9; font-size: 15px; }
-  .sub-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; color: #64748B; }
-  .total-box { background: #F5F3FF; border-radius: 12px; padding: 18px 20px; margin: 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
-  .total-box .label { font-size: 15px; font-weight: 600; color: #0A1B33; }
-  .total-box .value { font-size: 26px; font-weight: 700; color: #7C3AED; }
+  .amount-line { font-size: 16px; font-weight: 600; color: #0A1B33; margin: 0 0 16px; }
   .footer { background: #F8FAFC; padding: 24px 32px; text-align: center; font-size: 13px; color: #94A3B8; border-top: 1px solid #E2E8F0; }
 </style></head>
 <body>
@@ -129,23 +94,11 @@ function creditNoteHtml(invoice: any, company: any, originalNumber: string | nul
     <div class="content">
       <p class="greeting">Hei ${invoice.customer_name},</p>
       <p>${company.name} har opprettet kreditnota <strong>${invoice.invoice_number}</strong> som
-      krediterer ${credits}. Fakturaen er dermed nullet ut og skal ikke betales.</p>
+      krediterer ${credits}. Fakturaen er dermed nullet ut og skal ikke betales.
+      Kreditnotaen ligger vedlagt som PDF.</p>
       ${invoice.credit_reason ? `<div class="reason-box"><strong>Årsak:</strong> ${invoice.credit_reason}</div>` : ''}
-
-      <div class="section-label">SPESIFIKASJON</div>
-      ${lineRows}
-
-      <div class="sub-row"><span>Sum eks. MVA</span><span>${fmt(invoice.subtotal_ex_vat)}</span></div>
-      <div class="sub-row"><span>MVA 25%</span><span>${fmt(invoice.vat)}</span></div>
-
-      <div class="total-box">
-        <span class="label">Totalt inkl. MVA</span>
-        <span class="value">${fmt(invoice.total)}</span>
-      </div>
-
-      <p style="font-size:13px;color:#94A3B8;margin-top:24px;">
-        Kreditnotaen er også vedlagt som PDF. Har du spørsmål? Svar på denne e-posten.
-      </p>
+      <p class="amount-line">Beløp: ${fmt(invoice.total)}</p>
+      <p style="font-size:13px;color:#94A3B8;margin-top:24px;">Har du spørsmål? Svar på denne e-posten.</p>
     </div>
     <div class="footer">Generert av Efero for ${company.name}</div>
   </div>
@@ -153,18 +106,9 @@ function creditNoteHtml(invoice: any, company: any, originalNumber: string | nul
 </html>`;
 }
 
+// Kort og rent følgebrev (2026-07-22): all spesifikasjon og betalingsinfo
+// (KID/kontonummer) bor i PDF-vedlegget.
 function invoiceHtml(invoice: any, company: any): string {
-  const lineRows = (invoice.line_items as LineItem[])
-    .map(
-      (item) => `
-      <div class="info-row"><span>${item.description}</span><span>${fmt(item.amount)}</span></div>`,
-    )
-    .join('');
-
-  const paymentInfo = company.account_number
-    ? `<div class="info-row"><span>Kontonummer</span><strong>${company.account_number}</strong></div>`
-    : '';
-
   return `
 <!DOCTYPE html>
 <html lang="no">
@@ -176,13 +120,7 @@ function invoiceHtml(invoice: any, company: any): string {
   .content { padding: 32px; }
   .greeting { font-size: 16px; margin: 0 0 8px; }
   p { font-size: 16px; line-height: 1.6; margin: 0 0 16px; color: #1F2937; }
-  .section-label { font-size: 12px; font-weight: 700; color: #64748B; letter-spacing: 0.5px; margin: 28px 0 8px; }
-  .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #F1F5F9; font-size: 15px; }
-  .sub-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; color: #64748B; }
-  .total-box { background: #EEF4FF; border-radius: 12px; padding: 18px 20px; margin: 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
-  .total-box .label { font-size: 15px; font-weight: 600; color: #0A1B33; }
-  .total-box .value { font-size: 26px; font-weight: 700; color: #2563FF; }
-  .due { margin-top: 24px; font-size: 15px; color: #1F2937; }
+  .amount-line { font-size: 16px; font-weight: 600; color: #0A1B33; margin: 0 0 16px; }
   .footer { background: #F8FAFC; padding: 24px 32px; text-align: center; font-size: 13px; color: #94A3B8; border-top: 1px solid #E2E8F0; }
 </style></head>
 <body>
@@ -190,29 +128,9 @@ function invoiceHtml(invoice: any, company: any): string {
     <div class="header"><h1>${company.name}</h1></div>
     <div class="content">
       <p class="greeting">Hei ${invoice.customer_name},</p>
-      <p>Her er faktura <strong>${invoice.invoice_number}</strong> fra ${company.name}.</p>
-
-      <div class="section-label">SPESIFIKASJON</div>
-      ${lineRows}
-
-      <div class="sub-row"><span>Sum eks. MVA</span><span>${fmt(invoice.subtotal_ex_vat)}</span></div>
-      <div class="sub-row"><span>MVA 25%</span><span>${fmt(invoice.vat)}</span></div>
-
-      <div class="total-box">
-        <span class="label">Totalt inkl. MVA</span>
-        <span class="value">${fmt(invoice.total)}</span>
-      </div>
-
-      <p class="due"><strong>Forfallsdato:</strong> ${fmtDate(invoice.due_date)}</p>
-
-      <div class="section-label">BETALINGSINFORMASJON</div>
-      ${paymentInfo}
-      <div class="info-row"><span>Forfall</span><strong>${fmtDate(invoice.due_date)}</strong></div>
-      <div class="info-row"><span>Beløp å betale</span><strong>${fmt(invoice.total)}</strong></div>
-
-      <p style="font-size:13px;color:#94A3B8;margin-top:24px;">
-        Fakturaen er også vedlagt som PDF. Har du spørsmål? Svar på denne e-posten.
-      </p>
+      <p>Du har mottatt en faktura fra ${company.name}. Fakturaen ligger vedlagt som PDF.</p>
+      <p class="amount-line">Beløp: ${fmt(invoice.total)} — forfall ${fmtDate(invoice.due_date)}</p>
+      <p style="font-size:13px;color:#94A3B8;margin-top:24px;">Har du spørsmål? Svar på denne e-posten.</p>
     </div>
     <div class="footer">Generert av Efero for ${company.name}</div>
   </div>

@@ -1,6 +1,15 @@
 import { Invoice, Company } from '../types';
 // Delt pdf-trygg beløpsformatter (vanlig bindestrek for negative tall — kreditnota).
-import { formatInvoiceAmount as fmt } from './formatters';
+// fmt = med «kr»-suffiks (brukes ikke i tabellen), fmtNum = rent tall to desimaler.
+import { formatPlainAmount as fmtNum } from './formatters';
+
+// Valgfrie tilleggsdata fra jobben — vises i venstre midtblokk når de finnes.
+export interface InvoicePdfExtras {
+  /** Jobbadressen (leveringsadresse). */
+  deliveryAddress?: string | null;
+  /** Tildelt tekniker («Vår kontakt»). */
+  ourContact?: string | null;
+}
 
 function fmtDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('nb-NO', {
@@ -29,27 +38,39 @@ const STATUS_BG: Record<string, string> = {
   credited: '#F1F5F9',
 };
 
+// Norsk standardoppsett: kunde øverst til venstre (vinduskonvolutt), logo +
+// firmainfo øverst til høyre, dokumentblokk med nøkkelfelt og betalings-
+// informasjon på høyre side, linjetabell med mva-kolonner, og bunnlinje
+// «Betales til bankkonto …» / «NOK <total>».
 export function generateInvoiceHtml(
   invoice: Invoice,
   company: Company | null,
   linkedInvoiceNumber?: string,
+  extras?: InvoicePdfExtras,
 ): string {
+  // Kreditnota (credits_invoice_id satt): «KREDITNOTA»-tittel, referanse til
+  // originalen + årsak, ingen betalingsinformasjon (ikke et betalingskrav).
+  const isCreditNote = !!invoice.creditsInvoiceId;
+  const statusLabel = isCreditNote ? 'Kreditnota' : (STATUS_LABEL[invoice.status] ?? invoice.status);
+  const statusColor = isCreditNote ? '#7C3AED' : (STATUS_COLOR[invoice.status] ?? '#64748B');
+  const statusBg = isCreditNote ? '#F5F3FF' : (STATUS_BG[invoice.status] ?? '#F1F5F9');
+  const showKid = !isCreditNote && !!invoice.kid;
+
+  // Linjetabell: Enh.pris/Beløp ekskl. mva fra linjedata; mva- og inkl.-kolonnen
+  // beregnes per linje (25 %) — sum-raden bruker fakturaens autoritative totaler.
   const lineItemsHtml = invoice.lineItems
     .map(
       (item) => `
       <tr>
         <td>${item.description}</td>
-        <td class="right">${fmt(item.amount)}</td>
+        <td class="num">${item.unitPrice != null ? fmtNum(item.unitPrice) : ''}</td>
+        <td class="num">${fmtNum(item.amount)}</td>
+        <td class="num">${fmtNum(item.amount * 0.25)}</td>
+        <td class="num">${fmtNum(item.amount * 1.25)}</td>
       </tr>`
     )
     .join('');
 
-  // Kreditnota (credits_invoice_id satt): «KREDITNOTA»-tittel i stedet for status,
-  // referanselinje til originalen, ingen forfall/betalingsfrist.
-  const isCreditNote = !!invoice.creditsInvoiceId;
-  const statusLabel = isCreditNote ? 'Kreditnota' : (STATUS_LABEL[invoice.status] ?? invoice.status);
-  const statusColor = isCreditNote ? '#7C3AED' : (STATUS_COLOR[invoice.status] ?? '#64748B');
-  const statusBg = isCreditNote ? '#F5F3FF' : (STATUS_BG[invoice.status] ?? '#F1F5F9');
   const refLine = isCreditNote
     ? linkedInvoiceNumber
       ? `Krediterer faktura ${linkedInvoiceNumber}`
@@ -57,6 +78,11 @@ export function generateInvoiceHtml(
     : invoice.status === 'credited' && linkedInvoiceNumber
       ? `Kreditert av ${linkedInvoiceNumber}`
       : null;
+
+  // Bunnlinje (aldri på kreditnota): «Betales til bankkonto <kontonr>, KID: <kid>».
+  const payLine = !isCreditNote && company?.accountNumber
+    ? `Betales til bankkonto ${company.accountNumber}${showKid ? `, KID: ${invoice.kid}` : ''}`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="no">
@@ -69,160 +95,175 @@ export function generateInvoiceHtml(
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
       color: #1F2937;
       background: #ffffff;
-      padding: 48px;
+      padding: 40px 48px;
       max-width: 760px;
       margin: 0 auto;
-      font-size: 14px;
-      line-height: 1.5;
+      font-size: 13px;
+      line-height: 1.45;
     }
 
-    /* Header */
-    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
-    .company-name { font-size: 22px; font-weight: 700; color: #0A1B33; }
-    .company-detail { font-size: 13px; color: #64748B; margin-top: 3px; }
-    .invoice-meta { text-align: right; }
-    .invoice-number { font-size: 18px; font-weight: 700; color: #0A1B33; }
+    /* To kolonner: kunde/levering/kontakt til venstre, logo/firma/dokumentblokk til høyre */
+    .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 32px; }
+    .top-left { max-width: 46%; }
+    .top-right { text-align: right; max-width: 50%; }
+
+    .customer-name { font-size: 15px; font-weight: 700; color: #0A1B33; }
+    .customer-detail { font-size: 13px; color: #1F2937; }
+
+    .block-label {
+      font-size: 10px; font-weight: 700; color: #94A3B8;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;
+    }
+    .mid-block { margin-top: 18px; }
+
+    .company-info { font-size: 12px; color: #64748B; margin-top: 6px; }
+    .company-info .company-name { font-size: 13px; font-weight: 700; color: #0A1B33; }
+
+    .doc-title { font-size: 26px; font-weight: 700; letter-spacing: 1px; color: #0A1B33; margin-top: 16px; }
+    .doc-title.credit { color: #7C3AED; }
     .status-badge {
-      display: inline-block; margin-top: 8px;
-      padding: 4px 12px; border-radius: 20px;
+      display: inline-block; margin-top: 6px;
+      padding: 3px 12px; border-radius: 20px;
       font-size: 12px; font-weight: 700;
       color: ${statusColor}; background: ${statusBg};
     }
 
-    /* From/To */
-    .parties { display: flex; justify-content: space-between; margin-bottom: 28px; }
-    .party { }
-    .party-right { text-align: right; }
-    .party-label {
-      font-size: 10px; font-weight: 700; color: #94A3B8;
-      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;
-    }
-    .party-name { font-size: 15px; font-weight: 600; color: #0A1B33; }
-    .party-detail { font-size: 13px; color: #64748B; margin-top: 2px; }
+    .kv { margin-top: 10px; font-size: 13px; }
+    .kv-row { display: flex; justify-content: flex-end; gap: 12px; padding: 1px 0; }
+    .kv-label { color: #64748B; }
+    .kv-value { color: #0A1B33; min-width: 110px; text-align: right; }
+    .kv-value.strong { font-weight: 700; }
 
-    /* Dates */
-    .dates {
-      display: flex; gap: 40px; margin-bottom: 28px;
-      padding: 14px 0; border-top: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0;
-    }
-    .date-label { font-size: 10px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .date-value { font-size: 14px; font-weight: 500; color: #1F2937; }
+    .payinfo { margin-top: 12px; padding-top: 8px; border-top: 1px solid #E2E8F0; }
+    .payinfo-title { font-size: 13px; font-weight: 700; color: #0A1B33; margin-bottom: 2px; }
+    .kid-nb { margin-top: 6px; font-size: 12px; font-weight: 700; color: #0A1B33; }
+    .mark-payment { margin-top: 6px; font-size: 12px; color: #64748B; }
 
-    /* Line items */
-    .section-title {
-      font-size: 10px; font-weight: 700; color: #94A3B8;
-      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
-    }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    .credit-ref { margin-top: 12px; font-size: 13px; font-weight: 600; font-style: italic; color: #7C3AED; }
+    .credit-reason { margin-top: 4px; font-size: 12px; color: #64748B; }
+    .credited-by { margin-top: 6px; font-size: 12px; font-weight: 600; font-style: italic; color: #64748B; }
+
+    /* Linjetabell */
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
     thead th {
-      text-align: left; font-size: 11px; font-weight: 600; color: #64748B;
-      text-transform: uppercase; letter-spacing: 0.4px;
-      padding: 0 0 10px; border-bottom: 1px solid #E2E8F0;
+      text-align: right; font-size: 10px; font-weight: 700; color: #64748B;
+      text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.3;
+      padding: 0 0 8px 12px; border-bottom: 1px solid #E2E8F0; vertical-align: bottom;
     }
-    thead th.right { text-align: right; }
-    tbody td { padding: 11px 0; border-bottom: 1px solid #F1F5F9; }
-    tbody td.right { text-align: right; }
+    thead th.desc { text-align: left; padding-left: 0; }
+    thead th .sub { display: block; font-weight: 500; text-transform: none; color: #94A3B8; }
+    tbody td { padding: 9px 0 9px 12px; border-bottom: 1px solid #F1F5F9; font-size: 13px; }
+    tbody td:first-child { padding-left: 0; }
+    td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    tfoot td { padding: 10px 0 0 12px; font-weight: 700; color: #0A1B33; border-top: 2px solid #0A1B33; }
+    tfoot td:first-child { padding-left: 0; }
 
-    /* Totals */
-    .totals-section { margin-left: auto; width: 300px; }
-    .total-row { display: flex; justify-content: space-between; padding: 5px 0; color: #64748B; font-size: 14px; }
-    hr.divider { border: none; border-top: 1px solid #E2E8F0; margin: 10px 0; }
-    .grand-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
-    .grand-label { font-size: 14px; font-weight: 700; color: #0A1B33; }
-    .grand-value { font-size: 26px; font-weight: 700; color: #2563FF; }
+    .note { font-size: 12px; font-style: italic; color: #64748B; margin: 6px 0 0; }
 
-    /* Footer */
-    .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #E2E8F0; color: #94A3B8; font-size: 12px; }
-    .footer p + p { margin-top: 4px; }
+    /* Bunnlinje: betalingslinje + NOK-total RETT under Sum-raden (følger
+       innholdet, ikke arket), adskilt med strek og litt luft */
+    .payline {
+      margin-top: 14px; padding-top: 12px; border-top: 1.5px solid #0A1B33;
+      display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    }
+    .payline-left { font-size: 13px; color: #0A1B33; }
+    .payline-total { font-size: 19px; font-weight: 700; color: #0A1B33; white-space: nowrap; }
+    .generated { margin-top: 10px; text-align: right; font-size: 10px; color: #CBD5E1; }
 
     @media print {
       body { padding: 0; }
-      @page { margin: 2cm; size: A4; }
+      @page { margin: 1.8cm; size: A4; }
+      /* Diskret signatur nederst på arket */
+      .generated { position: fixed; bottom: 0; right: 0; margin: 0; }
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <div class="header">
-    <div>
-      ${company?.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="height: 52px; max-width: 160px; object-fit: contain; margin-bottom: 8px; display: block;" />` : ''}
-      <div class="company-name">${company?.name ?? 'Efero'}</div>
-      ${company?.orgNumber ? `<div class="company-detail">Org.nr: ${company.orgNumber}</div>` : ''}
-      ${company?.address ? `<div class="company-detail">${company.address}</div>` : ''}
+  <div class="top">
+    <!-- Venstre: kunde (vinduskonvolutt-posisjon) + leveringsadresse + vår kontakt -->
+    <div class="top-left">
+      <div class="customer-name">${invoice.customerName}</div>
+      ${invoice.customerAddress ? `<div class="customer-detail">${invoice.customerAddress}</div>` : ''}
+      ${extras?.deliveryAddress ? `
+      <div class="mid-block">
+        <div class="block-label">Leveringsadresse</div>
+        <div class="customer-detail">${extras.deliveryAddress}</div>
+      </div>` : ''}
+      ${extras?.ourContact ? `
+      <div class="mid-block">
+        <div class="block-label">Vår kontakt</div>
+        <div class="customer-detail">${extras.ourContact}</div>
+      </div>` : ''}
     </div>
-    <div class="invoice-meta">
-      ${isCreditNote ? `<div style="font-size: 13px; font-weight: 700; color: #7C3AED; letter-spacing: 1.5px; margin-bottom: 4px;">KREDITNOTA</div>` : ''}
-      <div class="invoice-number">${invoice.invoiceNumber}</div>
-      <span class="status-badge">${statusLabel}</span>
+
+    <!-- Høyre: logo, firmainfo, dokumentblokk -->
+    <div class="top-right">
+      ${company?.logoUrl ? `<img src="${company.logoUrl}" alt="Logo" style="height: 48px; max-width: 160px; object-fit: contain; object-position: right;" />` : ''}
+      <div class="company-info">
+        <div class="company-name">${company?.name ?? 'Efero'}</div>
+        ${company?.address ? `<div>${company.address}</div>` : ''}
+        ${company?.orgNumber ? `<div>Org.nr: NO ${company.orgNumber} MVA</div>` : ''}
+        ${company?.email ? `<div>${company.email}</div>` : ''}
+      </div>
+
+      <div class="doc-title${isCreditNote ? ' credit' : ''}">${isCreditNote ? 'KREDITNOTA' : 'FAKTURA'}</div>
+      ${!isCreditNote ? `<div><span class="status-badge">${statusLabel}</span></div>` : ''}
+
+      <div class="kv">
+        <div class="kv-row"><span class="kv-label">${isCreditNote ? 'Kreditnotanr.' : 'Fakturanr.'}</span><span class="kv-value strong">${invoice.invoiceNumber}</span></div>
+        <div class="kv-row"><span class="kv-label">${isCreditNote ? 'Dato' : 'Fakturadato'}</span><span class="kv-value">${fmtDate(invoice.createdAt)}</span></div>
+      </div>
+
+      ${!isCreditNote ? `
+      <div class="payinfo">
+        <div class="payinfo-title">Betalingsinformasjon</div>
+        <div class="kv">
+          <div class="kv-row"><span class="kv-label">Forfallsdato</span><span class="kv-value">${fmtDate(invoice.dueDate)}</span></div>
+          ${company?.accountNumber ? `<div class="kv-row"><span class="kv-label">Kontonummer</span><span class="kv-value strong">${company.accountNumber}</span></div>` : ''}
+          ${showKid ? `<div class="kv-row"><span class="kv-label">KID</span><span class="kv-value strong">${invoice.kid}</span></div>` : ''}
+        </div>
+        ${showKid
+          ? `<div class="kid-nb">NB! Oppgi alltid KID ved elektronisk betaling.</div>`
+          : `<div class="mark-payment">Merk betalingen med fakturanummer ${invoice.invoiceNumber}</div>`}
+      </div>` : `
+      <div class="credit-ref">${refLine}</div>
+      ${invoice.creditReason ? `<div class="credit-reason">Årsak: ${invoice.creditReason}</div>` : ''}`}
+      ${!isCreditNote && refLine ? `<div class="credited-by">${refLine}</div>` : ''}
     </div>
   </div>
 
-  <!-- Parties -->
-  <div class="parties">
-    <div class="party">
-      <div class="party-label">Fakturert til</div>
-      <div class="party-name">${invoice.customerName}</div>
-      ${invoice.customerAddress ? `<div class="party-detail">${invoice.customerAddress}</div>` : ''}
-    </div>
-    <div class="party party-right">
-      <div class="party-label">Fra</div>
-      <div class="party-name">${company?.name ?? ''}</div>
-    </div>
-  </div>
-
-  <!-- Dates + Kontonummer -->
-  <div class="dates">
-    <div>
-      <div class="date-label">${isCreditNote ? 'Dato' : 'Fakturadato'}</div>
-      <div class="date-value">${fmtDate(invoice.createdAt)}</div>
-    </div>
-    ${!isCreditNote ? `
-    <div>
-      <div class="date-label">Forfall</div>
-      <div class="date-value">${fmtDate(invoice.dueDate)}</div>
-    </div>` : ''}
-    ${company?.accountNumber ? `
-    <div>
-      <div class="date-label">Kontonummer</div>
-      <div class="date-value" style="font-weight: 700; color: #0A1B33; letter-spacing: 0.5px;">${company.accountNumber}</div>
-    </div>` : ''}
-  </div>
-  ${refLine ? `<div style="margin: -14px 0 ${isCreditNote && invoice.creditReason ? '6px' : '24px'}; font-size: 13px; font-weight: 600; font-style: italic; color: ${isCreditNote ? '#7C3AED' : '#64748B'};">${refLine}</div>` : ''}
-  ${isCreditNote && invoice.creditReason ? `<div style="margin: 0 0 24px; font-size: 13px; color: #64748B;">Årsak: ${invoice.creditReason}</div>` : ''}
-
-  <!-- Line items -->
-  <div class="section-title">Spesifikasjon</div>
+  <!-- Linjetabell -->
   <table>
     <thead>
       <tr>
-        <th>Beskrivelse</th>
-        <th class="right">Beløp</th>
+        <th class="desc">Beskrivelse</th>
+        <th>Enh.pris<span class="sub">(ekskl. mva)</span></th>
+        <th>Beløp<span class="sub">(ekskl. mva)</span></th>
+        <th>Mva<span class="sub">(25 %)</span></th>
+        <th>Beløp<span class="sub">(inkl. mva)</span></th>
       </tr>
     </thead>
     <tbody>
       ${lineItemsHtml}
-      ${invoice.note ? `<tr><td colspan="2" style="padding: 10px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #64748B; font-style: italic;">${invoice.note}</td></tr>` : ''}
+      ${invoice.note ? `<tr><td colspan="5" style="padding: 9px 0; border-bottom: 1px solid #F1F5F9; font-size: 12px; color: #64748B; font-style: italic;">${invoice.note}</td></tr>` : ''}
     </tbody>
+    <tfoot>
+      <tr>
+        <td>Sum</td>
+        <td></td>
+        <td class="num">${fmtNum(invoice.subtotalExVat)}</td>
+        <td class="num">${fmtNum(invoice.vat)}</td>
+        <td class="num">${fmtNum(invoice.total)}</td>
+      </tr>
+    </tfoot>
   </table>
 
-  <!-- Totals -->
-  <div class="totals-section">
-    <div class="total-row"><span>Sum eks. MVA</span><span>${fmt(invoice.subtotalExVat)}</span></div>
-    <div class="total-row"><span>MVA 25%</span><span>${fmt(invoice.vat)}</span></div>
-    <hr class="divider" />
-    <div class="grand-row">
-      <span class="grand-label">Totalt inkl. MVA</span>
-      <span class="grand-value">${fmt(invoice.total)}</span>
-    </div>
+  <!-- Bunnlinje (kreditnota: ingen betalingslinje) -->
+  <div class="payline">
+    <span class="payline-left">${payLine}</span>
+    <span class="payline-total">NOK ${fmtNum(invoice.total)}</span>
   </div>
-
-  <!-- Footer (kreditnota er ikke et betalingskrav → ingen betalingsfrist) -->
-  <div class="footer">
-    <p style="margin: 0; display: flex; justify-content: space-between;">
-      <span>${isCreditNote ? '' : `Betalingsfrist: ${company?.paymentTermsDays ?? 14} dager netto`}</span>
-      <span style="color: #CBD5E1;">Generert av Efero</span>
-    </p>
-  </div>
+  <div class="generated">Generert av Efero</div>
 </body>
 </html>`;
 }

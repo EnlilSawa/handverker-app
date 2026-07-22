@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemedScreen } from '../../components/ThemedScreen';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAppStore } from '../../store/appStore';
+import { buildKid } from '../../utils/kid';
 
 function SectionHeader({ title }: { title: string }) {
   const { colors: C } = useTheme();
@@ -70,6 +71,7 @@ export function SettingsScreen() {
   const company = useAppStore((s) => s.company);
   const logout = useAppStore((s) => s.logout);
   const updateCompany = useAppStore((s) => s.updateCompany);
+  const setInvoiceStartNumber = useAppStore((s) => s.setInvoiceStartNumber);
   const uploadCompanyLogo = useAppStore((s) => s.uploadCompanyLogo);
   const updateNotificationSettings = useAppStore((s) => s.updateNotificationSettings);
 
@@ -81,6 +83,11 @@ export function SettingsScreen() {
   const [calloutFee, setCalloutFee] = useState(String(company?.calloutFee ?? 350));
   const [paymentTerms, setPaymentTerms] = useState(String(company?.paymentTermsDays ?? 14));
   const [accountNumber, setAccountNumber] = useState(company?.accountNumber ?? '');
+  const [kidEnabled, setKidEnabled] = useState(company?.kidEnabled ?? true);
+  const [kidLength, setKidLength] = useState(String(company?.kidLength ?? 9));
+  const [startNumber, setStartNumber] = useState('');
+  const [startFeedback, setStartFeedback] = useState('');
+  const [startError, setStartError] = useState('');
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
@@ -102,6 +109,8 @@ export function SettingsScreen() {
     setCalloutFee(String(company.calloutFee ?? 350));
     setPaymentTerms(String(company.paymentTermsDays ?? 14));
     setAccountNumber(company.accountNumber ?? '');
+    setKidEnabled(company.kidEnabled ?? true);
+    setKidLength(String(company.kidLength ?? 9));
     setNotif3days(company.notifyReminder3days ?? true);
     setNotifDueToday(company.notifyDueToday ?? true);
     setNotifOverdue1(company.notifyOverdue1day ?? true);
@@ -148,12 +157,44 @@ export function SettingsScreen() {
     }
   };
 
+  const handleKidToggle = async (val: boolean) => {
+    setKidEnabled(val);
+    try {
+      await updateCompany({ kidEnabled: val });
+    } catch {
+      setKidEnabled(!val); // rull tilbake ved feil (samme mønster som varsel-togglene)
+    }
+  };
+
+  const handleSetStartNumber = async () => {
+    setStartError('');
+    setStartFeedback('');
+    const start = parseInt(startNumber, 10);
+    if (isNaN(start) || start < 1) { setStartError('Oppgi et gyldig tall'); return; }
+    if (company?.nextInvoiceSeq != null && start <= company.nextInvoiceSeq) {
+      setStartError(`Startnummeret må være høyere enn dagens teller (${company.nextInvoiceSeq})`);
+      return;
+    }
+    try {
+      await setInvoiceStartNumber(start);
+      setStartNumber('');
+      setStartFeedback(`Neste faktura får nummer ${start}`);
+    } catch (e: any) {
+      setStartError(e.message ?? 'Kunne ikke sette startnummer');
+    }
+  };
+
   const handleSave = async () => {
     setSaveError('');
     const rate = parseFloat(hourlyRate);
     const callout = parseFloat(calloutFee);
     const terms = parseInt(paymentTerms, 10);
     if (isNaN(rate) || isNaN(callout) || isNaN(terms)) return;
+    const kidLen = parseInt(kidLength, 10);
+    if (isNaN(kidLen) || kidLen < 4 || kidLen > 25) {
+      setSaveError('KID-lengde må være mellom 4 og 25 siffer');
+      return;
+    }
     try {
       await updateCompany({
         name: name.trim(),
@@ -163,7 +204,8 @@ export function SettingsScreen() {
         hourlyRate: rate,
         calloutFee: callout,
         paymentTermsDays: terms,
-        accountNumber: accountNumber.trim() || null });
+        accountNumber: accountNumber.trim() || null,
+        kidLength: kidLen });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e: any) {
@@ -237,6 +279,55 @@ export function SettingsScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
+          <SectionHeader title="FAKTURANUMMER & KID" />
+          <Text style={[{ fontSize: 13, color: C.textTertiary, marginTop: -4 }]}>
+            {company?.nextInvoiceSeq != null
+              ? `Neste faktura får nummer ${company.nextInvoiceSeq}. Serien er ubrutt (bokføringsloven) og kan bare flyttes fremover.`
+              : 'Fakturaer nummereres fortløpende per firma.'}
+          </Text>
+
+          <FieldInput
+            label="Nytt startnummer (valgfritt)"
+            value={startNumber}
+            onChangeText={(t: string) => { setStartNumber(t); setStartError(''); setStartFeedback(''); }}
+            keyboardType="numeric"
+            placeholder={company?.nextInvoiceSeq != null ? `Høyere enn ${company.nextInvoiceSeq}` : 'F.eks. 1000'}
+          />
+          {startError ? <Text style={styles.kidErrorText}>{startError}</Text> : null}
+          {startFeedback ? <Text style={styles.kidOkText}>{startFeedback}</Text> : null}
+          <TouchableOpacity style={styles.startNumBtn} onPress={handleSetStartNumber} disabled={!startNumber.trim()}>
+            <Text style={[styles.startNumBtnText, !startNumber.trim() && { opacity: 0.5 }]}>Sett startnummer</Text>
+          </TouchableOpacity>
+
+          <NotifToggle
+            label="KID på fakturaer"
+            description="På som standard — hver ny faktura får automatisk unik KID. Slå av hvis firmaet mangler KID/OCR-avtale med banken; kunden bes da merke betalingen med fakturanummeret."
+            value={kidEnabled}
+            onChange={handleKidToggle}
+          />
+          {kidEnabled ? (
+            <>
+              <FieldInput
+                label="KID-lengde (totalt antall siffer, 4–25)"
+                value={kidLength}
+                onChangeText={setKidLength}
+                keyboardType="numeric"
+                placeholder="9"
+              />
+              {(() => {
+                const len = parseInt(kidLength, 10);
+                if (isNaN(len) || len < 4 || len > 25 || company?.nextInvoiceSeq == null) return null;
+                return (
+                  <Text style={[{ fontSize: 13, color: C.textTertiary }]}>
+                    Eksempel: faktura {company.nextInvoiceSeq} får KID {buildKid(company.nextInvoiceSeq, len)}
+                  </Text>
+                );
+              })()}
+            </>
+          ) : null}
+        </View>
+
+        <View style={[styles.card, { backgroundColor: C.cardBg, borderColor: C.border }]}>
           <SectionHeader title="VARSLER" />
           <Text style={[{ fontSize: 13, color: C.textTertiary, marginTop: -4 }]}>
             E-postvarsler sendes automatisk til kunden basert på forfallsdato.
@@ -304,6 +395,13 @@ const styles = StyleSheet.create({
     gap: 8, paddingVertical: 12, borderRadius: 10,
     borderWidth: 1.5, borderColor: '#2563FF', backgroundColor: '#EEF4FF' },
   uploadLogoBtnText: { fontSize: 14, color: '#2563FF', fontWeight: '600' },
+  startNumBtn: {
+    alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 16,
+    borderRadius: 8, borderWidth: 1, borderColor: '#2563FF', backgroundColor: '#EEF4FF',
+  },
+  startNumBtnText: { fontSize: 13, color: '#2563FF', fontWeight: '600' },
+  kidErrorText: { fontSize: 13, color: '#DC2626' },
+  kidOkText: { fontSize: 13, color: '#15803D' },
   header: {
     paddingHorizontal: 24,
     paddingVertical: 20,

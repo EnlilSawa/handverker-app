@@ -91,6 +91,7 @@ function mapInvoice(row: any): Invoice {
     lastReminderSentAt: row.last_reminder_sent_at ?? null,
     creditsInvoiceId: row.credits_invoice_id ?? null,
     creditReason: row.credit_reason ?? null,
+    kid: row.kid ?? null,
   };
 }
 
@@ -106,6 +107,9 @@ function mapCompany(row: any): Company {
     email: row.email ?? null,
     logoUrl: row.logo_url ?? null,
     accountNumber: row.account_number ?? null,
+    kidEnabled: row.kid_enabled ?? true,
+    kidLength: row.kid_length != null ? Number(row.kid_length) : 9,
+    nextInvoiceSeq: row.next_invoice_seq != null ? Number(row.next_invoice_seq) : undefined,
     trialEndsAt: row.trial_ends_at ?? undefined,
     subscriptionStatus: row.subscription_status ?? undefined,
     onboardingCompleted: row.onboarding_completed ?? false,
@@ -301,6 +305,7 @@ interface AppState {
   sendWelcomeEmail: () => Promise<void>;
 
   updateCompany: (updates: Partial<Company>) => Promise<void>;
+  setInvoiceStartNumber: (start: number) => Promise<void>;
   uploadCompanyLogo: (uri: string, mimeType: string) => Promise<void>;
 
   addTechnician: (name: string, email: string, phone: string, password: string) => Promise<void>;
@@ -1095,10 +1100,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     try {
+      // Jobbdata til PDF-ens venstre midtblokk (leveringsadresse + vår kontakt).
+      const invoiceJob = get().jobs.find((j) => j.id === invoice.jobId);
       const pdfBase64 = await generateInvoicePdfBase64(
         { ...invoice, customerEmail: to },
         company,
         linkedNumber,
+        invoiceJob
+          ? { deliveryAddress: invoiceJob.address, ourContact: invoiceJob.assignedTechnicianName }
+          : undefined,
       );
       const { error } = await supabase.functions.invoke('send-invoice-email', {
         body: { invoiceId, pdfBase64 },
@@ -1229,6 +1239,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...(updates.paymentTermsDays !== undefined && { payment_terms_days: updates.paymentTermsDays }),
         ...(updates.email !== undefined && { email: updates.email }),
         ...(updates.accountNumber !== undefined && { account_number: updates.accountNumber }),
+        ...(updates.kidEnabled !== undefined && { kid_enabled: updates.kidEnabled }),
+        ...(updates.kidLength !== undefined && { kid_length: updates.kidLength }),
       })
       .eq('id', companyId);
 
@@ -1236,6 +1248,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set((state) => ({
       company: state.company ? { ...state.company, ...updates } : null,
+    }));
+  },
+
+  setInvoiceStartNumber: async (start) => {
+    // Server-side RPC (v37): flytter telleren KUN fremover (radlåst mot samtidig
+    // fakturagenerering). Feilmeldingen fra RPC-en er norsk og vises direkte.
+    const { data, error } = await supabase.rpc('set_invoice_start_number', { p_start: start });
+    if (error) throw new Error(error.message);
+    set((state) => ({
+      company: state.company ? { ...state.company, nextInvoiceSeq: Number(data) } : null,
     }));
   },
 

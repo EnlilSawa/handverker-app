@@ -48,11 +48,17 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
       : invoices.find((i) => i.creditsInvoiceId === invoice.id)?.invoiceNumber
     : undefined;
 
+  // Jobbdata til PDF-ens venstre midtblokk (leveringsadresse + vår kontakt).
+  const job = useAppStore((s) => s.jobs.find((j) => j.id === invoice?.jobId));
+  const pdfExtras = job
+    ? { deliveryAddress: job.address, ourContact: job.assignedTechnicianName }
+    : undefined;
+
   const handleViewPdf = async () => {
     setPdfLoading(true);
     setFeedback('');
     try {
-      await viewInvoicePdf(invoice!, company, linkedNumber);
+      await viewInvoicePdf(invoice!, company, linkedNumber, pdfExtras);
     } catch (e: any) {
       setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
@@ -64,7 +70,7 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
     setPdfLoading(true);
     setFeedback('');
     try {
-      await downloadInvoicePdf(invoice!, company, linkedNumber);
+      await downloadInvoicePdf(invoice!, company, linkedNumber, pdfExtras);
     } catch (e: any) {
       setFeedback(`PDF feilet: ${e?.message ?? 'Ukjent feil'}`);
     } finally {
@@ -211,6 +217,12 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                     {formatShortDate(invoice.dueDate)}
                   </Text>
                 </View>
+                {!isCreditNote && invoice.kid ? (
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={styles.dateLabel}>KID</Text>
+                    <Text style={styles.accountNumber}>{invoice.kid}</Text>
+                  </View>
+                ) : null}
                 {company?.accountNumber ? (
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.dateLabel}>KONTONUMMER</Text>
@@ -218,6 +230,11 @@ export function InvoicePreviewModal({ invoiceId, onClose }: Props) {
                   </View>
                 ) : null}
               </View>
+              {!isCreditNote && !invoice.kid ? (
+                <Text style={styles.markPaymentText}>
+                  Merk betalingen med fakturanummer {invoice.invoiceNumber}
+                </Text>
+              ) : null}
 
               <View style={styles.divider} />
 
@@ -491,6 +508,7 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 8 },
 
   datesRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  markPaymentText: { fontSize: 12, color: '#64748B', fontStyle: 'italic' },
   dateLabel: { fontSize: 10, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
   dateValue: { fontSize: 14, color: '#1F2937', fontWeight: '500' },
 
