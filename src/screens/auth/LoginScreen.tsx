@@ -8,7 +8,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { EferoLogo } from '../../components/EferoLogo';
 import { useAppStore } from '../../store/appStore';
-import { reportError } from '../../lib/sentry';
 
 interface Props {
   onGoToRegister?: () => void;
@@ -24,18 +23,6 @@ export function LoginScreen({ onGoToRegister, onGoToForgot }: Props) {
   const [error, setError] = useState('');
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  // MIDLERTIDIG SENTRY-TEST (fjernes før merge): 7 trykk på logoen sender en testfeil.
-  const [logoTaps, setLogoTaps] = useState(0);
-  const handleLogoTap = () => {
-    const taps = logoTaps + 1;
-    setLogoTaps(taps);
-    if (taps >= 7) {
-      setLogoTaps(0);
-      reportError(new Error('Sentry-testfeil fra Efero (midlertidig — skal fjernes før merge)'), {
-        action: 'sentryTest',
-      });
-    }
-  };
 
   const handleLogin = async () => {
     setError('');
@@ -60,10 +47,7 @@ export function LoginScreen({ onGoToRegister, onGoToForgot }: Props) {
         >
           {/* Navy header — 35% of screen */}
           <View style={styles.header}>
-            {/* MIDLERTIDIG SENTRY-TEST (fjernes før merge) — Pressable rundt logoen */}
-            <TouchableOpacity activeOpacity={1} onPress={handleLogoTap}>
-              <EferoLogo textColor="#FFFFFF" lineColor="#FFFFFF" size={24} />
-            </TouchableOpacity>
+            <EferoLogo textColor="#FFFFFF" lineColor="#FFFFFF" size={24} />
             <Text style={styles.tagline}>Jobb enkelt. Fakturer raskt.</Text>
           </View>
 
